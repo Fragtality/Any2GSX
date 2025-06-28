@@ -24,6 +24,7 @@ _Releases/
 _Artwork/
 WASM-Module/MSFS/Release
 WASM-Module/MSFS/Debug
+desktop.ini
 
 # Mono auto generated files
 mono_crash.*
