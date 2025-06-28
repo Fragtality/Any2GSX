@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/Components/List/ScrollBar.css"],
+  "sourcesContent": [".scroll-bar {\r\n    float: right;\r\n    position: absolute;\r\n    top: 0;\r\n    right: 5px;\r\n    width: 10px;\r\n    padding: 0;\r\n    margin: 0;\r\n}"],
+  "mappings": ";AAAA,CAAC;AACG,SAAO;AACP,YAAU;AACV,OAAK;AACL,SAAO;AACP,SAAO;AACP,WAAS;AACT,UAAQ;AACZ;",
+  "names": []
+}

@@ -1,0 +1,11 @@
+button.abstract-button.primary {
+    background-color: var(--efb-button-primary);
+}
+
+button.abstract-button.secondary {
+    background-color: var(--efb-button-secondary);
+}
+
+button.abstract-button.tertiary {
+    background-color: var(--efb-background-primary);
+}

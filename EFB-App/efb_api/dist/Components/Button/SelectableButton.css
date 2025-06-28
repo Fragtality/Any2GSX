@@ -1,0 +1,14 @@
+button.abstract-button.selected {
+	background-color: rgba(var(--efb-button-primary-base), 0.5);
+}
+
+.selectable-button {
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
+}
+
+.selectable-button .title {
+	font-size: 0.9rem;
+}

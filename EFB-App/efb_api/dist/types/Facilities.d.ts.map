@@ -1,0 +1,1 @@
+{"version":3,"file":"Facilities.d.ts","sourceRoot":"","sources":["../../src/types/Facilities.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,eAAe,IAAI,mBAAmB,EAAE,QAAQ,EAAE,YAAY,EAAE,MAAM,qBAAqB,CAAC;AAErG,MAAM,WAAW,eAAgB,SAAQ,mBAAmB;IAC3D,QAAQ,EAAE,MAAM,CAAC;CACjB;AAED,MAAM,WAAW,uBAAwB,SAAQ,QAAQ;IACxD,aAAa,EAAE,YAAY,CAAC;CAC5B"}

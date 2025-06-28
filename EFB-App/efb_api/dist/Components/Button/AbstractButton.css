@@ -1,0 +1,39 @@
+button.abstract-button {
+    position: relative;
+
+    height: auto;
+    width: auto;
+    outline-color: transparent;
+
+    transition: outline-color var(--efb-component-transition-delay);
+
+}
+
+button.abstract-button:enabled:hover {
+    outline: solid var(--efb-component-hover-outline-thickness) var(--efb-component-hover-outline-color);
+    outline-offset: var(--efb-component-hover-outline-offset);
+
+    z-index: 3;
+}
+
+button.abstract-button.active {
+    outline: solid var(--efb-component-hover-outline-color) var(--efb-component-hover-outline-thickness);
+    z-index: 3;
+}
+
+button.abstract-button:disabled>.disabled-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100%;
+
+    background: black;
+    z-index: 2;
+    opacity: var(--efb-component-disabled-opacity);
+}
+
+button.abstract-button:enabled>.disabled-layer {
+    display: none;
+}

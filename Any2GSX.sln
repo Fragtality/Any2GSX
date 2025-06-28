@@ -1,0 +1,61 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34607.119
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WASM-Module", "WASM-Module\WASM-Module.vcxproj", "{A5468B35-BBBD-4C55-97ED-81BFE343B0E4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Any2GSX", "Any2GSX\Any2GSX.csproj", "{EB368669-8946-4641-9ED1-3AE9DCD03EE0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PluginInterface", "PluginInterface\PluginInterface.csproj", "{56DA206F-5679-479E-8959-F0C883D6D4EB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Installer", "Installer\Installer.csproj", "{1BA56173-095A-4A24-8F9A-F31924FE34E7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|MSFS = Debug|MSFS
+		Release|Any CPU = Release|Any CPU
+		Release|MSFS = Release|MSFS
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A5468B35-BBBD-4C55-97ED-81BFE343B0E4}.Debug|Any CPU.ActiveCfg = Debug|MSFS
+		{A5468B35-BBBD-4C55-97ED-81BFE343B0E4}.Debug|Any CPU.Build.0 = Debug|MSFS
+		{A5468B35-BBBD-4C55-97ED-81BFE343B0E4}.Debug|MSFS.ActiveCfg = Debug|MSFS
+		{A5468B35-BBBD-4C55-97ED-81BFE343B0E4}.Debug|MSFS.Build.0 = Debug|MSFS
+		{A5468B35-BBBD-4C55-97ED-81BFE343B0E4}.Release|Any CPU.ActiveCfg = Release|MSFS
+		{A5468B35-BBBD-4C55-97ED-81BFE343B0E4}.Release|Any CPU.Build.0 = Release|MSFS
+		{A5468B35-BBBD-4C55-97ED-81BFE343B0E4}.Release|MSFS.ActiveCfg = Release|MSFS
+		{A5468B35-BBBD-4C55-97ED-81BFE343B0E4}.Release|MSFS.Build.0 = Release|MSFS
+		{EB368669-8946-4641-9ED1-3AE9DCD03EE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB368669-8946-4641-9ED1-3AE9DCD03EE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB368669-8946-4641-9ED1-3AE9DCD03EE0}.Debug|MSFS.ActiveCfg = Debug|Any CPU
+		{EB368669-8946-4641-9ED1-3AE9DCD03EE0}.Debug|MSFS.Build.0 = Debug|Any CPU
+		{EB368669-8946-4641-9ED1-3AE9DCD03EE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB368669-8946-4641-9ED1-3AE9DCD03EE0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB368669-8946-4641-9ED1-3AE9DCD03EE0}.Release|MSFS.ActiveCfg = Release|Any CPU
+		{EB368669-8946-4641-9ED1-3AE9DCD03EE0}.Release|MSFS.Build.0 = Release|Any CPU
+		{56DA206F-5679-479E-8959-F0C883D6D4EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{56DA206F-5679-479E-8959-F0C883D6D4EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{56DA206F-5679-479E-8959-F0C883D6D4EB}.Debug|MSFS.ActiveCfg = Debug|Any CPU
+		{56DA206F-5679-479E-8959-F0C883D6D4EB}.Debug|MSFS.Build.0 = Debug|Any CPU
+		{56DA206F-5679-479E-8959-F0C883D6D4EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{56DA206F-5679-479E-8959-F0C883D6D4EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{56DA206F-5679-479E-8959-F0C883D6D4EB}.Release|MSFS.ActiveCfg = Release|Any CPU
+		{56DA206F-5679-479E-8959-F0C883D6D4EB}.Release|MSFS.Build.0 = Release|Any CPU
+		{1BA56173-095A-4A24-8F9A-F31924FE34E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1BA56173-095A-4A24-8F9A-F31924FE34E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1BA56173-095A-4A24-8F9A-F31924FE34E7}.Debug|MSFS.ActiveCfg = Debug|Any CPU
+		{1BA56173-095A-4A24-8F9A-F31924FE34E7}.Debug|MSFS.Build.0 = Debug|Any CPU
+		{1BA56173-095A-4A24-8F9A-F31924FE34E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1BA56173-095A-4A24-8F9A-F31924FE34E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1BA56173-095A-4A24-8F9A-F31924FE34E7}.Release|MSFS.ActiveCfg = Release|Any CPU
+		{1BA56173-095A-4A24-8F9A-F31924FE34E7}.Release|MSFS.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D91CBCAB-7442-45AD-BEDF-A83777006ED5}
+	EndGlobalSection
+EndGlobal

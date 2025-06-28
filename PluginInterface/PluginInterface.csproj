@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>annotations</Nullable>
+    <RootNamespace>Any2GSX.PluginInterface</RootNamespace>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <SourceRevisionId>build$([System.DateTime]::UtcNow.ToString("yyyy.MM.dd.HHmm"))</SourceRevisionId>
+    <Version>0.1.0</Version>
+    <Title>$(AssemblyName)</Title>
+    <Authors>Fragtality</Authors>
+    <Company>Fragtality</Company>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="pwsh -ExecutionPolicy Unrestricted -file &quot;$(ProjectDir)CopyDLL.ps1&quot; $(Configuration) $(SolutionDir) $(ProjectDir) &quot;Any2GSX-Plugins&quot;" />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="CFIT.AppFramework" Version="2025.179.23.2831" />
+    <PackageReference Include="CFIT.AppLogger" Version="2025.174.17.2993" />
+    <PackageReference Include="CFIT.AppTools" Version="2025.174.17.3001" />
+    <PackageReference Include="CFIT.SimConnectLib" Version="2025.174.17.3065" />
+  </ItemGroup>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="pwsh -ExecutionPolicy Unrestricted -file &quot;$(ProjectDir)..\NuPreBuild.ps1&quot; $(SolutionDir) $(ProjectDir) &quot;PluginInterface&quot; &quot;CFIT.AppLogger&quot; &quot;CFIT.AppTools&quot; &quot;CFIT.SimConnectLib&quot; &quot;CFIT.AppFramework&quot;" />
+  </Target>
+
+</Project>

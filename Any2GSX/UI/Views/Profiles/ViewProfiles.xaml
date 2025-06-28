@@ -1,0 +1,177 @@
+﻿<UserControl x:Class="Any2GSX.UI.Views.Profiles.ViewProfiles"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Any2GSX.UI.Views.Profiles"
+             d:DataContext="{d:DesignInstance Type=local:ModelProfiles}"
+             mc:Ignorable="d" 
+             d:DesignHeight="768" d:DesignWidth="800">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../StyleResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="LabelProperty" TargetType="Label" BasedOn="{StaticResource {x:Type Label}}">
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="HorizontalAlignment" Value="Left" />
+                <Setter Property="FontWeight" Value="DemiBold" />
+                <Setter Property="FontSize" Value="12" />
+            </Style>
+            <Style x:Key="LabelValue" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="HorizontalAlignment" Value="Left" />
+                <Setter Property="FontSize" Value="12" />
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid HorizontalAlignment="Stretch">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Grid.Column="0" Grid.Row="0" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>Current Aircraft</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="112"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Column="0" Grid.Row="0" Style="{StaticResource LabelProperty}" ToolTip="The Airline's Name reported by the SimVar 'ATC AIRLINE'.">Airline:</Label>
+                <TextBlock Grid.Column="1" Grid.Row="0" Style="{StaticResource LabelValue}" Text="{Binding CurrentAirline}"/>
+
+                <Label Grid.Column="0" Grid.Row="1" Style="{StaticResource LabelProperty}" ToolTip="The Aircraft's ID reported by the SimVar 'ATC ID'.">ATC ID:</Label>
+                <TextBlock Grid.Column="1" Grid.Row="1" Style="{StaticResource LabelValue}" Text="{Binding CurrentAtcId}"/>
+
+                <Label Grid.Column="0" Grid.Row="2" Style="{StaticResource LabelProperty}" ToolTip="The Aircraft's Name reported by the SimVar 'TITLE' (2020) or 'LIVERY NAME' (2024).">Title/Livery:</Label>
+                <TextBlock Grid.Column="1" Grid.Row="2" Style="{StaticResource LabelValue}" Text="{Binding CurrentTitle}"/>
+
+                <Label Grid.Column="0" Grid.Row="3" Style="{StaticResource LabelProperty}" ToolTip="The Aircraft's SimObject Path reported by SimConnect.">SimObject:</Label>
+                <TextBlock Grid.Column="1" Grid.Row="3" Style="{StaticResource LabelValue}" Text="{Binding AircraftString}" MaxWidth="800"/>
+
+                <Label Grid.Column="0" Grid.Row="4" Style="{StaticResource LabelProperty}" ToolTip="The Setting Profile currently used by Any2GSX.">Active Profile:</Label>
+                <TextBlock Grid.Column="1" Grid.Row="4" Style="{StaticResource LabelValue}" Text="{Binding CurrentProfile}"/>
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Column="0" Grid.Row="1" Style="{StaticResource GroupBoxDefault}" Padding="6">
+            <GroupBox.Header>Aircraft Profiles</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto" MinWidth="120"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,0,6">
+                    <Button Command="{Binding SetActiveCommand}" Margin="2,0,6,0" Style="{StaticResource BtnSquareSmall}" ToolTip="Set as active Profile">
+                        <Image Source="../../Icons/play.png" Style="{StaticResource ImgSquareSmall}"/>
+                    </Button>
+                    <Button Command="{Binding ImportCommand}" Margin="2,0,6,0" Style="{StaticResource BtnSquareSmall}" ToolTip="Import Profile Data from Clipboard">
+                        <Image Source="../../Icons/download.png" Style="{StaticResource ImgSquareSmall}"/>
+                    </Button>
+                    <Button Command="{Binding ExportCommand}" Margin="2,0,6,0" Style="{StaticResource BtnSquareSmall}" ToolTip="Export Profile Data to Clipboard">
+                        <Image Source="../../Icons/upload.png" Style="{StaticResource ImgSquareSmall}"/>
+                    </Button>
+                    <Button Command="{Binding CloneCommand}" Margin="2,0,6,0" Style="{StaticResource BtnSquareSmall}" ToolTip="Clone Profile">
+                        <Image Source="../../Icons/copy.png" Style="{StaticResource ImgSquareSmall}"/>
+                    </Button>
+                    <Button Name="ButtonRemove" Margin="2,0,6,0" Style="{StaticResource BtnSquareSmall}" ToolTip="Remove Profile">
+                        <Image Source="../../Icons/remove.png" Style="{StaticResource ImgSquareSmall}"/>
+                    </Button>
+                    
+                </StackPanel>
+
+                <ListView Grid.Column="0" Grid.Row="1" Grid.RowSpan="7" Margin="0,4,6,0" MinWidth="164" MinHeight="148" SelectionMode="Single" Name="SelectorProfiles" ToolTip="List of saved Profiles.&#x0a;The default Profile can not be deleted and always be used if no other Profile matched.">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Border>
+                                <StackPanel Orientation="Horizontal">
+                                    <Label Content="{Binding}"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <Label Grid.Column="1" Grid.Row="1" Style="{StaticResource ProfileDefault}" ToolTip="The Name to identify this Profile.">
+                    Profile Name:
+                </Label>
+                <TextBox Grid.Column="2" Grid.Row="1" Name="InputName" IsHitTestVisible="{Binding IsEditAllowed}" Style="{StaticResource ProfileInputText}"  ToolTip="The Name to identify this Profile."/>
+
+                <Label Grid.Column="1" Grid.Row="2" Style="{StaticResource ProfileDefault}" ToolTip="Select which Sim Variable is used to match the Profile.&#x0a;ATC ID: match by Equality&#x0a;Title/Livery: match if Text is contained&#x0a;Airline: match against the Start of String&#x0a;SimObject: match if Text is contained">
+                    Match Type:
+                </Label>
+                <ComboBox Grid.Column="2" Grid.Row="2" Name="InputType" IsEnabled="{Binding IsEditAllowed}" SelectedIndex="0" SelectedValuePath="Key" DisplayMemberPath="Value" Style="{StaticResource ProfileInputSelect}" ToolTip="Select which Sim Variable is used to match the Profile.&#x0a;ATC ID: match by Equality&#x0a;Title/Livery: match if Text is contained&#x0a;Airline: match against the Start of String&#x0a;SimObject: match if Text is contained"/>
+
+                <Label Grid.Column="1" Grid.Row="3" Style="{StaticResource ProfileDefault}" ToolTip="Text to compare against the selected Variable's Value.">
+                    Match String:
+                </Label>
+                <TextBox Grid.Column="2" Grid.Row="3" Name="InputMatchString" IsHitTestVisible="{Binding IsEditAllowed}" Style="{StaticResource ProfileInputText}" ToolTip="Text to compare against the selected Variable's Value."/>
+
+                <Label Grid.Column="1" Grid.Row="4" Style="{StaticResource ProfileDefault}" ToolTip="The Aircraft Plugin to load/use for this Aircraft.">
+                    Aircraft Plugin:
+                </Label>
+                <ComboBox Grid.Column="2" Grid.Row="4" Name="InputPlugin" IsEnabled="{Binding IsEditAllowed}" SelectedIndex="0" Style="{StaticResource ProfileInputSelect}" ToolTip="The Aircraft Plugin to load/use for this Aircraft."/>
+
+                <Label Grid.Column="1" Grid.Row="5" Style="{StaticResource ProfileDefault}" ToolTip="The Audio Channel Definition to load/use for this Aircraft.">
+                    Audio Channel:
+                </Label>
+                <ComboBox Grid.Column="2" Grid.Row="5" Name="InputChannel" IsEnabled="{Binding IsEditAllowed}" SelectedIndex="0" Style="{StaticResource ProfileInputSelect}" ToolTip="The Audio Channel Definition to load/use for this Aircraft."/>
+
+                <Label Grid.Column="1" Grid.Row="6" Style="{StaticResource ProfileDefault}" ToolTip="Set Any2GSX Features to use for this Aircraft.">
+                    Any2GSX Features:
+                </Label>
+                <StackPanel Grid.Column="2" Grid.Row="6" Orientation="Vertical" Margin="0,6,0,0">
+                    <CheckBox Name="CheckboxFeatureGSX" Style="{StaticResource ProfileCheckBox}" VerticalContentAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="../../Icons/automation.png" Margin="0,0,4,0" Width="18" Height="18" />
+                            <TextBlock VerticalAlignment="Center">GSX Automation</TextBlock>                            
+                        </StackPanel>
+                    </CheckBox>
+                    <CheckBox Name="CheckboxFeatureVolume" Style="{StaticResource ProfileCheckBox}" VerticalContentAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="../../Icons/volume.png" Margin="0,0,4,0" Width="18" Height="18" />
+                            <TextBlock VerticalAlignment="Center">Volume Control</TextBlock>
+                        </StackPanel>
+                    </CheckBox>
+                    <CheckBox Name="CheckboxFeaturePilotsdeck" Style="{StaticResource ProfileCheckBox}" VerticalContentAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="../../Icons/pilotsdeck.png" Margin="0,0,4,0" Width="18" Height="18" />
+                            <TextBlock VerticalAlignment="Center">PilotsDeck Integration</TextBlock>
+                        </StackPanel>
+                    </CheckBox>
+                </StackPanel>
+
+                <Button Grid.Column="2" Grid.Row="7" Name="ButtonAdd" Margin="0,12,0,4" Style="{StaticResource BtnDefault}" ToolTip="Add/Update Profile">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Name="ImageAdd" Source="../../Icons/add.png" Style="{StaticResource ImgSquareSmall}"/>
+                        <Label FontWeight="DemiBold" FontSize="12">Save</Label>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </GroupBox>
+    </Grid>
+</UserControl>

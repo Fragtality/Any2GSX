@@ -1,0 +1,135 @@
+﻿<UserControl x:Class="Any2GSX.UI.Views.Settings.ViewSettings"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Any2GSX.UI.Views.Settings"
+             d:DataContext="{d:DesignInstance Type=local:ModelSettings}"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../StyleResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    
+    <Grid HorizontalAlignment="Stretch">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Grid.Column="0" Grid.Row="0" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>App Settings</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="196"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <TextBlock Grid.Column="0" Grid.Row="0" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Which Source is used to get the Unit used in the UI.">
+                    UI Unit Source:
+                </TextBlock>
+                <ComboBox Grid.Column="1" Grid.Row="0" SelectedValue="{Binding DisplayUnitSource}" MinWidth="64" MaxWidth="96" ItemsSource="{Binding DisplayUnitSourceItems}" SelectedValuePath="Key" DisplayMemberPath="Value"
+                          Margin="6" Style="{StaticResource ComboBoxDefault}" HorizontalAlignment="Left" ToolTip="Which Source is used to get the Unit used in the UI."/>
+                
+                <TextBlock Grid.Column="0" Grid.Row="1" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The Unit to used in the UI when no other Unit Source is available.">
+                    UI Default Unit:
+                </TextBlock>
+                <ComboBox Grid.Column="1" Grid.Row="1" SelectedValue="{Binding DisplayUnitDefault}" MinWidth="64" MaxWidth="96" ItemsSource="{Binding DisplayUnitDefaultItems}" SelectedValuePath="Key" DisplayMemberPath="Value"
+                          Margin="6" Style="{StaticResource ComboBoxDefault}" HorizontalAlignment="Left" ToolTip="The Unit to used in the UI when no other Unit Source is available."/>
+
+                <TextBlock Grid.Column="0" Grid.Row="2" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="SimBrief User Name or ID to import OFP Data (i.e. Fuel and Payload).">
+                    SimBrief User:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="2" Style="{StaticResource SettingItemPanel}" ToolTip="SimBrief User Name or ID to import OFP Data (i.e. Fuel and Payload).">
+                    <TextBox Name="InputSimBriefUser" Style="{StaticResource TextBoxLeft}" MinWidth="128" BorderBrush="{Binding BrushSimbrief}"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="3" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Open the UI when the App is started.">
+                    Open UI on Start:
+                </TextBlock>
+                <CheckBox Grid.Column="1" Grid.Row="3" IsChecked="{Binding OpenAppWindowOnStart}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="Open the UI when the App is started."/>
+
+                <TextBlock Grid.Column="0" Grid.Row="4" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Percentage of the Aircrafts maximum Fuel Capacity which will be added to the Reset Base Value set in the current Profile.">
+                    FOB Reset Percent:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="4" Style="{StaticResource SettingItemPanel}" ToolTip="Percentage of the Aircrafts maximum Fuel Capacity which will be added to the Reset Base Value set in the current Profile (Limited to 50% max).">
+                    <TextBox Name="InputFuelPercent" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">%</TextBlock>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="5" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The maximum allowed Difference when the Fuel on Board is compared to be equal to a specific Target.">
+                    Fuel Compare Variance:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="5" Style="{StaticResource SettingItemPanel}" ToolTip="The maximum allowed Difference when the Fuel on Board is compared to be equal to a specific Target.">
+                    <TextBox Name="InputFuelVariance" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Text="{Binding DisplayUnitCurrentString}" Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="6" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Restart the GSX Binary on Taxi-In (~after Touchdown) to ensure a 'clean' State.&#x0a;The Binary will be killed and started (if GSX' Watchdog has not restarted it already).">
+                    Restart GSX on Taxi-In:
+                </TextBlock>
+                <CheckBox Grid.Column="1" Grid.Row="6" IsChecked="{Binding RestartGsxOnTaxiIn}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="Restart the GSX Binary on Taxi-In (~after Touchdown) to ensure a 'clean' State.&#x0a;The Binary will be killed and started (if GSX' Watchdog has not restarted it already)."/>
+
+                <TextBlock Grid.Column="0" Grid.Row="7" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Restart the GSX Binary on Startup when the Menu doesn't open / become ready.">
+                    Restart GSX on Startup:
+                </TextBlock>
+                <CheckBox Grid.Column="1" Grid.Row="7" IsChecked="{Binding RestartGsxStartupFail}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="Restart the GSX Binary on Startup when the Menu doesn't open / become ready."/>
+
+                <TextBlock Grid.Column="0" Grid.Row="8" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The base Port to listen for CommBus Module Messages. If the Port can't be used, the next Port in the Range is tried.">
+                    CommBus Port:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="8" Style="{StaticResource SettingItemPanel}" ToolTip="The base Port to listen for CommBus Module Messages. If the Port can't be used, the next Port in the Range is tried.">
+                    <TextBlock Margin="0,0,4,0" Style="{StaticResource TextBlockDefault}">Base Port:</TextBlock>
+                    <TextBox Name="InputPortBase" Style="{StaticResource TextBoxCentered}" MinWidth="72"/>
+                    <TextBlock Margin="11,0,4,0" Style="{StaticResource TextBlockDefault}">Range:</TextBlock>
+                    <TextBox Name="InputPortRange" Style="{StaticResource TextBoxCentered}"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="9" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The Base URL used for connecting to the PilotsDeck API.">
+                    PilotsDeck URL:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="9" Style="{StaticResource SettingItemPanel}" ToolTip="The Base URL used for connecting to the PilotsDeck API.">
+                    <TextBox Name="InputDeckUrl" Style="{StaticResource TextBoxLeft}" MinWidth="228"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="10" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="For MSFS2024 and the EFB App, Any2GSX will constantly reopen the GSX Menu when it times out.&#x0a;So every time you open the EFB App, the GSX Menu will directly be open.">
+                    Refresh Gate Menu for EFB:
+                </TextBlock>
+                <CheckBox Grid.Column="1" Grid.Row="10" IsChecked="{Binding RefreshMenuForEfb}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="For MSFS2024 and the EFB App, Any2GSX will constantly reopen the GSX Menu when it times out.&#x0a;So every time you open the EFB App, the GSX Menu will directly be open."/>
+
+                <TextBlock Grid.Column="0" Grid.Row="11" Margin="6" Style="{StaticResource TextBlockDefault}" VerticalAlignment="Top" ToolTip="The Fuel-on-Board Values currently stored by Any2GSX for the various Aircrafts.">
+                    Saved Fuel Values:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="11" Margin="6" Orientation="Horizontal">
+                    <ListView MinWidth="228" MaxWidth="384" Height="96" MaxHeight="142" ScrollViewer.CanContentScroll="True" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                              HorizontalAlignment="Left" HorizontalContentAlignment="Left" VerticalAlignment="Top" VerticalContentAlignment="Center"
+                              Name="ListSavedFuel">
+                    </ListView>
+                    <Button Name="ButtonRemove" Margin="6,0,6,0" Style="{StaticResource BtnSquareSmall}" VerticalAlignment="Top" ToolTip="Remove selected Entry">
+                        <Image Source="../../Icons/remove.png" Style="{StaticResource ImgSquareSmall}"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+    </Grid>
+</UserControl>

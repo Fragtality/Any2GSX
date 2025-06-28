@@ -1,0 +1,99 @@
+/* src/Any2GsxApp.scss */
+.efb-view.Any2GsxApp .any2gsx-app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* src/Components/MainPage.scss */
+.efb-view.Any2GsxApp .ui-view.page .main-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  background-color: #1e2937;
+  width: 100%;
+  height: 100%;
+  padding: 5vh 5vw;
+  box-sizing: border-box;
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content {
+  display: flex;
+  color: white;
+  font-weight: normal;
+  flex-direction: column;
+  justify-content: flex-start;
+  width: 100%;
+  height: 100%;
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .top-header {
+  color: #ffffff;
+  font-size: 1.6em;
+  font-weight: bolder;
+  margin: 0 0 1.25em 0;
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .header {
+  color: #ffffff;
+  font-size: 1.6em;
+  font-weight: bolder;
+  margin: 1.25em 0 1.25em 0;
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .row {
+  display: flex;
+  font-size: 1.1em;
+  flex-direction: row;
+  justify-content: flex-start;
+  margin: 0 0 1em 0;
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .row > .label {
+  color: white;
+  font-weight: bolder;
+  min-width: 25vw;
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .row > .property {
+  color: #d8d8d8;
+  font-weight: normal;
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .row > .property-green {
+  color: green;
+  font-weight: normal;
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .row > .property-red {
+  color: red;
+  font-weight: normal;
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .row > .button {
+  font-weight: bold;
+  background-color: #144994;
+  padding: 2px;
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .menuContent {
+  display: flex;
+  color: white;
+  font-weight: normal;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .menuContent > .menuTitle {
+  font-weight: bold;
+  font-size: 1.4em;
+  background-color: #144994;
+  padding: 2px;
+  margin-bottom: 12px;
+  width: 100%;
+  height: 100%;
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .menuContent > .buttonContent {
+  height: fit-content;
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .menuContent > .menuLine {
+  font-weight: normal;
+  font-size: 1.2em;
+  background-color: #28476d;
+  padding: 2px;
+  margin-bottom: 6px;
+  width: 100%;
+  height: 100%;
+}
