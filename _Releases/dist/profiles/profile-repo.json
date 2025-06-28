@@ -1,0 +1,34 @@
+{
+    "FNX.PilotsDeck.json":  {
+                                "Author":  "Fragtality",
+                                "Name":  "Fenix - PilotsDeck only",
+                                "Aircraft":  "Fenix A320 (all Variants)",
+                                "Description":  "Profile enabling only PilotsDeck Support (to be used together with Fenix2GSX)",
+                                "VersionApp":  "0.1.0",
+                                "VersionProfile":  "0.1.0"
+                            },
+    "FBW.A320-Profile.json":  {
+                                  "Author":  "Fragtality",
+                                  "Name":  "FlyByWire A320",
+                                  "Aircraft":  "FBW A320 (stable/dev)",
+                                  "Description":  "Profile for Automation and Volume-Control on the FBW A320.\\r\\nImport the Flightplan in the MCDU to trigger Departure Services.\\r\\nDon\u0027t forget to power on the EFB first!\\r\\nThe SmartButton is mapped to the MECH Call Button on the Overhead.",
+                                  "VersionApp":  "0.1.0",
+                                  "VersionProfile":  "0.1.0"
+                              },
+    "FNX.Native.json":  {
+                            "Author":  "Fragtality",
+                            "Name":  "Fenix - Native",
+                            "Aircraft":  "Fenix A320 (all Variants)",
+                            "Description":  "Profile enhancing Fenix\u0027 native GSX Integration with Automation and Volume Control",
+                            "VersionApp":  "0.1.0",
+                            "VersionProfile":  "0.1.0"
+                        },
+    "FBW.A380-Profile.json":  {
+                                  "Author":  "Fragtality",
+                                  "Name":  "FlyByWire A380",
+                                  "Aircraft":  "FBW A380 (stable/dev)",
+                                  "Description":  "Profile for Automation and Volume-Control on the FBW A380.\\r\\nImport the Flightplan in the MCDU to trigger Departure Services.\\r\\nDon\u0027t forget to power on the EFB first!\\r\\nThe SmartButton is mapped to the INT/RAD Switch on the ACP (Captain).",
+                                  "VersionApp":  "0.1.0",
+                                  "VersionProfile":  "0.1.0"
+                              }
+}

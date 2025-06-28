@@ -1,0 +1,107 @@
+﻿<UserControl x:Class="Any2GSX.UI.Views.Automation.ControlSkipQuestions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Any2GSX.UI.Views.Automation"
+             d:DataContext="{d:DesignInstance Type=local:ModelAutomation}"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../StyleResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Grid.Column="0" Grid.Row="0" Margin="8,0,8,8" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>Skip Questions / Pop-ups</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <CheckBox Grid.Column="0" Grid.Row="0" IsChecked="{Binding SkipWalkAround}" Style="{StaticResource CheckBoxSettingItem}"
+                      ToolTip="Automatically skip to the Cockpit in MSFS 2024 on Session Start.&#x0a;This can only work if you use the default Binding of 'Shift+C' for 'Take Control of Character'!&#x0a;You can use Walkaround Mode while the Departure Services run, except when any Door is about to be opened or closed.">
+                    <TextBlock>Skip <Underline>Walkaround</Underline> on Session Start (MSFS 2024 - requires default Binding)</TextBlock>
+                </CheckBox>
+
+                <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Horizontal" Style="{StaticResource SettingItemPanel}" ToolTip="Set the GSX Variables so that the Crew Question does not pop-up at all.">
+                    <TextBlock Style="{StaticResource TextBlockDefault}" ToolTip="Set the GSX Variables so that the Crew Question does not pop-up at all.">
+                        <Underline>Suppress Crew</Underline> Question on: 
+                    </TextBlock>
+                    <CheckBox IsChecked="{Binding SkipCrewBoardQuestion}" Margin="8,0,12,0" Style="{StaticResource CheckBoxDefault}" ToolTip="Set the GSX Variables so that the Crew Question does not pop-up at all.">
+                        Boarding
+                    </CheckBox>
+                    <CheckBox  IsChecked="{Binding SkipCrewDeboardQuestion}" Style="{StaticResource CheckBoxDefault}" ToolTip="Set the GSX Variables so that the Crew Question does not pop-up at all.">
+                        Deboarding
+                    </CheckBox>
+                </StackPanel>
+
+                <StackPanel Grid.Column="0" Grid.Row="2" Visibility="{Binding NotSkipCrewBoardQuestion, Converter={StaticResource BoolVisibilityConverter}}" Style="{StaticResource SettingItemPanel}" ToolTip="If the Board Crew Question is not suppressed, select if and how the Question should be answered during Boarding.">
+                    <TextBlock Style="{StaticResource TextBlockDefault}" MinWidth="245" ToolTip="If the Board Crew Question is not suppressed, select if and how the Question should be answered during Boarding.">
+                        <Underline>Answer Crew</Underline> Question during <Underline>Boarding</Underline> with: 
+                    </TextBlock>
+                    <ComboBox SelectedValue="{Binding AnswerCrewBoardQuestion}" ItemsSource="{Binding CrewOptions}" SelectedValuePath="Key" DisplayMemberPath="Value" Margin="8,0,0,0" Style="{StaticResource ComboBoxDefault}"
+                              ToolTip="If the Board Crew Question is not suppressed, select if and how the Question should be answered during Boarding.">
+                    </ComboBox>
+                </StackPanel>
+
+                <StackPanel Grid.Column="0" Grid.Row="3" Visibility="{Binding NotSkipCrewDeboardQuestion, Converter={StaticResource BoolVisibilityConverter}}" Style="{StaticResource SettingItemPanel}" ToolTip="If the Deboard Crew Question is not suppressed, select if and how the Question should be answered after Deboarding.">
+                    <TextBlock Style="{StaticResource TextBlockDefault}" MinWidth="245" ToolTip="If the Deboard Crew Question is not suppressed, select if and how the Question should be answered after Deboarding.">
+                        <Underline>Answer Crew</Underline> Question after <Underline>Deboarding</Underline> with:
+                    </TextBlock>
+                    <ComboBox SelectedValue="{Binding AnswerCrewDeboardQuestion}" ItemsSource="{Binding CrewOptions}" SelectedValuePath="Key" DisplayMemberPath="Value" Margin="8,0,0,0" Style="{StaticResource ComboBoxDefault}"
+                              ToolTip="If the Deboard Crew Question is not suppressed, select if and how the Question should be answered after Deboarding.">
+                    </ComboBox>
+                </StackPanel>
+
+                <StackPanel Grid.Column="0" Grid.Row="4" Style="{StaticResource SettingItemPanel}" ToolTip="Answer the GSX Question if the Tug should be attached during Boarding.">
+                    <TextBlock Style="{StaticResource TextBlockDefault}" MinWidth="245" ToolTip="Answer the GSX Question if the Tug should be attached during Boarding.">
+                        Answer <Underline>Tug Question</Underline> during Boarding with: 
+                    </TextBlock>
+                    <ComboBox SelectedValue="{Binding AttachTugDuringBoarding}" ItemsSource="{Binding TugOptions}" SelectedValuePath="Key" DisplayMemberPath="Value" Margin="8,0,0,0" Style="{StaticResource ComboBoxDefault}"
+                              ToolTip="Answer the GSX Question if the Tug should be attached during Boarding.">
+                    </ComboBox>
+                </StackPanel>
+
+                <CheckBox Grid.Column="0" Grid.Row="5" IsChecked="{Binding SkipFollowMe}" Style="{StaticResource CheckBoxSettingItem}" Margin="6,6,6,8"
+                          ToolTip="Automatically answer the Follow-Me Question after Gate or De-Ice Pad Selection with 'No'.">
+                    <TextBlock>Skip <Underline>Follow-Me Question</Underline> on Gate or De-Ice Selection</TextBlock>
+                </CheckBox>
+
+                <CheckBox Grid.Column="0" Grid.Row="6" IsChecked="{Binding KeepDirectionMenuOpen}" Style="{StaticResource CheckBoxSettingItem}"
+                          ToolTip="Automatically re-open the Pushback Direction Menu if the GSX Menu times out during Pushback.">
+                    <TextBlock>Automatically reopen <Underline>Pushback Direction</Underline> Menu</TextBlock>
+                </CheckBox>
+
+                <StackPanel Grid.Column="0" Grid.Row="7" Style="{StaticResource SettingItemPanel}" ToolTip="Select which GSX Menu Item is selected when the SmartButton Action 'ClearGate' is triggered.">
+                    <TextBlock Style="{StaticResource TextBlockDefault}" MinWidth="245" ToolTip="Select which GSX Menu Item is selected when the SmartButton Action 'ClearGate' is triggered.">
+                        Select the following Menu Item on the 'ClearGate' SmartButton: 
+                    </TextBlock>
+                    <ComboBox SelectedValue="{Binding ClearGateMenuOption}" ItemsSource="{Binding ClearGateOptions}" SelectedValuePath="Key" DisplayMemberPath="Value" Margin="8,0,0,0" Style="{StaticResource ComboBoxDefault}"
+                              ToolTip="Select which GSX Menu Item is selected when the SmartButton Action 'ClearGate' is triggered.">
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+    </Grid>
+</UserControl>

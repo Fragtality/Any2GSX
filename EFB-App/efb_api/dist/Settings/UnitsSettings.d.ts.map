@@ -1,0 +1,1 @@
+{"version":3,"file":"UnitsSettings.d.ts","sourceRoot":"","sources":["../../src/Settings/UnitsSettings.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,MAAM,qBAAqB,CAAC;AAC/C,OAAO,EAIN,oBAAoB,EAOpB,MAAM,wBAAwB,CAAC;AAEhC;;;GAGG;AACH,qBAAa,aAAa;IACzB,OAAO,CAAC,MAAM,CAAC,QAAQ,CAAmC;IAE1D;;;;OAIG;WACW,UAAU,CAAC,GAAG,EAAE,QAAQ,GAAG,oBAAoB;CAwC7D"}

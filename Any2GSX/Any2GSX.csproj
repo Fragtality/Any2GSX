@@ -1,0 +1,130 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+    <Nullable>annotations</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <PlatformTarget>x64</PlatformTarget>
+    <StartupObject>Any2GSX.Any2GSX</StartupObject>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <SourceRevisionId>build$([System.DateTime]::UtcNow.ToString("yyyy.MM.dd.HHmm"))</SourceRevisionId>
+    <Version>0.1.0</Version>
+    <Title>$(AssemblyName)</Title>
+    <Authors>Fragtality</Authors>
+    <Company>Fragtality</Company>
+    <ApplicationIcon>UI\Icons\AppIcon.ico</ApplicationIcon>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="UI\Icons\add.png" />
+    <None Remove="UI\Icons\AppIcon.ico" />
+    <None Remove="UI\Icons\AppIconUpdate.ico" />
+    <None Remove="UI\Icons\automation.png" />
+    <None Remove="UI\Icons\chevron-down.png" />
+    <None Remove="UI\Icons\chevron-up.png" />
+    <None Remove="UI\Icons\copy.png" />
+    <None Remove="UI\Icons\cursor.png" />
+    <None Remove="UI\Icons\download.png" />
+    <None Remove="UI\Icons\edit.png" />
+    <None Remove="UI\Icons\info.png" />
+    <None Remove="UI\Icons\install-file.png" />
+    <None Remove="UI\Icons\install-repo.png" />
+    <None Remove="UI\Icons\monitor.png" />
+    <None Remove="UI\Icons\pilotsdeck.png" />
+    <None Remove="UI\Icons\play.png" />
+    <None Remove="UI\Icons\plugins.png" />
+    <None Remove="UI\Icons\profiles.png" />
+    <None Remove="UI\Icons\remove.png" />
+    <None Remove="UI\Icons\settings.png" />
+    <None Remove="UI\Icons\trash.png" />
+    <None Remove="UI\Icons\upload.png" />
+    <None Remove="UI\Icons\volume.png" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <SplashScreen Include="UI\Icons\AppIcon.ico" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <EmbeddedResource Include="UI\Icons\add.png" />
+    <EmbeddedResource Include="UI\Icons\AppIcon.ico" />
+    <EmbeddedResource Include="UI\Icons\AppIconUpdate.ico" />
+    <Resource Include="UI\Icons\automation.png" />
+    <Resource Include="UI\Icons\chevron-down.png" />
+    <Resource Include="UI\Icons\chevron-up.png" />
+    <Resource Include="UI\Icons\copy.png" />
+    <Resource Include="UI\Icons\cursor.png" />
+    <EmbeddedResource Include="UI\Icons\edit.png" />
+    <Resource Include="UI\Icons\download.png" />
+    <Resource Include="UI\Icons\info.png" />
+    <Resource Include="UI\Icons\install-file.png" />
+    <Resource Include="UI\Icons\install-repo.png" />
+    <Resource Include="UI\Icons\monitor.png" />
+    <Resource Include="UI\Icons\pilotsdeck.png" />
+    <Resource Include="UI\Icons\play.png" />
+    <Resource Include="UI\Icons\plugins.png" />
+    <Resource Include="UI\Icons\profiles.png" />
+    <Resource Include="UI\Icons\remove.png" />
+    <Resource Include="UI\Icons\settings.png" />
+    <Resource Include="UI\Icons\trash.png" />
+    <Resource Include="UI\Icons\upload.png" />
+    <Resource Include="UI\Icons\volume.png" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="CFIT.AppFramework" Version="2025.179.23.2831" />
+    <PackageReference Include="CFIT.AppLogger" Version="2025.174.17.2993" />
+    <PackageReference Include="CFIT.AppTools" Version="2025.174.17.3001" />
+    <PackageReference Include="CFIT.SimConnectLib" Version="2025.174.17.3065" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="CoreAudio" Version="1.40.0" />
+    <PackageReference Include="NeoLua" Version="1.3.14" />
+    <PackageReference Include="System.Private.Uri" Version="4.3.2" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Reference Include="Microsoft.FlightSimulator.SimConnect">
+      <HintPath>Microsoft.FlightSimulator.SimConnect.dll</HintPath>
+	  <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Reference>
+    <Reference Include="PluginInterface">
+      <HintPath>PluginInterface.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Compile Update="UI\ShowInfoDialog.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Content Update="Microsoft.FlightSimulator.SimConnect.dll">
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Microsoft.FlightSimulator.SimConnect.dll">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="SimConnect.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="pwsh -ExecutionPolicy Unrestricted -file &quot;$(ProjectDir)..\NuPreBuild.ps1&quot; $(SolutionDir) $(ProjectDir) &quot;Any2GSX&quot; &quot;CFIT.AppLogger&quot; &quot;CFIT.AppTools&quot; &quot;CFIT.SimConnectLib&quot; &quot;CFIT.AppFramework&quot;" />
+  </Target>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="pwsh -ExecutionPolicy Unrestricted -file &quot;$(ProjectDir)BuildApp.ps1&quot; $(Configuration) $(SolutionDir) $(ProjectDir) &quot;Any2GSX&quot; &quot;AppConfig.json&quot;" />
+  </Target>
+</Project>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+	<title>ANY2GSX_COMMBUS_ICON</title>
+	<foreignObject>
+		<img src onerror="(() => {
+			if(!window.fragtality_commbus_js_injected) {
+				window.fragtality_commbus_js_injected = true;
+				var script = document.createElement('script');
+				script.type = 'text/javascript';
+				script.src = 'coui://html_ui/InGamePanels/Any2GSX-Panel/toolbar_code.js';
+				document.head.appendChild(script);
+			}
+		})()"></img>
+	</foreignObject>
+</svg>

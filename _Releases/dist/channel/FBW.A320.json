@@ -1,0 +1,141 @@
+{
+    "Id": "FBW.A320",
+    "Aircraft": "FlyByWire A320 (stable/dev)",
+    "Author": "Fragtality",
+    "VersionChannel": "0.1.0",
+	"VersionApp": "0.1.0",
+    "ChannelDefinitions": [
+        {
+            "Name": "CPT.VHF1",
+            "VolumeVariable": "L:XMLVAR_COM_1_Volume_VHF_L",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:XMLVAR_COM_1_VHF_L_Switch_Down",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.VHF2",
+            "VolumeVariable": "L:XMLVAR_COM_1_Volume_VHF_C",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:XMLVAR_COM_1_VHF_C_Switch_Down",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.VHF3",
+            "VolumeVariable": "L:XMLVAR_COM_1_Volume_VHF_R",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:XMLVAR_COM_1_VHF_R_Switch_Down",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.VOR1",
+            "VolumeVariable": "L:XMLVAR_NAV_L_VOR1_Volume",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:XMLVAR_NAV_L_VOR1_Switch_Down",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.VOR2",
+            "VolumeVariable": "L:XMLVAR_NAV_L_VOR2_Volume",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:XMLVAR_NAV_L_VOR2_Switch_Down",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.MKR",
+            "VolumeVariable": "L:XMLVAR_NAV_L_MKR_Volume",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:XMLVAR_NAV_L_MKR_Switch_Down",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.VHF1",
+            "VolumeVariable": "L:XMLVAR_COM_2_Volume_VHF_L",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:XMLVAR_COM_2_VHF_L_Switch_Down",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.VHF2",
+            "VolumeVariable": "L:XMLVAR_COM_2_Volume_VHF_C",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:XMLVAR_COM_2_VHF_C_Switch_Down",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.VHF3",
+            "VolumeVariable": "L:XMLVAR_COM_2_Volume_VHF_R",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:XMLVAR_COM_2_VHF_R_Switch_Down",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.VOR1",
+            "VolumeVariable": "L:XMLVAR_NAV_R_VOR1_Volume",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:XMLVAR_NAV_R_VOR1_Switch_Down",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.VOR2",
+            "VolumeVariable": "L:XMLVAR_NAV_R_VOR2_Volume",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:XMLVAR_NAV_R_VOR2_Switch_Down",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.MKR",
+            "VolumeVariable": "L:XMLVAR_NAV_R_MKR_Volume",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:XMLVAR_NAV_L_MKR_Switch_Down",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        }
+    ]
+}

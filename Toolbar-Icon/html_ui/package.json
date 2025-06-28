@@ -1,0 +1,11 @@
+
+{
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "Fragtality",
+  "scripts": {    
+    "build": "pwsh ../CopySource.ps1",
+    "copy": "pwsh ../CopySim.ps1",
+    "package": "pwsh ../CopySource.ps1 && cd ../../MSFS2020-Package && pwsh BuildPackage.ps1"
+  }
+}

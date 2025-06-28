@@ -1,0 +1,21 @@
+.multiple-buttons {
+	width: 99%;
+	height: 90%;
+	padding: 2px;
+	display: flex;
+	justify-content: center;
+	border-radius: 2px;
+	background-color: var(--efb-background-primary);
+}
+
+.multiple-buttons .single-button {
+	flex: 1;
+}
+
+.multiple-buttons .single-button button.abstract-button {
+	width: 100%;
+	height: 100%;
+	color: var(--efb-content);
+	border-radius: 1px;
+	padding: 3px 0;
+}

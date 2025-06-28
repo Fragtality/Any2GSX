@@ -1,0 +1,23 @@
+{
+	"name": "@efb/efb-api",
+	"version": "1.0.0",
+	"author": "AsoboStudio",
+	"license": "MIT",
+	"type": "module",
+	"files": [
+		"dist"
+	],
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": {
+				"default": "./dist/index.js",
+				"types": "./dist/index.d.ts"
+			}
+		}
+	},
+	"dependencies": {
+		"@microsoft/msfs-sdk": "file:../vendor/microsoft-msfs-sdk-2.0.4.tgz"
+	}
+}

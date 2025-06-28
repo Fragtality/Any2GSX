@@ -1,0 +1,419 @@
+﻿<UserControl x:Class="Any2GSX.UI.Views.Plugins.ViewPlugins"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Any2GSX.UI.Views.Plugins"
+             xmlns:system="clr-namespace:System;assembly=mscorlib"
+             d:DataContext="{d:DesignInstance Type=local:ModelPlugins}"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../StyleResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid HorizontalAlignment="Stretch">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Grid.Column="0" Grid.Row="0" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>Installed &amp; Loaded</GroupBox.Header>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TabControl Grid.Column="0" Grid.Row="0" BorderThickness="0" BorderBrush="Transparent" Margin="0,4,0,0">
+                    <TabItem>
+                        <TabItem.Header>
+                            <TextBlock Style="{StaticResource HeaderStyleBlock}">
+                                Plugins
+                            </TextBlock>
+                        </TabItem.Header>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <DataGrid Grid.Column="0" Grid.Row="0" Name="GridInstalledPlugin" MaxHeight="172">
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Header="ID" MinWidth="128">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Button Style="{StaticResource BtnInfo}"
+                                                            Command="{Binding DataContext.ShowPluginDialogCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding .}">
+                                                        <Image Source="../../Icons/info.png" Width="16" Height="16" Margin="0"/>
+                                                    </Button>
+                                                    <TextBlock Text="{Binding Id}" HorizontalAlignment="Left" Style="{StaticResource TextBlockDefault}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Aircraft" MinWidth="224">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Aircraft}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Author" MinWidth="142">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Author}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Version" MinWidth="72">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Version}" HorizontalAlignment="Center" Style="{StaticResource TextBlockDefault}"
+                                                           Foreground="{Binding HasUpdateAvail, Converter={StaticResource BoolColorConverter}}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            
+                            <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Horizontal">
+                                <Button Style="{StaticResource BtnDefault}" HorizontalAlignment="Left" Margin="8,6,6,6" Click="ButtonInstallPluginFromFile_Click" Padding="4,0,4,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="../../Icons/install-file.png" Style="{StaticResource ImgSquareSmall}"/>
+                                        <Label>Install Plugin from File</Label>
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource BtnDefault}" HorizontalAlignment="Left" Margin="8,6,6,6" Name="ButtonRemovePlugin" Padding="4,0,4,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="../../Icons/trash.png" Style="{StaticResource ImgSquareSmall}"/>
+                                        <Label>Remove selected Plugin</Label>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </TabItem>
+
+                    <TabItem>
+                        <TabItem.Header>
+                            <TextBlock Style="{StaticResource HeaderStyleBlock}">
+                                Channels
+                            </TextBlock>
+                        </TabItem.Header>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <DataGrid Grid.Column="0" Grid.Row="0" Name="GridInstalledChannels" MaxHeight="172">
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Header="ID" MinWidth="128">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Button Style="{StaticResource BtnInfo}"
+                                            Command="{Binding DataContext.ShowChannelInstalledDialogCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding .}">
+                                                        <Image Source="../../Icons/info.png" Width="16" Height="16" Margin="0"/>
+                                                    </Button>
+                                                    <TextBlock Text="{Binding Id}" HorizontalAlignment="Left" Style="{StaticResource TextBlockDefault}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Aircraft" MinWidth="224">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Aircraft}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Author" MinWidth="142">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Author}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Version" MinWidth="72">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Version}" HorizontalAlignment="Center" Style="{StaticResource TextBlockDefault}"
+                                                           Foreground="{Binding HasUpdateAvail, Converter={StaticResource BoolColorConverter}}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Horizontal">
+                                <Button Style="{StaticResource BtnDefault}" HorizontalAlignment="Left" Margin="8,6,6,6" Click="ButtonInstallChannelFromFile_Click" Padding="4,0,4,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="../../Icons/install-file.png" Style="{StaticResource ImgSquareSmall}"/>
+                                        <Label>Install Channel from File</Label>
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource BtnDefault}" HorizontalAlignment="Left" Margin="8,6,6,6" Name="ButtonRemoveChannel" Padding="4,0,4,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="../../Icons/trash.png" Style="{StaticResource ImgSquareSmall}"/>
+                                        <Label>Remove selected Channel</Label>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Column="0" Grid.Row="1" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>Available from GitHub</GroupBox.Header>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TabControl Grid.Column="0" Grid.Row="0" BorderThickness="0" BorderBrush="Transparent" Margin="0,4,0,0">
+                    <TabItem>
+                        <TabItem.Header>
+                            <TextBlock Style="{StaticResource HeaderStyleBlock}">
+                                Plugins
+                            </TextBlock>
+                        </TabItem.Header>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <DataGrid Grid.Column="0" Grid.Row="0" Name="GridOnlinePlugin" MaxHeight="256">
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Header="ID" MinWidth="128">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Button Style="{StaticResource BtnInfo}"
+                                                            Command="{Binding DataContext.ShowPluginDialogCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding .}">
+                                                        <Image Source="../../Icons/info.png" Width="16" Height="16" Margin="0"/>
+                                                    </Button>
+                                                    <TextBlock Text="{Binding Id}" HorizontalAlignment="Left" Style="{StaticResource TextBlockDefault}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Aircraft" MinWidth="224">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Aircraft}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Author" MinWidth="142">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Author}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Version" MinWidth="72">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Version}" HorizontalAlignment="Center" Style="{StaticResource TextBlockDefault}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Horizontal" Margin="6,8,0,4">
+                                <Button Name="ButtonInstallPluginFromRepo" Style="{StaticResource BtnDefault}" HorizontalAlignment="Left" Padding="4,0,4,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="../../Icons/install-repo.png" Style="{StaticResource ImgSquareSmall}"/>
+                                        <Label>Install Plugin from Repo</Label>
+                                    </StackPanel>
+                                </Button>
+                                <CheckBox IsChecked="{Binding AutoInstallGsxProfiles}" Style="{StaticResource CheckBoxDefault}" Margin="10,0,0,0" ToolTip="Aircraft Plugins can optionally contain GSX Aircraft Profiles to ensure the User has the correct Options set.&#x0a;If there is already a Profile installed for the same Aircraft, it will be deleted/overwritten during Plugin Installation!">
+                                    Automatically install GSX Aircraft Profiles
+                                </CheckBox>
+                            </StackPanel>
+                        </Grid>
+                    </TabItem>
+                    
+                    
+                    <TabItem>
+                        <TabItem.Header>
+                            <TextBlock Style="{StaticResource HeaderStyleBlock}">
+                                Channels
+                            </TextBlock>
+                        </TabItem.Header>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <DataGrid Grid.Column="0" Grid.Row="0" Name="GridOnlineChannels" MaxHeight="256">
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Header="ID" MinWidth="128">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Button Style="{StaticResource BtnInfo}"
+                                                            Command="{Binding DataContext.ShowChannelOnlineDialogCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding .}">
+                                                        <Image Source="../../Icons/info.png" Width="16" Height="16" Margin="0"/>
+                                                    </Button>
+                                                    <TextBlock Text="{Binding Id}" HorizontalAlignment="Left" Style="{StaticResource TextBlockDefault}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Aircraft" MinWidth="224">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Aircraft}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Author" MinWidth="142">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Author}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Version" MinWidth="72">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Version}" HorizontalAlignment="Center" Style="{StaticResource TextBlockDefault}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Horizontal" Margin="6,8,0,4">
+                                <Button Name="ButtonInstallChannelFromRepo" Style="{StaticResource BtnDefault}" HorizontalAlignment="Left" Padding="4,0,4,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="../../Icons/install-repo.png" Style="{StaticResource ImgSquareSmall}"/>
+                                        <Label>Install Channel from Repo</Label>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>                            
+                        </Grid>
+                    </TabItem>
+                    
+                    
+                    <TabItem>
+                        <TabItem.Header>
+                            <TextBlock Style="{StaticResource HeaderStyleBlock}">
+                                Profiles
+                            </TextBlock>
+                        </TabItem.Header>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <DataGrid Grid.Column="0" Grid.Row="0" Name="GridOnlineProfiles" MaxHeight="256">
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Header="Name" MinWidth="128">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Button Style="{StaticResource BtnInfo}"
+                                                            Command="{Binding DataContext.ShowDescriptionDialogCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding Description}">
+                                                        <Image Source="../../Icons/info.png" Width="16" Height="16" Margin="0"/>
+                                                    </Button>
+                                                    <TextBlock Text="{Binding Name}" HorizontalAlignment="Left" Style="{StaticResource TextBlockDefault}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Aircraft" MinWidth="224">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Aircraft}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Author" MinWidth="142">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Author}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Version" MinWidth="72">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Version}" HorizontalAlignment="Center"  Style="{StaticResource TextBlockDefault}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Horizontal" Margin="6,8,0,4">
+                                <Button Name="ButtonImportProfileFromRepo" Style="{StaticResource BtnDefault}" HorizontalAlignment="Left" Padding="4,0,4,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="../../Icons/download.png" Style="{StaticResource ImgSquareSmall}"/>
+                                        <Label>Import Profile from Repo</Label>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </GroupBox>
+    </Grid>
+</UserControl>

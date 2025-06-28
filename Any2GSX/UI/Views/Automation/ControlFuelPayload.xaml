@@ -1,0 +1,151 @@
+﻿<UserControl x:Class="Any2GSX.UI.Views.Automation.ControlFuelPayload"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Any2GSX.UI.Views.Automation"
+             d:DataContext="{d:DesignInstance Type=local:ModelAutomation}"
+             mc:Ignorable="d" 
+             d:DesignHeight="1024" d:DesignWidth="800">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../StyleResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Grid.Column="0" Grid.Row="0" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>Refuel Rate</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Column="0" Grid.Row="0" Style="{StaticResource SettingItemPanel}" Margin="6,4,6,4" ToolTip="Refuel the Aircraft with a fixed Rate. Refueling Duration is variable (depending on planned Fuel)">
+                    <TextBlock Style="{StaticResource TextBlockDefault}"><Underline>Fixed</Underline> Refuel Rate:</TextBlock>
+                    <TextBox Name="InputRefuelRate" Margin="6,0,0,0" Style="{StaticResource TextBoxCentered}" IsEnabled="{Binding UseFixedRefuelRate}" IsReadOnly="{Binding UseRefuelTimeTarget}"/>
+                    <TextBlock Text="{Binding DisplayUnitCurrentString}" Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">per sec</TextBlock>
+                </StackPanel>
+
+                <StackPanel Grid.Column="0" Grid.Row="1" Style="{StaticResource SettingItemPanel}" Margin="6,4,6,4" ToolTip="Refuel the Aircraft with a variable Rate. Refueling Duration is fixed (independent of planned Fuel)">
+                    <CheckBox IsChecked="{Binding UseRefuelTimeTarget}" Margin="0" Style="{StaticResource CheckBoxSettingItem}"
+                      ToolTip="">
+                        <TextBlock>Use dynamic Rate for fixed <Underline>Time Target</Underline>:</TextBlock>
+                    </CheckBox>
+                    <TextBox Name="InputTimeTarget" Margin="6,0,0,0" Style="{StaticResource TextBoxCentered}" IsEnabled="{Binding UseRefuelTimeTarget}" IsReadOnly="{Binding UseFixedRefuelRate}"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
+                </StackPanel>
+
+                <CheckBox Grid.Column="0" Grid.Row="2" IsChecked="{Binding RefuelFinishOnHose}" Style="{StaticResource CheckBoxSettingItem}"
+                        ToolTip="When the GSX Fuel Hose is reported as disconnected, stop Refueling and instantly set the planned Fuel">
+                    <TextBlock><Underline>Finish Refuel immediately</Underline> when the Fuel Hose disconnects</TextBlock>
+                </CheckBox>
+
+                <TextBlock Grid.Column="0" Grid.Row="3" Margin="6,6,0,6" MaxWidth="620" TextWrapping="WrapWithOverflow">
+                    <Italic>
+                        <Bold>Note:</Bold> These Settings only apply to Aircraft Plugins implementing Fuel-Sync.
+                        <LineBreak/>
+                        If the Aircraft does not have any Fuel-Sync (via native or Any2GSX Plugin), refuel the Aircraft manually when the Truck arrives (e.g. through the EFB or FMC).
+                    </Italic>
+                </TextBlock>
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Column="0" Grid.Row="1" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>Payload</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Column="0" Grid.Row="0" Style="{StaticResource SettingItemPanel}" Margin="6,4,6,4" IsEnabled="{Binding CanSetPilotTarget}" ToolTip="The Number of Pilots to set on the GSX Variables for Crew Boarding - only available if Crew Boarding or Deboarding is not skipped.">
+                    <TextBlock Style="{StaticResource TextBlockDefault}" ToolTip="The Number of Pilots to set on the GSX Variables for Crew Boarding - only available if Crew Boarding or Deboarding is not skipped.">
+                        Number of <Underline>Pilots</Underline> to set for GSX Crew De/Boarding: 
+                    </TextBlock>
+                    <TextBox Name="InputPilotsDefault" Margin="8,0,0,0" Style="{StaticResource TextBoxCentered}" 
+                             ToolTip="The Number of Pilots to set on the GSX Variables for Crew Boarding - only available if Crew Boarding or Deboarding is not skipped."/>
+                </StackPanel>
+
+                <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding ResetPayloadOnPrep}" Style="{StaticResource CheckBoxSettingItem}"
+                      ToolTip="The Payload of the Aircraft will be set to zero in the Preparation Phase (Reposition, set Ground Equipment) - if the configured Plugin supports that.&#x0a;If not checked (or not supported by the Plugin), make sure that the Gross/Total Weight of the Aircraft is below the planned Value before switchting to the Departure Phase.">
+                    <TextBlock>Set the Aircraft Payload to empty/zero on <Underline>Session Start</Underline></TextBlock>
+                </CheckBox>
+
+                <CheckBox Grid.Column="0" Grid.Row="2" IsChecked="{Binding ResetPayloadOnTurn}" Style="{StaticResource CheckBoxSettingItem}"
+                      ToolTip="The Payload of the Aircraft will be set to zero in the Turn Around Phase - if the configured Plugin supports that.&#x0a;If not checked (or not supported by the Plugin), make sure that the Gross/Total Weight of the Aircraft is below the planned Value before switchting to the Departure Phase.">
+                    <TextBlock>Set the Aircraft Payload to empty/zero in the <Underline>Turn Around</Underline> Phase</TextBlock>
+                </CheckBox>
+
+                <TextBlock Grid.Column="0" Grid.Row="3" Margin="6,4,0,6" MaxWidth="620" TextWrapping="WrapWithOverflow">
+                    <Italic>
+                        <Bold>Note:</Bold> The set Payload Settings only apply to Aircraft Plugins implementing Payload-Sync.
+                        <LineBreak/>
+                        If the configured Plugin does not support that, ensure that the current Payload is below planned before the Departure Phase begins.
+                    </Italic>
+                </TextBlock>
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Column="0" Grid.Row="2" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>FOB Load &amp; Save</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <CheckBox Grid.Column="0" Grid.Row="0" IsChecked="{Binding FuelSaveLoadFob}" Style="{StaticResource CheckBoxSettingItem}"
+                      ToolTip="Save the Fuel on Board permanently per Aircraft Title/Livery Name on Arrival (~Engine Shutdown).&#x0a;Any2GSX can then set the Fuel on Board on Session Start to last known Value for this Aircraft.&#x0a;When no saved Value is found, the Fuel on Board will be set to Default Value (App Settings).">
+                    <TextBlock><Underline>Save FOB</Underline> on Arrival and <Underline>Load</Underline> on Session Start (per Aircraft)</TextBlock>
+                </CheckBox>
+
+                <StackPanel Grid.Column="0" Grid.Row="1" Style="{StaticResource SettingItemPanel}" Margin="6,4,6,4" ToolTip="Default Base Value to set the Fuel on Board to (if the Aircraft Plugin supports that).&#x0a;The FOB Reset Percent from App Settings will be added to this.">
+                    <TextBlock Style="{StaticResource TextBlockDefault}" MinWidth="233">FOB default <Underline>Base Value</Underline> used on Load:</TextBlock>
+                    <TextBox Name="InputFuelReset" Margin="6,0,0,0" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Text="{Binding DisplayUnitCurrentString}" Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}" IsEnabled="{Binding FuelSaveLoadFob}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="0" Grid.Row="2" Style="{StaticResource SettingItemPanel}" Margin="6,4,6,4" ToolTip="If the current FOB is higher than planned when the Fuel Truck arrives, the FOB is decreased by this Value.&#x0a;This should prevent the Truck not leaving because Refuel never started.&#x0a;A Value of 0 disables the Reset.">
+                    <TextBlock Style="{StaticResource TextBlockDefault}" MinWidth="233"><Underline>Decrease FOB</Underline> on Refuel becoming active by</TextBlock>
+                    <TextBox Name="InputRefuelDelta" Margin="6,0,0,0" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Text="{Binding DisplayUnitCurrentString}" Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="3" Margin="6,6,0,6" MaxWidth="620" TextWrapping="WrapWithOverflow">
+                    <Italic>
+                        <Bold>Note:</Bold> These Settings only apply to Aircraft Plugins allowing to set the FOB instantly.
+                    </Italic>
+                </TextBlock>
+            </Grid>
+        </GroupBox>
+    </Grid>
+</UserControl>

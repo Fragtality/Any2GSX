@@ -1,0 +1,36 @@
+{
+  "name": "@efb/any2gsxapp",
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "Fragtality",
+  "scripts": {
+    "build": "node ./build.js && pwsh ../CopySource.ps1",
+    "copy": "node ./build.js && pwsh ../CopySim.ps1",
+    "clean": "npm run clean:dist && npm run clean:node_modules",
+    "clean:dist": "if exist ./dist/ (rmdir /s /q dist)",
+    "clean:node_modules": "if exist ./node_modules/ (rmdir /s /q node_modules)",
+    "rebuild": "npm run clean:dist && npm run build",
+    "watch": "cross-env SERVING_MODE=WATCH node ./build.js"
+  },
+  "dependencies": {
+    "@efb/efb-api": "file:../efb_api/dist/",
+    "@microsoft/msfs-sdk": "file:../vendor/microsoft-msfs-sdk-2.0.4.tgz",
+    "@microsoft/msfs-types": "^1.14.6"
+  },
+  "devDependencies": {
+    "@fal-works/esbuild-plugin-global-externals": "^2.1.2",
+    "@jgoz/esbuild-plugin-typecheck": "^4.0.3",
+    "@types/node": "^18.15.5",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.0.3",
+    "esbuild": "^0.25.5",
+    "esbuild-copy-static-files": "^0.1.0",
+    "esbuild-plugin-copy": "^2.1.1",
+    "esbuild-sass-plugin": "^3.3.0",
+    "postcss": "^8.4.30",
+    "postcss-prefix-selector": "^1.16.0",
+    "postcss-url": "^10.1.3",
+    "prettier": "^2.7.1",
+    "typescript": "~5.6.2"
+  }
+}
