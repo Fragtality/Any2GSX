@@ -1,0 +1,185 @@
+{
+    "Id": "INI.A330",
+    "Aircraft": "Microsoft/iniBuilds A330 (All Variants)",
+    "Author": "Fragtality",
+    "VersionChannel": "0.1.0",
+	"VersionApp": "0.1.0",
+    "ChannelDefinitions": [
+        {
+            "Name": "CPT.VHF1",
+            "VolumeVariable": "L:XMLVAR_VHF_1_VOLUME_CPT",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_VHF_1_CPT_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "CPT.VHF2",
+            "VolumeVariable": "L:XMLVAR_VHF_2_VOLUME_CPT",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_VHF_2_CPT_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "CPT.VHF3",
+            "VolumeVariable": "L:XMLVAR_VHF_3_VOLUME_CPT",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_VHF_3_CPT_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "CPT.HF1",
+            "VolumeVariable": "L:XMLVAR_HF_1_VOLUME_CPT",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_HF_1_CPT_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "CPT.HF2",
+            "VolumeVariable": "L:XMLVAR_HF_2_VOLUME_CPT",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_HF_2_CPT_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "CPT.INT",
+            "VolumeVariable": "L:XMLVAR_INT_1_VOLUME_CPT",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_INT_1_CPT_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "CPT.CAB",
+            "VolumeVariable": "L:XMLVAR_CAB_1_VOLUME_CPT",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_CAB_1_CPT_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "CPT.PA",
+            "VolumeVariable": "L:XMLVAR_PA_1_VOLUME_CPT",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_PA_1_CPT_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.VHF1",
+            "VolumeVariable": "L:XMLVAR_VHF_1_VOLUME_FO",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_VHF_1_FO_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.VHF2",
+            "VolumeVariable": "L:XMLVAR_VHF_2_VOLUME_FO",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_VHF_2_FO_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.VHF3",
+            "VolumeVariable": "L:XMLVAR_VHF_3_VOLUME_FO",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_VHF_3_FO_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.HF1",
+            "VolumeVariable": "L:XMLVAR_HF_1_VOLUME_FO",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_HF_1_FO_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.HF2",
+            "VolumeVariable": "L:XMLVAR_HF_2_VOLUME_FO",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_HF_2_FO_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.INT",
+            "VolumeVariable": "L:XMLVAR_INT_1_VOLUME_FO",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_INT_1_FO_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.CAB",
+            "VolumeVariable": "L:XMLVAR_CAB_1_VOLUME_FO",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_CAB_1_FO_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.PA",
+            "VolumeVariable": "L:XMLVAR_PA_1_VOLUME_FO",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:XMLVAR_PA_1_FO_SWITCH_DOWN",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        }
+    ]
+}

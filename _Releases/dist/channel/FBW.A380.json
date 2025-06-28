@@ -1,0 +1,229 @@
+{
+    "Id": "FBW.A380",
+    "Aircraft": "FlyByWire A380 (stable/dev)",
+    "Author": "Fragtality",
+    "VersionChannel": "0.1.0",
+	"VersionApp": "0.1.0",
+    "ChannelDefinitions": [
+        {
+            "Name": "CPT.VHF1",
+            "VolumeVariable": "L:A380X_RMP_1_VHF_VOL_1",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_1_VHF_VOL_RX_1",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.VHF2",
+            "VolumeVariable": "L:A380X_RMP_1_VHF_VOL_2",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_1_VHF_VOL_RX_2",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.VHF3",
+            "VolumeVariable": "L:A380X_RMP_1_VHF_VOL_3",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_1_VHF_VOL_RX_3",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.HF1",
+            "VolumeVariable": "L:A380X_RMP_1_HF_VOL_1",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_1_HF_VOL_RX_1",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.HF2",
+            "VolumeVariable": "L:A380X_RMP_1_HF_VOL_2",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_1_HF_VOL_RX_2",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.TEL1",
+            "VolumeVariable": "L:A380X_RMP_1_TEL_VOL_1",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_1_TEL_VOL_RX_1",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.TEL2",
+            "VolumeVariable": "L:A380X_RMP_1_TEL_VOL_2",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_1_TEL_VOL_RX_2",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.INT",
+            "VolumeVariable": "L:A380X_RMP_1_INT_VOL",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_1_INT_VOL_RX_SWITCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.CAB",
+            "VolumeVariable": "L:A380X_RMP_1_CAB_VOL",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_1_CAB_VOL_RX",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.PA",
+            "VolumeVariable": "L:A380X_RMP_1_PA_VOL",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_1_PA_VOL_RX",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.VHF1",
+            "VolumeVariable": "L:A380X_RMP_2_VHF_VOL_1",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_2_VHF_VOL_RX_1",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.VHF2",
+            "VolumeVariable": "L:A380X_RMP_2_VHF_VOL_2",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_2_VHF_VOL_RX_2",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.VHF3",
+            "VolumeVariable": "L:A380X_RMP_2_VHF_VOL_3",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_2_VHF_VOL_RX_3",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.HF1",
+            "VolumeVariable": "L:A380X_RMP_2_HF_VOL_1",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_2_HF_VOL_RX_1",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.HF2",
+            "VolumeVariable": "L:A380X_RMP_2_HF_VOL_2",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_2_HF_VOL_RX_2",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.TEL1",
+            "VolumeVariable": "L:A380X_RMP_2_TEL_VOL_1",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_2_TEL_VOL_RX_1",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.TEL2",
+            "VolumeVariable": "L:A380X_RMP_2_TEL_VOL_2",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_2_TEL_VOL_RX_2",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.INT",
+            "VolumeVariable": "L:A380X_RMP_2_INT_VOL",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_2_INT_VOL_RX_SWITCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.CAB",
+            "VolumeVariable": "L:A380X_RMP_2_CAB_VOL",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_2_CAB_VOL_RX",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.PA",
+            "VolumeVariable": "L:A380X_RMP_2_PA_VOL",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:A380X_RMP_2_PA_VOL_RX",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        }
+    ]
+}

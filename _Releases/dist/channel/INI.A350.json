@@ -1,0 +1,207 @@
+{
+    "Id": "INI.A350",
+    "Aircraft": "iniBuilds A350 (All Variants)",
+    "Author": "Fragtality",
+    "VersionChannel": "0.1.0",
+	"VersionApp": "0.1.0",
+    "ChannelDefinitions": [
+        {
+            "Name": "CPT.VHF1",
+            "VolumeVariable": "L:INI_RMP1_1_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP1_1_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "CPT.VHF2",
+            "VolumeVariable": "L:INI_RMP1_2_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP1_2_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "CPT.VHF3",
+            "VolumeVariable": "L:INI_RMP1_3_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP1_3_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "CPT.HF1",
+            "VolumeVariable": "L:INI_RMP1_4_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP1_4_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "CPT.HF2",
+            "VolumeVariable": "L:INI_RMP1_5_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP1_5_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "CPT.TEL1",
+            "VolumeVariable": "L:INI_RMP1_6_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP1_6_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "CPT.TEL2",
+            "VolumeVariable": "L:INI_RMP1_7_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP1_7_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "CPT.INT",
+            "VolumeVariable": "L:INI_RMP1_8_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP1_8_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "CPT.CAB",
+            "VolumeVariable": "L:INI_RMP1_11_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP1_11_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.VHF1",
+            "VolumeVariable": "L:INI_RMP2_1_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP2_1_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.VHF2",
+            "VolumeVariable": "L:INI_RMP2_2_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP2_2_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.VHF3",
+            "VolumeVariable": "L:INI_RMP2_3_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP2_3_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.HF1",
+            "VolumeVariable": "L:INI_RMP2_4_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP2_4_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.HF2",
+            "VolumeVariable": "L:INI_RMP2_5_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP2_5_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.TEL1",
+            "VolumeVariable": "L:INI_RMP2_6_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP2_6_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.TEL2",
+            "VolumeVariable": "L:INI_RMP2_7_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP2_7_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.INT",
+            "VolumeVariable": "L:INI_RMP2_8_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP2_8_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+        {
+            "Name": "FO.CAB",
+            "VolumeVariable": "L:INI_RMP2_11_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 100,
+            "MuteVariable": "L:INI_RMP2_11_RECEIVE_SEL",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        }
+    ]
+}

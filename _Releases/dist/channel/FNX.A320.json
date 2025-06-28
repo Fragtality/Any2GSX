@@ -1,0 +1,185 @@
+{
+    "Id": "FNX.A320",
+    "Aircraft": "Fenix A320 (all Variants)",
+    "Author": "Fragtality",
+    "VersionChannel": "0.1.0",
+	"VersionApp": "0.1.0",
+    "ChannelDefinitions": [
+        {
+            "Name": "CPT.VHF1",
+            "VolumeVariable": "L:A_ASP_VHF_1_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP_VHF_1_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.VHF2",
+            "VolumeVariable": "L:A_ASP_VHF_2_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP_VHF_2_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.VHF3",
+            "VolumeVariable": "L:A_ASP_VHF_3_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP_VHF_3_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.HF1",
+            "VolumeVariable": "L:A_ASP_HF_1_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP_HF_1_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.HF2",
+            "VolumeVariable": "L:A_ASP_HF_2_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP_HF_2_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.INT",
+            "VolumeVariable": "L:A_ASP_INT_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP_INT_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.CAB",
+            "VolumeVariable": "L:A_ASP_CAB_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP_CAB_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "CPT.PA",
+            "VolumeVariable": "L:A_ASP_PA_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP_PA_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.VHF1",
+            "VolumeVariable": "L:A_ASP2_VHF_1_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP2_VHF_1_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.VHF2",
+            "VolumeVariable": "L:A_ASP2_VHF_2_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP2_VHF_2_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.VHF3",
+            "VolumeVariable": "L:A_ASP2_VHF_3_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP2_VHF_3_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.HF1",
+            "VolumeVariable": "L:A_ASP2_HF_1_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP2_HF_1_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.HF2",
+            "VolumeVariable": "L:A_ASP2_HF_2_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP2_HF_2_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.INT",
+            "VolumeVariable": "L:A_ASP2_INT_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP2_INT_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.CAB",
+            "VolumeVariable": "L:A_ASP2_CAB_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP2_CAB_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        },
+		{
+            "Name": "FO.PA",
+            "VolumeVariable": "L:A_ASP2_PA_VOLUME",
+            "VolumeUnit": "Number",
+            "MinValue": 0,
+            "MaxValue": 1,
+            "MuteVariable": "L:S_ASP2_PA_REC_LATCH",
+            "MuteUnit": "Number",
+            "MutedValue": 0,
+            "UnmutedValue": 1
+        }
+    ]
+}
