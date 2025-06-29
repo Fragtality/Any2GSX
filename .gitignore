@@ -15,11 +15,11 @@
 MSFS2020-Package/Packages/fragtality-commbus-module
 MSFS2020-Package/PackageSources/html_ui
 MSFS2020-Package/PackageSources/WASM
-MSFS2020-Package/_Temp
+MSFS2020-Package/_Temp/
 MSFS2024-Package/Packages/fragtality-commbus-module
 MSFS2024-Package/PackageSources/Any2GsxApp
 MSFS2024-Package/PackageSources/WASM
-MSFS2024-Package/_Temp
+MSFS2024-Package/_Temp/
 _Releases/
 _Artwork/
 WASM-Module/MSFS/Release
