@@ -9,7 +9,7 @@ namespace Any2GSX.AppConfig
         public override int BuildConfigVersion { get; } = 1;
         public override string ProductName => "Any2GSX";
         public override string ProductExePath => Path.Join(Path.Join(ProductPath, "bin"), ProductExe);
-        public virtual string RepoDistUrl => $"https://github.com/Fragtality/{ProductName}/raw/refs/heads/master/{ProductName}-Plugins/dist";
+        public virtual string RepoDistUrl => $"https://github.com/Fragtality/{ProductName}-Plugins/raw/refs/heads/master/dist";
         public virtual string RepoDistUrlPlugins => $"{RepoDistUrl}/plugins";
         public virtual string RepoDistUrlChannels => $"{RepoDistUrl}/channel";
         public virtual string RepoDistUrlProfiles => $"{RepoDistUrl}/profiles";
