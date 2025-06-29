@@ -79,4 +79,4 @@ The Configuration is done through the **GUI**, open it by **clicking on the Syst
 Everything is stored persistently in the *AppConfig.json* File in the Application's Folder - so backup that File in order to backup your Settings!<br/>
 
 <br/><br/>
-<img src="img/ui1.png"><br/><br/>
+<img src="img/ui-auto.png"><br/><br/>
