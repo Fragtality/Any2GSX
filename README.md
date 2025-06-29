@@ -28,7 +28,7 @@ Generalized Version of [Fenix2GSX](https://github.com/Fragtality/Fenix2GSX) brin
 [Download Any2GSX-Installer-latest.exe](https://github.com/Fragtality/Any2GSX/raw/refs/heads/master/Any2GSX-Installer-latest.exe)
 
 (Currently only Development Builds available)
-<br/>
+<br/><br/>
 
 ### 1.2 - Installation, Update & Removal
 
