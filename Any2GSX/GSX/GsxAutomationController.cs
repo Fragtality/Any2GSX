@@ -419,14 +419,15 @@ namespace Any2GSX.GSX
 
             if (State == AutomationState.Departure && !DepartureServicesCompleted && !DepartureServicesEnumerator.CheckEnumeratorValid())
             {
-                GsxController.ServiceBoard.ForceComplete();
+                if (ServiceBoard.WasActive && !ServiceBoard.WasCompleted)
+                    ServiceBoard.ForceComplete();
                 Logger.Information($"GSX Restart on last Departure Service detected - skip to Pushback");
                 SetPushback();
             }
 
             if (State == AutomationState.Arrival && ServiceDeboard.WasActive && !ServiceDeboard.WasCompleted)
             {
-                GsxController.ServiceDeboard.ForceComplete();
+                ServiceDeboard.ForceComplete();
                 Logger.Information($"GSX Restart on Deboarding Service detected - skip to Turnaround");
                 SetTurnaround();
             }
@@ -780,7 +781,7 @@ namespace Any2GSX.GSX
             if (Aircraft.HasPca && Aircraft.IsApuRunning && Aircraft.IsApuBleedOn && Aircraft.EquipmentPca)
             {
                 Logger.Information($"Automation: Disconnecting PCA");
-                await Aircraft.SetEquipmentPca(false);
+                await Aircraft.SetEquipmentPca(ServicePushBack.PushStatus >= 3 && ServicePushBack.IsActive);
             }
 
             if (GroundEquipmentPlaced && !Aircraft.IsExternalPowerConnected && Aircraft.IsBrakeSet && Aircraft.LightBeacon)

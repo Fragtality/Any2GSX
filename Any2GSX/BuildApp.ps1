@@ -2,12 +2,12 @@
 # pwsh -ExecutionPolicy Unrestricted -file "$(ProjectDir)BuildApp.ps1" $(Configuration) $(SolutionDir) $(ProjectDir) "APPNAME" "AppConfig.json"
 
 ######### CONFIG
-$cfgDeploy = $true
+$cfgDeploy = $false
 $cfgCleanDeploy = $false # !!!
 $cfgCleanLog = $false
 $cfgResetConfig = $false # !!!
 $cfgBuildPackages = $false
-$cfgBuildInstaller = $false
+$cfgBuildInstaller = $true
 
 if ($args[0] -eq "*Undefined*") {
 	exit 0

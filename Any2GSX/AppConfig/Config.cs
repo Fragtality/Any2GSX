@@ -44,7 +44,7 @@ namespace Any2GSX.AppConfig
         public virtual string DeckVarInfoPax { get; set; } = "X:GSX_INFO_PAX";
         public virtual string DeckVarInfoCargo { get; set; } = "X:GSX_INFO_CARGO";
         public virtual int UiRefreshInterval { get; set; } = 500;
-        public virtual double FuelCompareVariance { get; set; } = 25;
+        public virtual double FuelCompareVariance { get; set; } = 50;
         public virtual int TimerGsxCheck { get; set; } = 1000;
         public virtual int TimerGsxProcessCheck { get; set; } = 5000;
         public virtual int TimerGsxStartupMenuCheck { get; set; } = 5000;

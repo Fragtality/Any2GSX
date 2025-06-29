@@ -37,6 +37,7 @@ namespace Any2GSX.UI.Views.Settings
         public virtual void Start()
         {
             ViewModel.NotifyPropertyChanged(nameof(ViewModel.BrushSimbrief));
+            ViewModel.ModelSavedFuel.NotifyCollectionChanged();
         }
 
         public virtual void Stop()

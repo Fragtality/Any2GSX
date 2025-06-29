@@ -89,8 +89,7 @@ namespace Any2GSX.Plugins
             Dictionary<string, PluginManifest> result = [];
             try
             {
-                //JsonNode node = await GetJsonFromUrl(Definition.RepoDistUrlPluginFile);
-                JsonNode node = JsonSerializer.Deserialize<JsonNode>(await File.ReadAllTextAsync(@"C:\Users\Fragtality\source\repos\Any2GSX-Plugins\dist\plugins\plugin-repo.json"));
+                JsonNode node = await GetJsonFromUrl(Definition.RepoDistUrlPluginFile);
 
                 foreach (var entry in node.AsObject())
                 {
@@ -111,8 +110,7 @@ namespace Any2GSX.Plugins
         {
             if (!Plugins.TryGetValue(pluginFile, out _))
                 return false;
-            //var installer = new PluginInstaller($"{Definition.RepoDistUrlPlugins}/{pluginFile}");
-            var installer = new PluginInstaller(Path.Join(@"C:\Users\Fragtality\source\repos\Any2GSX-Plugins\dist\plugins", pluginFile));
+            var installer = new PluginInstaller($"{Definition.RepoDistUrlPlugins}/{pluginFile}");
             return await installer.Install();
         }
 
@@ -129,8 +127,7 @@ namespace Any2GSX.Plugins
             Dictionary<string, AircraftChannels> result = [];
             try
             {
-                //JsonNode node = await GetJsonFromUrl(Definition.RepoDistUrlChannelFile);
-                JsonNode node = JsonSerializer.Deserialize<JsonNode>(await File.ReadAllTextAsync(@"C:\Users\Fragtality\source\repos\Any2GSX-Plugins\dist\channel\channel-repo.json"));
+                JsonNode node = await GetJsonFromUrl(Definition.RepoDistUrlChannelFile);
 
                 foreach (var entry in node.AsObject())
                 {
@@ -155,8 +152,7 @@ namespace Any2GSX.Plugins
             bool result = false;
             try
             {
-                //string json = await GetStringFromUrl($"{Definition.RepoDistUrlChannels}/{channelFile}");
-                string json = await File.ReadAllTextAsync(Path.Join(@"C:\Users\Fragtality\source\repos\Any2GSX-Plugins\dist\channel", channelFile));
+                string json = await GetStringFromUrl($"{Definition.RepoDistUrlChannels}/{channelFile}");
                 var channelDefinition = AircraftChannels.Deserialize(json);
                 if (channelDefinition != null && !string.IsNullOrWhiteSpace(channelDefinition.Id))
                 {
@@ -210,9 +206,7 @@ namespace Any2GSX.Plugins
             Dictionary<string, ProfileManifest> result = [];
             try
             {
-                //JsonNode node = await GetJsonFromUrl(Definition.RepoDistUrlProfileFile);
-                JsonNode node = JsonSerializer.Deserialize<JsonNode>(File.ReadAllText(@"C:\Users\Fragtality\source\repos\Any2GSX-Plugins\dist\profiles\profile-repo.json"));
-                await Task.Delay(25);
+                JsonNode node = await GetJsonFromUrl(Definition.RepoDistUrlProfileFile);
 
                 foreach (var entry in node.AsObject())
                 {
@@ -237,8 +231,7 @@ namespace Any2GSX.Plugins
             bool result = false;
             try
             {
-                //string json = await GetStringFromUrl($"{Definition.RepoDistUrlProfiles}/{profileFile}");
-                string json = File.ReadAllText(Path.Join(@"C:\Users\Fragtality\source\repos\Any2GSX-Plugins\dist\profiles", profileFile));
+                string json = await GetStringFromUrl($"{Definition.RepoDistUrlProfiles}/{profileFile}");
                 SettingProfile profile = JsonSerializer.Deserialize<SettingProfile>(json);
                 if (profile == null)
                 {

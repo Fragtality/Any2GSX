@@ -331,7 +331,7 @@ namespace Any2GSX.Aircraft
             }
             else if (service.State == GsxServiceState.Completed && AutomationController.State <= AutomationState.Pushback)
             {
-                if (Aircraft.HasFuelSynch && !Aircraft.IsApuRunning && AutomationController.State < AutomationState.Pushback && Aircraft.FuelOnBoardKg <= Flightplan.FuelRampKg - Config.FuelCompareVariance)
+                if (Aircraft.HasFuelSynch && !GsxController.ServicePushBack.IsRunning && Aircraft.FuelOnBoardKg <= Flightplan.FuelRampKg - Config.FuelCompareVariance)
                 {
                     Logger.Warning($"Instant load Fuel - FOB did not match planned after GSX Refuel");
                     Logger.Debug($"FOB: {Aircraft.FuelOnBoardKg} | PlanRamp: {Flightplan.FuelRampKg}");

@@ -283,13 +283,6 @@ namespace Any2GSX.GSX
 
                     if (!Menu.FirstReadyReceived && IsProcessRunning && NextMenuStartupCheck <= DateTime.Now && AutomationController.IsOnGround)
                     {
-                        if (CouatlVarsReceived && CouatlLastStarted == 1 && IsProcessRunning)
-                        {
-                            Logger.Information($"Trying to open GSX Menu ...");
-                            await Menu.OpenHide();
-                            await Task.Delay(1000, Token);
-                        }
-
                         if (IsProcessRunning && Profile.RunAutomationService && !AutomationController.IsStarted && AircraftController.IsConnected && SkippedWalkAround && Aircraft.GroundSpeed < 1)
                         {
                             Logger.Debug($"HasChocks {Aircraft.HasChocks} | EquipmentChocks {Aircraft.EquipmentChocks} | IsBrakeSet {Aircraft.IsBrakeSet} | Type {Aircraft.GetType().Name}");
@@ -303,6 +296,13 @@ namespace Any2GSX.GSX
                                 Logger.Information($"GSX Menu not opening - trigger Parking Brake");
                                 await Aircraft.SetParkingBrake(true);
                             }
+                        }
+
+                        if (CouatlVarsReceived && CouatlLastStarted == 1 && IsProcessRunning)
+                        {
+                            Logger.Information($"Trying to open GSX Menu ...");
+                            await Menu.OpenHide();
+                            await Task.Delay(1000, Token);
                         }
 
                         if ((!CouatlVarsValid || !IsProcessRunning) && AppService.Instance.LastGsxRestart <= DateTime.Now - TimeSpan.FromSeconds(Config.WaitGsxRestart))
