@@ -25,14 +25,13 @@ Generalized Version of [Fenix2GSX](https://github.com/Fragtality/Fenix2GSX) brin
 
 <br/>
 
-[Download here](https://github.com/Fragtality/Any2GSX/releases/latest)
-
-(Under Assests, the Any2GSX-Installer-vXYZ.exe File)
+[Download Any2GSX-Installer-latest.exe](https://github.com/Fragtality/Any2GSX/raw/refs/heads/master/Any2GSX-Installer-latest.exe)
+(Currently only Development Builds available)
 <br/>
 
 ### 1.2 - Installation, Update & Removal
 
-Just [Download](https://github.com/Fragtality/Any2GSX/releases/latest) & Run the **Installer** Binary! It will check and install all Requirements the App (or remove it). Your existing Configuration persists through Updates.<br/>
+Just [Download](https://github.com/Fragtality/Any2GSX/raw/refs/heads/master/Any2GSX-Installer-latest.exe) & Run the **Installer** Binary! It will check and install all Requirements the App (or remove it). Your existing Configuration persists through Updates.<br/>
 On the second Installer Page you can select if Auto-Start should be set up for Any2GSX (recommended for Ease of Use).<br/>
 You do **not need to remove** the old Version for an Update (unless instructed) - using 'Remove' in the Installer completely removes Any2GSX (including WASM Module and Auto-Start). This also removes your Configuration including Aircraft Profiles and saved Fuel!<br/><br/>
 
