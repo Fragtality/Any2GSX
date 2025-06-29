@@ -27,6 +27,7 @@ namespace Any2GSX.AppConfig
         public override bool RequireSimRunning => false;
         public override bool WaitForSim => true; 
         public override bool SingleInstance => true;
+        public override bool ProductVersionCheckDev => true;
         public override bool MainWindowShowOnStartup => AppService.Instance?.Config?.OpenAppWindowOnStart == true || AppService.Instance?.Config?.ForceOpen == true;
     }
 }
