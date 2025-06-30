@@ -41,7 +41,7 @@ It is highly likely that you need to **Unblock/Exclude** the Installer & App fro
 
 <br/>
 
-Any2GSX will display a **orange Circlr** on its SysTray/Notification Area Icon if a **new Version** (both Stable and Development) is available. There is no Version Pop-Up and there will never be.
+Any2GSX will display a **orange Circle** on its SysTray/Notification Area Icon if a **new Version** (both Stable and Development) is available. There is no Version Pop-Up and there will never be.
 <br/><br/>
 
 ### 1.3 - Auto-Start
