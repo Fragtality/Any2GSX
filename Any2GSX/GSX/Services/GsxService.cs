@@ -88,7 +88,7 @@ namespace Any2GSX.GSX.Services
         {
             if (!EvaluateOverride(sub))
             {
-                Logger.Debug($"State Change ignored for {Type} (Override {IsStateOverridden}");
+                Logger.Debug($"State Change ignored for {Type} (Override {IsStateOverridden})");
                 return;
             }
 

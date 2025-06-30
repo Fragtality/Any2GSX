@@ -928,7 +928,7 @@ namespace Any2GSX.GSX
                 {
                     _ = Task.Delay(60000, Token).ContinueWith(async (_) =>
                     {
-                        if (!Aircraft.EquipmentPower)
+                        if (!Aircraft.EquipmentPower && !ServiceJetway.IsRunning && !ServiceStairs.IsRunning)
                         {
                             Logger.Warning($"Failback: Setting GPU after Deboard was called");
                             await Aircraft.SetEquipmentPower(true, true);

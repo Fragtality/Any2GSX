@@ -402,7 +402,7 @@ namespace Any2GSX.Notifications
                 status = "";
 
                 if (AutomationController.InitialTurnDelay)
-                    status = $"Turn-Delay {(AutomationController.TimeNextTurnCheck - DateTime.Now).Seconds}s ...";
+                    status = $"Turn-Delay {(int)((AutomationController.TimeNextTurnCheck - DateTime.Now).TotalSeconds)}s ...";
                 else if (!GsxController.IsGateConnected)
                     status = $"Connect Jetway/Stairs!";
                 else if (!AutomationController.InitialTurnDelay && !AppService.Instance.Flightplan.LastOnlineCheck)
@@ -504,6 +504,8 @@ namespace Any2GSX.Notifications
                 if ((GsxController.ServicePushBack.PushStatus == 0 || GsxController.ServicePushBack.State < GsxServiceState.Requested) && !GsxMenu.SuppressMenuRefresh && !GsxMenu.IsSequenceActive
                     && (automation == AutomationState.Preparation || automation == AutomationState.Departure || automation == AutomationState.Pushback || automation == AutomationState.Arrival || automation == AutomationState.TurnAround))
                 {
+                    if (Profile.PilotsDeckIntegration)
+                        await DeckConnector.SetConnected(true, Profile.Name);
                     Logger.Debug($"PilotsDeck Integration: Refresh Menu (Timeout)");
                     await GsxMenu.OpenHide();
                 }

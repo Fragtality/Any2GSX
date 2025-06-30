@@ -195,14 +195,14 @@ namespace Any2GSX.Aircraft
 
         protected virtual async Task OnWalkaroundWasSkipped()
         {
-            if (Aircraft.HasFobSaveRestore && SettingProfile.FuelSaveLoadFob)
+            if (Aircraft.HasFobSaveRestore && SettingProfile.FuelSaveLoadFob && !Aircraft.ReadyForDepartureServices)
             {
                 double value = Config.GetFuelFob(Title, FuelCapacityKg, SettingProfile.FuelResetBaseKg, out bool saved);
                 await Aircraft.SetFuelOnBoardKg(value);
                 Logger.Information($"Initial Fuel set on Aircraft: {Math.Round(Config.ConvertKgToDisplayUnit(value), 0)} {Config.DisplayUnitCurrentString} ({(saved ? "last Session" : "default")})");
             }
 
-            if (Aircraft.CanSetPayload && SettingProfile.ResetPayloadOnPrep)
+            if (Aircraft.CanSetPayload && SettingProfile.ResetPayloadOnPrep && !Aircraft.ReadyForDepartureServices)
             {
                 await Aircraft.SetPayloadEmpty();
                 Logger.Information($"Initial Payload set to empty");

@@ -128,7 +128,7 @@ namespace Any2GSX.Notifications
 
         public override async Task SetConnected(bool connected, string profile)
         {
-            if (connected && !string.IsNullOrWhiteSpace(profile))
+            if (connected)
                 await WriteVariable($"{VarDeckConnected}", "1");
             else
                 await WriteVariable($"{VarDeckConnected}", "0");
