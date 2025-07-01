@@ -72,14 +72,14 @@ The Rest can be left at Default.<br/>
 
 ### 2.3 - Any2GSX
 
-The Configuration is done through the **GUI**, open it by **clicking on the System-Tray/Notification-Icon**. All Settings have **Tooltips** explaining them further. It is recommended to familiarize yourself with the Settings and the general Usage (see XXX) first before starting the first 'serious' Flight with the App!<br/><br/>
+The Configuration is done through the **GUI**, open it by **clicking on the System-Tray/Notification-Icon**. All Settings have **Tooltips** explaining them further. It is recommended to familiarize yourself with the Settings and the general Usage (see [Section 3](#3---usage)) first before starting the first 'serious' Flight with the App!<br/><br/>
 
 The first Time you start the App (or the Config was Reset) it will automatically open the GUI and the '**App Settings**' View - please enter your **SimBrief User** (Name and ID both accepted) for the App to work properly!<br/>
 <img src="img/ui-first.png" width="520"><br/><br/>
 
-After this intial Step you might want to check out the 'Plugins' View to check-out which Aircraft Plugins, Channel Definitions or Aircraft Profiles are available to download (see XXX for Details).<br/><br/>
+After this intial Step you might want to check out the 'Plugins' View to check-out which Aircraft Plugins, Channel Definitions or Aircraft Profiles are available to download (see [Section 2.3.4](#234---plugins-view) for Details).<br/><br/>
 
-Since Any2GSX is active for all Aircrafts, I'd recommend to check out the '**Aircraft Profiles**' View next (No, nothing to do with GSX Aircraft Profiles). They are an essential Part of the App, basically the Glue bringing everything together: they determine what Any2GSX Features (GSX Automation, Volume Control, PilotsDeck Integration) should be active for a specific Aircraft and which Aircraft Plugin and/or Audio Channel should be loaded for that. All Automation Settings found in the 'Automation' View are stored per Profile - so together with the Ability to filter on specific IDs, Airlines or Titles/Liveries you can have different Settings for different Airlines having different SOPs to follow (or just having different Operator Prefrences for another Airline). Check XXX for Details.<br/><br/>
+Since Any2GSX is active for all Aircrafts, I'd recommend to check out the '**Aircraft Profiles**' View next (No, nothing to do with GSX Aircraft Profiles). They are an essential Part of the App, basically the Glue bringing everything together: they determine what Any2GSX Features (GSX Automation, Volume Control, PilotsDeck Integration) should be active for a specific Aircraft and which Aircraft Plugin and/or Audio Channel should be loaded for that. All Automation Settings found in the 'Automation' View are stored per Profile - so together with the Ability to filter on specific IDs, Airlines or Titles/Liveries you can have different Settings for different Airlines having different SOPs to follow (or just having different Operator Preferences for different Airlines). Check [Section 2.3.3](#233---aircraft-profiles-view) for Details.<br/><br/>
 
 #### 2.3.1 - Automation View
 
