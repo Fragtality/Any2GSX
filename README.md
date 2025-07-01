@@ -32,17 +32,14 @@ Generalized Version of [Fenix2GSX](https://github.com/Fragtality/Fenix2GSX) brin
 
 ### 1.2 - Installation, Update & Removal
 
-Just [Download](https://github.com/Fragtality/Any2GSX/raw/refs/heads/master/Any2GSX-Installer-latest.exe) & Run the **Installer** Binary! It will check and install all Requirements the App (or remove it). Your existing Configuration persists through Updates.<br/>
-On the second Installer Page you can select if Auto-Start should be set up for Any2GSX (recommended for Ease of Use).<br/>
+Just Download & Run the **Installer** Binary! It will check and install Requirements like the .NET Runtime or WASM Module.<br/>
+Any2GSX will display a **orange Circle** on its SysTray/Notification Area Icon if a **new Version** (both Stable and Development) is available. Your existing Configuration persists through Updates (stored persistently in the *AppConfig.json* File in the Application's Folder).<br/><br/>
+On the second Installer Page you can select if Auto-Start should be set up for Any2GSX (recommended for Ease of Use). While it is possible to install the WASM Module only to specific Sim Version/Variant, it is recommended to just install it to all. If you choose to install the WASM Module to only one Simulator, make sure you select *Update only existing Installations* when updating the App (else the Module will be installed on all Simulators)! The Force Module Update Option is mostly for Troubleshooting to force an Update of the WASM Module.<br/><br/>
 You do **not need to remove** the old Version for an Update (unless instructed) - using 'Remove' in the Installer completely removes Any2GSX (including WASM Module and Auto-Start). This also removes your Configuration including Aircraft Profiles and saved Fuel!<br/><br/>
 
 It is highly likely that you need to **Unblock/Exclude** the Installer & App from BitDefender and other AV-/Security-Software.<br/>
+The App will be installed to (cannot be changed): `%appdata%\Any2GSX` (`C:\Users\YOURUSERNAME\AppData\Roaming\Any2GSX`)<br/>
 **DO NOT** run the Installer or App "as Admin" - it might work, it might fail.<br/><br/>
-
-<br/>
-
-Any2GSX will display a **orange Circle** on its SysTray/Notification Area Icon if a **new Version** (both Stable and Development) is available. There is no Version Pop-Up and there will never be.
-<br/><br/>
 
 ### 1.3 - Auto-Start
 
@@ -75,8 +72,87 @@ The Rest can be left at Default.<br/>
 
 ### 2.3 - Any2GSX
 
-The Configuration is done through the **GUI**, open it by **clicking on the System-Tray/Notification-Icon**. All Options have **ToolTips** explaining them further.<br/>
-Everything is stored persistently in the *AppConfig.json* File in the Application's Folder - so backup that File in order to backup your Settings!<br/>
+The Configuration is done through the **GUI**, open it by **clicking on the System-Tray/Notification-Icon**. All Settings have **Tooltips** explaining them further. It is recommended to familiarize yourself with the Settings and the general Usage (see XXX) first before starting the first 'serious' Flight with the App!<br/><br/>
+
+The first Time you start the App (or the Config was Reset) it will automatically open the GUI and the '**App Settings**' View - please enter your **SimBrief User** (Name and ID both accepted) for the App to work properly!<br/>
+<img src="img/ui-first.png" width="520"><br/><br/>
+
+After this intial Step you might want to check out the 'Plugins' View to check-out which Aircraft Plugins, Channel Definitions or Aircraft Profiles are available to download (see XXX for Details).<br/><br/>
+
+Since Any2GSX is active for all Aircrafts, I'd recommend to check out the '**Aircraft Profiles**' View next (No, nothing to do with GSX Aircraft Profiles). They are an essential Part of the App, basically the Glue bringing everything together: they determine what Any2GSX Features (GSX Automation, Volume Control, PilotsDeck Integration) should be active for a specific Aircraft and which Aircraft Plugin and/or Audio Channel should be loaded for that. All Automation Settings found in the 'Automation' View are stored per Profile - so together with the Ability to filter on specific IDs, Airlines or Titles/Liveries you can have different Settings for different Airlines having different SOPs to follow (or just having different Operator Prefrences for another Airline). Check XXX for Details.<br/><br/>
+
+#### 2.3.1 - Automation View
 
 <br/><br/>
-<img src="img/ui-auto.png"><br/><br/>
+
+#### 2.3.2 - Volume Control View
+
+<br/><br/>
+
+#### 2.3.3 - Aircraft Profiles View
+
+<br/><br/>
+
+#### 2.3.4 - Plugins View
+
+<br/><br/>
+
+#### 2.3.5 - App Settings View
+
+<br/><br/><br/>
+
+### 3 - Usage
+
+#### 3.1 - General Service Flow / SOP
+
+#### 3.1.1 - Session Start
+
+<br/><br/>
+
+#### 3.1.2 - Preparation Phase
+
+<br/><br/>
+
+#### 3.1.3 - Departure Phase
+
+<br/><br/>
+
+#### 3.1.4 - Pushback Phase
+
+<br/><br/>
+
+#### 3.1.5 - Taxi-Out Phase
+
+<br/><br/>
+
+#### 3.1.6 - Flight Phase
+
+<br/><br/>
+
+#### 3.1.7 - Taxi-In Phase
+
+<br/><br/>
+
+#### 3.1.8 - Arrival Phase
+
+<br/><br/>
+
+#### 3.1.9 - Turn-Around Phase
+
+<br/><br/>
+
+#### 3.2 - SmartButton Calls
+
+<br/><br/><br/>
+
+## 4 - Addon NOTAMs
+
+<br/><br/><br/>
+
+## 5 - NOTAMs (Usage Tips)
+
+<br/><br/><br/>
+
+## 6 - FCOM (Troubleshooting)
+
+<br/><br/><br/>
