@@ -9,6 +9,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Windows;
 
 namespace Any2GSX.AppConfig
 {
@@ -87,9 +88,8 @@ namespace Any2GSX.AppConfig
         public virtual SettingProfile CurrentProfile => AppService.Instance?.SettingProfile;
         public virtual List<SettingProfile> SettingProfiles { get; set; } = new()
         {
-            { new SettingProfile() }
+            { new SettingProfile() { IsReadOnly = true } }
         };
-
         public virtual Dictionary<string, double> FuelFobSaved { get; set; } = [];
         public virtual double FuelResetPercent { get; set; } = 0.02;
 
@@ -102,31 +102,60 @@ namespace Any2GSX.AppConfig
         protected override void InitConfiguration()
         {
             DisplayUnitCurrent = DisplayUnitDefault;
+
+            SettingProfiles ??= [];
+
+            var query = SettingProfiles.Where(p => p.IsDefault);
+            if (query?.Any() == false)
+                SettingProfiles.Add(new SettingProfile() { IsReadOnly = true });
         }
 
         protected override void UpdateConfiguration(int buildConfigVersion)
         {
-
+            if (ConfigVersion < 2 && buildConfigVersion >= 2)
+            {
+                foreach (var profile in SettingProfiles)
+                {
+                    if (profile.MatchType == ProfileMatchType.Default)
+                        profile.IsReadOnly = true;
+                    else if (profile.MatchType == ProfileMatchType.Airline)
+                        profile.ProfileMatches.Add(new(MatchData.Airline, MatchOperation.StartsWith, profile.MatchString));
+                    else if (profile.MatchType == ProfileMatchType.Title)
+                        profile.ProfileMatches.Add(new(MatchData.Title, MatchOperation.Contains, profile.MatchString));
+                    else if (profile.MatchType == ProfileMatchType.AtcId)
+                        profile.ProfileMatches.Add(new(MatchData.AtcId, MatchOperation.Equals, profile.MatchString));
+                    else if (profile.MatchType == ProfileMatchType.AircraftString)
+                        profile.ProfileMatches.Add(new(MatchData.SimObject, MatchOperation.Contains, profile.MatchString));
+                    profile.MatchType = null;
+                    profile.MatchString = null;
+                }
+            }
         }
 
-        public virtual bool ImportProfile(string json, out bool wasDefault)
+        public virtual bool ImportProfile(string json)
         {
-            SettingProfile profile = null;
-            try { profile = JsonSerializer.Deserialize<SettingProfile>(json); } catch { }
-            if (profile == null)
+            try
             {
-                Logger.Warning($"SettingProfile json Data could not be parsed");
-                wasDefault = false;
+                SettingProfile profile = null;
+                try { profile = JsonSerializer.Deserialize<SettingProfile>(json); } catch { }
+                if (profile == null)
+                {
+                    Logger.Warning($"SettingProfile json Data could not be parsed");
+                    return false;
+                }
+
+                return ImportProfile(profile);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
                 return false;
             }
-
-            return ImportProfile(profile, out wasDefault);
         }
 
-        public virtual bool ImportProfile(SettingProfile profile, out bool wasDefault)
+        public virtual bool ImportProfile(SettingProfile profile)
         {
             bool result = false;
-            wasDefault = false;
 
             if (profile == null)
             {
@@ -134,25 +163,21 @@ namespace Any2GSX.AppConfig
                 return result;
             }
 
-            if (profile.MatchType == ProfileMatchType.Default)
+            var query = SettingProfiles.Where(p => p.Name.Equals(profile.Name, StringComparison.InvariantCultureIgnoreCase));
+            if (query.Any())
             {
-                var query = SettingProfiles.Where(p => p.Name.Equals(SettingProfile.DefaultId, StringComparison.InvariantCultureIgnoreCase));
-                if (query.Any())
+                Logger.Debug($"The Profile '{profile.Name}' is already configured");
+                if (MessageBox.Show($"The Profile '{profile.Name}' is already configured.\r\nDo you want to override it?", "Profile already exists", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                    return result;
+                else
                 {
-                    Logger.Debug($"Import/Overwrite Default Profile");
                     query.First().FullCopy(profile);
-                    wasDefault = true;
+                    Logger.Debug($"Profile '{profile.Name}' overridden");
                     result = true;
                 }
             }
             else
             {
-                if (SettingProfiles.Any(p => p.Name.Equals(profile.Name, StringComparison.InvariantCultureIgnoreCase)))
-                {
-                    Logger.Warning($"The Profile '{profile.Name}' is already configured");
-                    return result;
-                }
-
                 SettingProfiles.Add(profile);
                 Logger.Debug($"Profile '{profile.Name}' imported");
                 result = true;

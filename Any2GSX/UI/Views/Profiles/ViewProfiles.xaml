@@ -71,21 +71,14 @@
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto" MinWidth="120"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,0,6">
+                <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,0,8">
                     <Button Command="{Binding SetActiveCommand}" Margin="2,0,6,0" Style="{StaticResource BtnSquareSmall}" ToolTip="Set as active Profile">
                         <Image Source="../../Icons/play.png" Style="{StaticResource ImgSquareSmall}"/>
                     </Button>
@@ -98,79 +91,100 @@
                     <Button Command="{Binding CloneCommand}" Margin="2,0,6,0" Style="{StaticResource BtnSquareSmall}" ToolTip="Clone Profile">
                         <Image Source="../../Icons/copy.png" Style="{StaticResource ImgSquareSmall}"/>
                     </Button>
-                    <Button Name="ButtonRemove" Margin="2,0,6,0" Style="{StaticResource BtnSquareSmall}" ToolTip="Remove Profile">
+                    <Button Name="ButtonRemoveProfile" Margin="2,0,6,0" Style="{StaticResource BtnSquareSmall}" ToolTip="Remove Profile">
                         <Image Source="../../Icons/remove.png" Style="{StaticResource ImgSquareSmall}"/>
                     </Button>
-                    
                 </StackPanel>
 
-                <ListView Grid.Column="0" Grid.Row="1" Grid.RowSpan="7" Margin="0,4,6,0" MinWidth="164" MinHeight="148" SelectionMode="Single" Name="SelectorProfiles" ToolTip="List of saved Profiles.&#x0a;The default Profile can not be deleted and always be used if no other Profile matched.">
+                <ListView Grid.Column="0" Grid.Row="1" Margin="0,5,12,0" MinWidth="196" MinHeight="148" SelectionMode="Single" Name="SelectorProfiles" ToolTip="List of saved Profiles.&#x0a;The default Profile can not be deleted and always be used if no other Profile matched.">
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <Border>
-                                <StackPanel Orientation="Horizontal">
-                                    <Label Content="{Binding}"/>
-                                </StackPanel>
-                            </Border>
+                            <Label Content="{Binding}" Padding="0" MinHeight="24" VerticalContentAlignment="Center"/>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
 
-                <Label Grid.Column="1" Grid.Row="1" Style="{StaticResource ProfileDefault}" ToolTip="The Name to identify this Profile.">
-                    Profile Name:
-                </Label>
-                <TextBox Grid.Column="2" Grid.Row="1" Name="InputName" IsHitTestVisible="{Binding IsEditAllowed}" Style="{StaticResource ProfileInputText}"  ToolTip="The Name to identify this Profile."/>
+                <Grid Grid.Column="1" Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                <Label Grid.Column="1" Grid.Row="2" Style="{StaticResource ProfileDefault}" ToolTip="Select which Sim Variable is used to match the Profile.&#x0a;ATC ID: match by Equality&#x0a;Title/Livery: match if Text is contained&#x0a;Airline: match against the Start of String&#x0a;SimObject: match if Text is contained">
-                    Match Type:
-                </Label>
-                <ComboBox Grid.Column="2" Grid.Row="2" Name="InputType" IsEnabled="{Binding IsEditAllowed}" SelectedIndex="0" SelectedValuePath="Key" DisplayMemberPath="Value" Style="{StaticResource ProfileInputSelect}" ToolTip="Select which Sim Variable is used to match the Profile.&#x0a;ATC ID: match by Equality&#x0a;Title/Livery: match if Text is contained&#x0a;Airline: match against the Start of String&#x0a;SimObject: match if Text is contained"/>
+                    <Label Grid.Column="0" Grid.Row="0" FontWeight="Medium" Style="{StaticResource ProfileDefault}" ToolTip="The Name to identify this Profile.">
+                        Profile Name:
+                    </Label>
+                    <TextBox Grid.Column="1" Grid.Row="0" Name="InputName" IsHitTestVisible="{Binding IsEditAllowed}" MinWidth="256" HorizontalAlignment="Stretch" Style="{StaticResource ProfileInputText}"  ToolTip="The Name to identify this Profile."/>
 
-                <Label Grid.Column="1" Grid.Row="3" Style="{StaticResource ProfileDefault}" ToolTip="Text to compare against the selected Variable's Value.">
-                    Match String:
-                </Label>
-                <TextBox Grid.Column="2" Grid.Row="3" Name="InputMatchString" IsHitTestVisible="{Binding IsEditAllowed}" Style="{StaticResource ProfileInputText}" ToolTip="Text to compare against the selected Variable's Value."/>
+                    <Label Grid.Column="0" Grid.Row="1" Style="{StaticResource ProfileDefault}" ToolTip="The Aircraft Plugin to load/use for this Aircraft.">
+                        Aircraft Plugin:
+                    </Label>
+                    <ComboBox Grid.Column="1" Grid.Row="1" Name="SelectorPlugin" IsEnabled="{Binding IsEditAllowed}" SelectedIndex="0" Style="{StaticResource ProfileInputSelect}" ToolTip="The Aircraft Plugin to load/use for this Aircraft."/>
 
-                <Label Grid.Column="1" Grid.Row="4" Style="{StaticResource ProfileDefault}" ToolTip="The Aircraft Plugin to load/use for this Aircraft.">
-                    Aircraft Plugin:
-                </Label>
-                <ComboBox Grid.Column="2" Grid.Row="4" Name="InputPlugin" IsEnabled="{Binding IsEditAllowed}" SelectedIndex="0" Style="{StaticResource ProfileInputSelect}" ToolTip="The Aircraft Plugin to load/use for this Aircraft."/>
+                    <Label Grid.Column="0" Grid.Row="2" Style="{StaticResource ProfileDefault}" ToolTip="The Audio Channel Definition to load/use for this Aircraft.">
+                        Audio Channel:
+                    </Label>
+                    <ComboBox Grid.Column="1" Grid.Row="2" Name="SelectorChannel" IsEnabled="{Binding IsEditAllowed}" SelectedIndex="0" Style="{StaticResource ProfileInputSelect}" ToolTip="The Audio Channel Definition to load/use for this Aircraft."/>
 
-                <Label Grid.Column="1" Grid.Row="5" Style="{StaticResource ProfileDefault}" ToolTip="The Audio Channel Definition to load/use for this Aircraft.">
-                    Audio Channel:
-                </Label>
-                <ComboBox Grid.Column="2" Grid.Row="5" Name="InputChannel" IsEnabled="{Binding IsEditAllowed}" SelectedIndex="0" Style="{StaticResource ProfileInputSelect}" ToolTip="The Audio Channel Definition to load/use for this Aircraft."/>
-
-                <Label Grid.Column="1" Grid.Row="6" Style="{StaticResource ProfileDefault}" ToolTip="Set Any2GSX Features to use for this Aircraft.">
-                    Any2GSX Features:
-                </Label>
-                <StackPanel Grid.Column="2" Grid.Row="6" Orientation="Vertical" Margin="0,6,0,0">
-                    <CheckBox Name="CheckboxFeatureGSX" Style="{StaticResource ProfileCheckBox}" VerticalContentAlignment="Center">
-                        <StackPanel Orientation="Horizontal">
-                            <Image Source="../../Icons/automation.png" Margin="0,0,4,0" Width="18" Height="18" />
-                            <TextBlock VerticalAlignment="Center">GSX Automation</TextBlock>                            
-                        </StackPanel>
-                    </CheckBox>
-                    <CheckBox Name="CheckboxFeatureVolume" Style="{StaticResource ProfileCheckBox}" VerticalContentAlignment="Center">
-                        <StackPanel Orientation="Horizontal">
-                            <Image Source="../../Icons/volume.png" Margin="0,0,4,0" Width="18" Height="18" />
-                            <TextBlock VerticalAlignment="Center">Volume Control</TextBlock>
-                        </StackPanel>
-                    </CheckBox>
-                    <CheckBox Name="CheckboxFeaturePilotsdeck" Style="{StaticResource ProfileCheckBox}" VerticalContentAlignment="Center">
-                        <StackPanel Orientation="Horizontal">
-                            <Image Source="../../Icons/pilotsdeck.png" Margin="0,0,4,0" Width="18" Height="18" />
-                            <TextBlock VerticalAlignment="Center">PilotsDeck Integration</TextBlock>
-                        </StackPanel>
-                    </CheckBox>
-                </StackPanel>
-
-                <Button Grid.Column="2" Grid.Row="7" Name="ButtonAdd" Margin="0,12,0,4" Style="{StaticResource BtnDefault}" ToolTip="Add/Update Profile">
-                    <StackPanel Orientation="Horizontal">
-                        <Image Name="ImageAdd" Source="../../Icons/add.png" Style="{StaticResource ImgSquareSmall}"/>
-                        <Label FontWeight="DemiBold" FontSize="12">Save</Label>
+                    <Label Grid.Column="0" Grid.Row="3" Style="{StaticResource ProfileDefault}" VerticalAlignment="Top" ToolTip="Set Any2GSX Features to use for this Aircraft Profile.">
+                        Any2GSX Features:
+                    </Label>
+                    <StackPanel Grid.Column="1" Grid.Row="3" Orientation="Vertical" Margin="0,6,0,4">
+                        <CheckBox Name="CheckboxFeatureGSX" Style="{StaticResource ProfileCheckBox}" VerticalContentAlignment="Center" ToolTip="Automations like calling Services or skipping Questions.&#x0a;The Fuel- &amp; Payload-Synch of the Aircraft Plugin (if implemented) will still be available!">
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="../../Icons/automation.png" Margin="0,0,4,0" Width="18" Height="18" />
+                                <TextBlock VerticalAlignment="Center">GSX Automation</TextBlock>
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox Name="CheckboxFeatureVolume" Style="{StaticResource ProfileCheckBox}" VerticalContentAlignment="Center" ToolTip="Control the Volume of Apps via Knobs in the virtual Cockpit.">
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="../../Icons/volume.png" Margin="0,0,4,0" Width="18" Height="18" />
+                                <TextBlock VerticalAlignment="Center">Volume Control</TextBlock>
+                            </StackPanel>
+                        </CheckBox>
+                        <CheckBox Name="CheckboxFeaturePilotsdeck" Style="{StaticResource ProfileCheckBox}" VerticalContentAlignment="Center" ToolTip="Use the GSX Menu on your StreamDeck.&#x0a;Requires the PilotsDeck Plugin and the GSX Pro Profile Package (both available on flightsim.to).">
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="../../Icons/pilotsdeck.png" Margin="0,0,4,0" Width="18" Height="18" />
+                                <TextBlock VerticalAlignment="Center">PilotsDeck Integration</TextBlock>
+                            </StackPanel>
+                        </CheckBox>
                     </StackPanel>
-                </Button>
+
+                    <Label Grid.Column="0" Grid.Row="4" Style="{StaticResource ProfileDefault}" VerticalAlignment="Top" ToolTip="Define on which Aircrafts this Profile should be loaded.">
+                        Profile Matches:
+                    </Label>
+                    <ListView Name="SelectorMatches" Grid.Column="1" Grid.Row="4" Margin="0,8,0,0" MinHeight="96" MinWidth="256" HorizontalAlignment="Stretch"
+                              ToolTip="Each Match in this List is evaluated on Session Start (for each Profile).&#x0a;A Match consists of a Data Source (i.e. the SimObject Path), an Operation (i.e. contains) and a String/Text to be matched.&#x0a;Each positive Match yields a Score added to the total Score of this Profile.&#x0a;The Profile with the highest Score will then be loaded.">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Label Padding="0" MinHeight="20" VerticalContentAlignment="Center" Content="{Binding}"/>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <StackPanel Grid.Column="1" Grid.Row="5" Orientation="Horizontal" Margin="0,6,0,0" MinHeight="24">
+                        <ComboBox Style="{StaticResource ComboBoxDefault}" MinWidth="64" Margin="0,0,6,0" MinHeight="24"
+                                  ItemsSource="{Binding MatchDataTexts}" Name="SelectorMatchData" SelectedIndex="0" SelectedValuePath="Key" DisplayMemberPath="Value"
+                                  ToolTip="Data Source used for Matching:&#x0a;- Airline as read in the SimVar 'ATC AIRLINE' (Score: 1)&#x0a;- Title/Livery as read in the SimVar 'TITLE' (2020) or 'LIVERY NAME' (2024) (Score: 2)&#x0a;- Registration/Id as read in the SimVar 'ATC ID' (Score: 4)&#x0a;- SimObject Path as reported by the SystemEvent 'AircraftLoaded' (Score: 8)"/>
+                        <ComboBox Style="{StaticResource ComboBoxDefault}" MinWidth="64" Margin="0,0,6,0" MinHeight="24"
+                                  ItemsSource="{Binding MatchOperationTexts}" Name="SelectorMatchOperation" SelectedIndex="0" SelectedValuePath="Key" DisplayMemberPath="Value"
+                                  ToolTip="Operation used to match the Data Source against the Match String."/>
+                        <TextBox Style="{StaticResource TextBoxLeft}" MinWidth="140" Margin="0,0,6,0" MinHeight="24" Name="InputMatchString"
+                                 ToolTip="The Match String - the Text to search for. You can define multiple Strings used for matching separated with a | (Pipe)."/>
+                        <Button Name="ButtonAddMatch" Margin="0,0,6,0" Style="{StaticResource BtnSquareSmall}" ToolTip="Add/Update Profile Match">
+                            <Image Name="ImageAddMatching" Source="../../Icons/add.png" Style="{StaticResource ImgSquareSmall}"/>
+                        </Button>
+                        <Button Name="ButtonRemoveMatch" Style="{StaticResource BtnSquareSmall}" ToolTip="Remove Profile Match">
+                            <Image Source="../../Icons/remove.png" Style="{StaticResource ImgSquareSmall}"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
             </Grid>
         </GroupBox>
     </Grid>

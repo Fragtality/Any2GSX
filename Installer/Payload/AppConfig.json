@@ -65,8 +65,9 @@
     {
       "Name": "default",
       "PluginId": "generic",
-      "MatchType": 0,
-      "MatchString": "",
+      "ChannelFileId": "generic",
+      "IsReadOnly": true,
+      "ProfileMatches": [],
       "PilotsDeckIntegration": false,
       "FuelRoundUp100": true,
       "RandomizePax": true,
@@ -157,7 +158,6 @@
         }
       },
       "RunAudioService": false,
-      "ChannelFileId": "generic",
       "AudioMappings": [],
       "AudioStartupVolumes": {},
       "AudioStartupUnmute": {}
@@ -165,7 +165,7 @@
   ],
   "FuelFobSaved": {},
   "FuelResetPercent": 0.02,
-  "ConfigVersion": 1,
+  "ConfigVersion": 2,
   "LogInterval": 3,
   "SizeLimit": 10485760,
   "LogCount": 3,

@@ -20,11 +20,12 @@ namespace Any2GSX.UI.Views
         public virtual AudioController AudioController => AppService.AudioController;
         public virtual AircraftController AircraftController => AppService.AircraftController;
         public virtual SettingProfile SettingProfile => AppService.SettingProfile;
-        public virtual bool InhibitConfigSave { get; set; } = false;
+        private static bool _inhibitConfigSave = false;
+        public virtual bool InhibitConfigSave { get => _inhibitConfigSave; set => _inhibitConfigSave = value; }
 
         public virtual void SaveConfig()
         {
-            if (!InhibitConfigSave)
+            if (!_inhibitConfigSave)
                 Config.SaveConfiguration();
         }
 

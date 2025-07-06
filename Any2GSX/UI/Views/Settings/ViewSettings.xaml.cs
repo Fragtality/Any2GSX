@@ -36,8 +36,11 @@ namespace Any2GSX.UI.Views.Settings
 
         public virtual void Start()
         {
+            ViewModel.InhibitConfigSave = true;
+            ViewModel.NotifyPropertyChanged(nameof(ViewModel.SimbriefUser));
             ViewModel.NotifyPropertyChanged(nameof(ViewModel.BrushSimbrief));
             ViewModel.ModelSavedFuel.NotifyCollectionChanged();
+            ViewModel.InhibitConfigSave = false;
         }
 
         public virtual void Stop()

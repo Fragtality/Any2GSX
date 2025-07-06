@@ -1,6 +1,4 @@
 ﻿using Any2GSX.AppConfig;
-using CFIT.AppFramework.UI.ValueConverter;
-using CFIT.AppFramework.UI.ViewModels;
 using CFIT.AppFramework.UI.ViewModels.Commands;
 using CFIT.AppLogger;
 using CFIT.AppTools;
@@ -18,9 +16,9 @@ namespace Any2GSX.UI.Views.Profiles
 {
     public partial class ModelProfiles : ModelBase<Config>
     {
-        protected virtual Selector Selector { get; }
-        protected virtual ModelProfileCollection ProfileCollection { get; }
-        public virtual ViewModelSelector<SettingProfile, SettingProfile> ViewModelSelector { get; }
+        protected virtual Selector ProfileSelector { get; }
+        public virtual ModelProfileCollection ProfileCollection { get; }
+        public virtual ModelMatchingCollection MatchingCollection { get; }
         protected virtual DispatcherTimer AircraftUpdateTimer { get; set; }
         protected virtual DispatcherTimer ProfileUpdateTimer { get; }
         protected virtual bool ForceRefresh { get; set; } = false;
@@ -29,31 +27,24 @@ namespace Any2GSX.UI.Views.Profiles
         public virtual ICommandWrapper ExportCommand { get; }
         public virtual ICommandWrapper CloneCommand { get; }
 
-        public ModelProfiles(AppService source, Selector selector) : base(source.Config, source)
+        public ModelProfiles(AppService source, Selector profileSelector) : base(source.Config, source)
         {
-            Selector = selector;
             ProfileCollection = new();
-            ViewModelSelector = new(Selector, ProfileCollection, AppWindow.IconLoader);
+            ProfileSelector = profileSelector;
+            MatchingCollection = new(source?.SettingProfile);
 
-            Selector.SelectionChanged += (_, _) => NotifyPropertyChanged(nameof(IsEditAllowed));
-            ProfileCollection.CreateMemberBinding<ProfileMatchType, ProfileMatchType>(nameof(SettingProfile.MatchType), new NoneConverter(), null);
-            ProfileCollection.CreateMemberBinding<string, string>(nameof(SettingProfile.PluginId), new NoneConverter());
-            ProfileCollection.CreateMemberBinding<string, string>(nameof(SettingProfile.ChannelFileId), new NoneConverter());
-            ProfileCollection.CreateMemberBinding<bool, bool>(nameof(SettingProfile.RunAutomationService), new NoneConverter());
-            ProfileCollection.CreateMemberBinding<bool, bool>(nameof(SettingProfile.RunAudioService), new NoneConverter());
-            ProfileCollection.CreateMemberBinding<bool, bool>(nameof(SettingProfile.PilotsDeckIntegration), new NoneConverter());
             ProfileCollection.CollectionChanged += OnCollectionChanged;
 
-            SetActiveCommand = new CommandWrapper(() => AppService.SetSettingProfile((Selector?.SelectedValue as SettingProfile)?.Name), () => Selector?.SelectedValue is SettingProfile);
-            SetActiveCommand.Subscribe(Selector);
+            SetActiveCommand = new CommandWrapper(() => AppService.SetSettingProfile((ProfileSelector?.SelectedValue as ModelProfileItem)?.Name), () => ProfileSelector?.SelectedValue is ModelProfileItem);
+            SetActiveCommand.Subscribe(ProfileSelector);
 
             ImportCommand = new CommandWrapper(ImportProfile);
 
-            ExportCommand = new CommandWrapper(ExportProfile, () => Selector?.SelectedValue is SettingProfile profile);
-            ExportCommand.Subscribe(Selector);
+            ExportCommand = new CommandWrapper(ExportProfile, () => ProfileSelector?.SelectedValue is ModelProfileItem profile);
+            ExportCommand.Subscribe(ProfileSelector);
 
-            CloneCommand = new CommandWrapper(CloneProfile, () => Selector?.SelectedValue is SettingProfile profile);
-            CloneCommand.Subscribe(Selector);
+            CloneCommand = new CommandWrapper(CloneProfile, () => ProfileSelector?.SelectedValue is ModelProfileItem profile);
+            CloneCommand.Subscribe(ProfileSelector);
 
             Config.PropertyChanged += OnConfigPropertyChanged;
 
@@ -86,90 +77,9 @@ namespace Any2GSX.UI.Views.Profiles
         {
             InhibitConfigSave = true;
             ProfileCollection.NotifyCollectionChanged();
+            MatchingCollection.ChangeProfile(AppService?.SettingProfile);
             InhibitConfigSave = false;
             ProfileUpdateTimer.Stop();
-        }
-
-        protected virtual void ImportProfile()
-        {
-            try
-            {
-                Logger.Debug($"Importing Profile from Clipboard ...");
-                string json = ClipboardHelper.GetClipboard();
-                if (string.IsNullOrWhiteSpace(json))
-                {
-                    Logger.Warning($"Clipboard Data is empty / wrong Type");
-                    return;
-                }
-
-                if (Config.ImportProfile(json, out bool wasDefault))
-                {
-                    ProfileCollection.NotifyCollectionChanged();
-                    if (wasDefault && AppService?.SettingProfile?.MatchType == ProfileMatchType.Default)
-                        AppService.SetSettingProfile(SettingProfile.DefaultId);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-            }
-        }
-
-        protected virtual void ExportProfile()
-        {
-            try
-            {
-                Logger.Debug($"Exporting Profile to Clipboard ...");
-                if (Selector?.SelectedValue is not SettingProfile profile)
-                {
-                    Logger.Warning($"The selected Value is not a SettingProfile");
-                    return;
-                }
-
-                string json = JsonSerializer.Serialize<SettingProfile>(profile);
-                ClipboardHelper.SetClipboard(json);
-                Logger.Debug($"Copied Profile '{profile.Name}' to Clipboard");
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-            }
-        }
-
-        protected virtual void CloneProfile()
-        {
-            try
-            {
-                Logger.Debug($"Cloning Profile ...");
-                if (Selector?.SelectedValue is not SettingProfile profile)
-                {
-                    Logger.Warning($"The selected Value is not a SettingProfile");
-                    return;
-                }
-
-                string json = JsonSerializer.Serialize<SettingProfile>(profile);
-                var clone = JsonSerializer.Deserialize<SettingProfile>(json);
-                clone.Name = $"Clone of {profile.Name}";
-                if (clone.MatchType == ProfileMatchType.Default)
-                {
-                    Logger.Debug($"Create Clone of Default Profile");
-                    clone.MatchType = ProfileMatchType.AircraftString;
-                }
-
-                if (Config.SettingProfiles.Any(p => p.Name.Equals(clone.Name, StringComparison.InvariantCultureIgnoreCase)))
-                {
-                    Logger.Warning($"The Profile '{clone.Name}' is already configured");
-                    return;
-                }
-
-                Config.SettingProfiles.Add(clone);
-                ProfileCollection.NotifyCollectionChanged();
-                Logger.Debug($"Cloned Profile '{profile.Name}'");
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-            }
         }
 
         protected override void InitializeModel()
@@ -192,6 +102,108 @@ namespace Any2GSX.UI.Views.Profiles
             AircraftUpdateTimer?.Stop();
         }
 
+        public static Dictionary<MatchData, string> MatchDataTexts => ProfileMatching.MatchDataTexts;
+        public static Dictionary<MatchOperation, string> MatchOperationTexts => ProfileMatching.MatchOperationTexts;
+
+        public virtual bool IsSelectionNonDefault()
+        {
+            return !IsSelectionReadOnly();
+        }
+
+        public virtual bool IsEditAllowed => IsSelectionNonDefault() || ProfileSelector?.SelectedValue == null;
+
+        public virtual bool IsSelectionReadOnly()
+        {
+            return (ProfileSelector?.SelectedValue is ModelProfileItem profile && profile.IsReadOnly);
+        }
+
+        public virtual void ProfileSelectionChanged(SettingProfile profile)
+        {
+            InhibitConfigSave = true;
+            MatchingCollection.ChangeProfile(profile);
+            MatchingCollection.NotifyCollectionChanged();
+            NotifyPropertyChanged(nameof(IsEditAllowed));
+            InhibitConfigSave = false;
+        }
+
+        protected virtual void ImportProfile()
+        {
+            try
+            {
+                Logger.Debug($"Importing Profile from Clipboard ...");
+                string json = ClipboardHelper.GetClipboard();
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    Logger.Warning($"Clipboard Data is empty / wrong Type");
+                    return;
+                }
+
+                if (Config.ImportProfile(json))
+                    ProfileCollection.NotifyCollectionChanged();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+        }
+
+        protected virtual void ExportProfile()
+        {
+            try
+            {
+                Logger.Debug($"Exporting Profile to Clipboard ...");
+                if (ProfileSelector?.SelectedValue is not ModelProfileItem profileItem)
+                {
+                    Logger.Warning($"The selected Value is not a SettingProfile");
+                    return;
+                }
+
+                string json = JsonSerializer.Serialize<SettingProfile>(profileItem.Source);
+                ClipboardHelper.SetClipboard(json);
+                Logger.Debug($"Copied Profile '{profileItem.Source.Name}' to Clipboard");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+        }
+
+        protected virtual void CloneProfile()
+        {
+            try
+            {
+                Logger.Debug($"Cloning Profile ...");
+                if (ProfileSelector?.SelectedValue is not ModelProfileItem profileItem)
+                {
+                    Logger.Warning($"The selected Value is not a SettingProfile");
+                    return;
+                }
+
+                string json = JsonSerializer.Serialize<SettingProfile>(profileItem.Source);
+                var clone = JsonSerializer.Deserialize<SettingProfile>(json);
+                clone.Name = $"Clone of {profileItem.Source.Name}";
+                if (clone.IsDefault)
+                {
+                    Logger.Debug($"Create Clone of Default Profile");
+                    clone.IsReadOnly = false;
+                }
+
+                if (Config.SettingProfiles.Any(p => p.Name.Equals(clone.Name, StringComparison.InvariantCultureIgnoreCase)))
+                {
+                    Logger.Warning($"The Profile '{clone.Name}' is already configured");
+                    return;
+                }
+
+                Config.SettingProfiles.Add(clone);
+                ProfileCollection.NotifyCollectionChanged();
+                Logger.Debug($"Cloned Profile '{profileItem.Source.Name}'");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+        }
+
         protected virtual void UpdateState<T>(string propertyValue, T value)
         {
             try
@@ -211,7 +223,7 @@ namespace Any2GSX.UI.Views.Profiles
             try { UpdateState<string>(nameof(CurrentAtcId), AppService.GetAtcId()); } catch { }
             try { UpdateState<string>(nameof(CurrentTitle), AppService.GetTitle()); } catch { }
             try { UpdateState<string>(nameof(AircraftString), AppService.GetAircraftString()); } catch { }
-            try { UpdateState<string>(nameof(CurrentProfile), AppService.SettingProfile?.InfoString() ?? ""); } catch { }
+            try { UpdateState<string>(nameof(CurrentProfile), AppService.SettingProfile?.ToString() ?? ""); } catch { }
             ForceRefresh = false;
         }
 
@@ -229,26 +241,5 @@ namespace Any2GSX.UI.Views.Profiles
 
         [ObservableProperty]
         protected string _CurrentProfile = "";
-
-        public static Dictionary<ProfileMatchType, string> MatchTypes { get; } = new()
-        {
-            {ProfileMatchType.Default, "Default" },
-            {ProfileMatchType.Airline, "Airline" },
-            {ProfileMatchType.Title, "Title/Livery" },
-            {ProfileMatchType.AtcId, "ATC ID" },
-            {ProfileMatchType.AircraftString, "SimObject" },
-        };
-
-        public virtual bool IsSelectionNonDefault()
-        {
-            return !IsSelectionDefault();
-        }
-
-        public virtual bool IsEditAllowed => !IsSelectionDefault() || Selector?.SelectedValue == null;
-
-        public virtual bool IsSelectionDefault()
-        {
-            return (Selector?.SelectedValue is SettingProfile profile && profile.MatchType == ProfileMatchType.Default);
-        }
     }
 }

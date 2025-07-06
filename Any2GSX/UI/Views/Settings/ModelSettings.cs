@@ -46,7 +46,8 @@ namespace Any2GSX.UI.Views.Settings
 
         protected virtual void OnSavedFuelCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            Config.SaveConfiguration();
+            if (!InhibitConfigSave)
+                Config.SaveConfiguration();
         }
 
         protected virtual void OnConfigPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -69,7 +70,7 @@ namespace Any2GSX.UI.Views.Settings
         public virtual string DisplayUnitCurrentString => Config.DisplayUnitCurrentString;
         public virtual DisplayUnit DisplayUnitDefault { get => Source.DisplayUnitDefault; set { SetModelValue<DisplayUnit>(value); Config.EvaluateDisplayUnit(); } }
         public virtual DisplayUnitSource DisplayUnitSource { get => Source.DisplayUnitSource; set { SetModelValue<DisplayUnitSource>(value); Config.EvaluateDisplayUnit(); } }
-        public virtual string SimbriefUser { get => Config.SimbriefUser; set { Config.SimbriefUser = value; } }
+        public virtual string SimbriefUser { get => Source.SimbriefUser; set { SetModelValue<string>(value); NotifyPropertyChanged(nameof(BrushSimbrief)); } }
         public virtual double FuelResetPercent { get => Source.FuelResetPercent * 100.0; set => SetModelValue<double>(value / 100.0); }
         public virtual double FuelCompareVariance { get => Config.ConvertKgToDisplayUnit(Source.FuelCompareVariance); set => SetModelValue<double>(Config.ConvertFromDisplayUnitKg(value)); }
         public virtual bool RestartGsxOnTaxiIn { get => Source.RestartGsxOnTaxiIn; set => SetModelValue<bool>(value); }

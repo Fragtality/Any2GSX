@@ -137,7 +137,7 @@ namespace Any2GSX
             SettingProfile profile = null;
 
             profile ??= SearchSettingProfile(Config.SettingProfiles);
-            profile ??= Config.SettingProfiles.Where(p => p.Name == SettingProfile.DefaultId).First() ?? new SettingProfile();
+            profile ??= Config.SettingProfiles.Where(p => p.IsDefault).First() ?? new SettingProfile() { IsReadOnly = true };
 
             Logger.Information($"Matched Setting Profile: {profile}");
             return profile;
@@ -145,67 +145,14 @@ namespace Any2GSX
 
         protected virtual SettingProfile SearchSettingProfile(IEnumerable<SettingProfile> settingProfiles)
         {
+            Logger.Debug($"Matching Profiles ...");
             foreach (var profile in settingProfiles)
             {
-                if (profile.MatchType != ProfileMatchType.AtcId)
-                    continue;
-                var strings = profile.MatchString.Split('|');
-                foreach (var s in strings)
-                {
-                    if (GetAtcId().Equals(s, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        Logger.Information($"Loading Profile '{profile.Name}' (matched on ATC ID - '{GetAtcId()}' equals '{s}')");
-                        return profile;
-                    }
-                }
+                profile.Match(this);
+                Logger.Debug($"Profile '{profile.Name}' Score: {profile.MatchingScore}");
             }
 
-            foreach (var profile in settingProfiles)
-            {
-                if (profile.MatchType != ProfileMatchType.Title)
-                    continue;
-                var strings = profile.MatchString.Split('|');
-                foreach (var s in strings)
-                {
-                    if (GetTitle().Contains(s, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        Logger.Information($"Loading Profile '{profile.Name}' (matched on Title/Livery - '{GetTitle()}' contains '{s}')");
-                        return profile;
-                    }
-                }
-            }
-
-            foreach (var profile in settingProfiles)
-            {
-                if (profile.MatchType != ProfileMatchType.Airline)
-                    continue;
-                var strings = profile.MatchString.Split('|');
-                foreach (var s in strings)
-                {
-                    if (GetAirline().StartsWith(s, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        Logger.Information($"Loading Profile '{profile.Name}' (matched on Airline - '{GetAirline()}' starts with '{s}')");
-                        return profile;
-                    }
-                }
-            }
-
-            foreach (var profile in settingProfiles)
-            {
-                if (profile.MatchType != ProfileMatchType.AircraftString)
-                    continue;
-                var strings = profile.MatchString.Split('|');
-                foreach (var s in strings)
-                {
-                    if (GetAircraftString().Contains(s, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        Logger.Information($"Loading Profile '{profile.Name}' (matched on SimObject - '{GetAircraftString()}' contains '{s}')");
-                        return profile;
-                    }
-                }
-            }
-
-            return null;
+            return settingProfiles.MaxBy(p => p.MatchingScore);
         }
 
         protected virtual void OnSessionReady(MsgSessionReady obj)

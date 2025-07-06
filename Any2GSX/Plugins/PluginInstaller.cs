@@ -129,6 +129,8 @@ namespace Any2GSX.Plugins
                         profile.SetPropertyValue<Dictionary<string, bool>>(property.Name, property.Value.Deserialize<Dictionary<string, bool>>());
                     else if (property.Name == "DepartureServices")
                         profile.SetPropertyValue<SortedDictionary<int, ServiceConfig>>(property.Name, property.Value.Deserialize<SortedDictionary<int, ServiceConfig>>());
+                    else if (property.Name == "ProfileMatches")
+                        profile.SetPropertyValue<List<ProfileMatching>>(property.Name, property.Value.Deserialize<List<ProfileMatching>>());
                     else
                         profile.SetPropertyValue<object>(property.Name, property.Value);
 

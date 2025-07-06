@@ -6,7 +6,6 @@
 using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage("Performance", "CA1864:Methode \"Dictionary.TryAdd(TKey, TValue)\" bevorzugen", Justification = "<Ausstehend>", Scope = "member", Target = "~M:Any2GSX.AppConfig.Config.SetFuelFob(System.String,System.Double)")]
-[assembly: SuppressMessage("Style", "IDE0028:Initialisierung der Sammlung vereinfachen", Justification = "<Ausstehend>", Scope = "member", Target = "~M:Any2GSX.UI.Views.Profiles.ModelProfiles.#ctor(Any2GSX.AppService,System.Windows.Controls.Primitives.Selector)")]
 [assembly: SuppressMessage("Performance", "CA1864:Methode \"Dictionary.TryAdd(TKey, TValue)\" bevorzugen", Justification = "<Ausstehend>", Scope = "member", Target = "~M:Any2GSX.AppConfig.SettingProfile.SetSetting(System.String,System.Object)~System.Boolean")]
 [assembly: SuppressMessage("Style", "IDE0041:\"Ist NULL\"-Prüfung verwenden", Justification = "<Ausstehend>", Scope = "member", Target = "~M:Any2GSX.UI.Views.Monitor.ModelMonitor.UpdateBoolState(System.String,System.String,System.Boolean,System.Boolean)")]
 [assembly: SuppressMessage("Interoperability", "SYSLIB1054:Verwenden Sie \\\"LibraryImportAttribute\\\" anstelle von \\\"DllImportAttribute\\\", um P/Invoke-Marshallingcode zur Kompilierzeit zu generieren.", Justification = "<Ausstehend>", Scope = "member", Target = "~M:Any2GSX.UI.ShowInfoDialog.GetCursorPos(Any2GSX.UI.ShowInfoDialog.Win32Point@)~System.Boolean")]
@@ -16,3 +15,4 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("Performance", "SYSLIB1045:In „GeneratedRegexAttribute“ konvertieren.", Justification = "<Ausstehend>", Scope = "member", Target = "~P:Any2GSX.GSX.GsxConstants.MenuRegexFacility")]
 [assembly: SuppressMessage("Performance", "SYSLIB1045:In „GeneratedRegexAttribute“ konvertieren.", Justification = "<Ausstehend>", Scope = "member", Target = "~P:Any2GSX.GSX.GsxConstants.MenuRegexGate")]
 [assembly: SuppressMessage("Style", "IDE0028:Initialisierung der Sammlung vereinfachen", Justification = "<Ausstehend>", Scope = "member", Target = "~M:Any2GSX.UI.Views.Settings.ModelSettings.#ctor(Any2GSX.AppService)")]
+[assembly: SuppressMessage("Style", "IDE0028:Initialisierung der Sammlung vereinfachen", Justification = "<Ausstehend>", Scope = "member", Target = "~M:Any2GSX.UI.Views.Profiles.ModelProfiles.#ctor(Any2GSX.AppService,System.Windows.Controls.Primitives.Selector)")]

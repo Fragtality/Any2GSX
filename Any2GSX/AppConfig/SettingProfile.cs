@@ -13,35 +13,36 @@ using System.Text.Json.Serialization;
 
 namespace Any2GSX.AppConfig
 {
-    public enum ProfileMatchType
-    {
-        Default = 0,
-        Airline = 1,
-        Title = 2,
-        AtcId = 3,
-        AircraftString = 4,
-    }
-
     public class SettingProfile : ISettingProfile
     {
         [JsonIgnore]
         public static string GenericId { get; } = "generic";
         public static string DefaultId { get; } = "default";
+        [JsonIgnore]
+        public virtual bool IsDefault => Name?.Equals(DefaultId, StringComparison.InvariantCultureIgnoreCase) == true;
         public virtual string Name { get; set; } = DefaultId;
         public virtual string PluginId { get; set; } = GenericId;
-        public virtual ProfileMatchType MatchType { get; set; } = ProfileMatchType.Default;
-        public virtual string MatchString { get; set; } = "";
+        public virtual string ChannelFileId { get; set; } = GenericId;
+        public virtual bool IsReadOnly { get; set; } = false;
+        public virtual List<ProfileMatching> ProfileMatches { get; set; } = [];
+        //Legacy
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public virtual ProfileMatchType? MatchType { get; set; } = null;
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public virtual string MatchString { get; set; } = null;
 
         public virtual void Copy(SettingProfile profile)
         {
             Name = profile.Name;
             PluginId = profile.PluginId;
-            MatchType = profile.MatchType;
-            MatchString = profile.MatchString;
             ChannelFileId = profile.ChannelFileId;
             RunAutomationService = profile.RunAutomationService;
             RunAudioService = profile.RunAudioService;
             PilotsDeckIntegration = profile.PilotsDeckIntegration;
+
+            this.ProfileMatches.Clear();
+            foreach (var match in profile.ProfileMatches)
+                this.ProfileMatches.Add(new(match.MatchData, match.MatchOperation, match.MatchString));
         }
 
         public virtual void FullCopy(SettingProfile profile)
@@ -50,6 +51,7 @@ namespace Any2GSX.AppConfig
             foreach (var property in properties)
             {
                 if (property.SetMethod != null
+                    && property.Name != nameof(ProfileMatches)
                     && property.Name != nameof(PluginSettings)
                     && property.Name != nameof(DepartureServices)
                     && property.Name != nameof(OperatorPreferences)
@@ -61,6 +63,10 @@ namespace Any2GSX.AppConfig
                     this.SetPropertyValue(property.Name, property.GetValue(profile));
                 }
             }
+
+            this.ProfileMatches.Clear();
+            foreach (var match in profile.ProfileMatches)
+                this.ProfileMatches.Add(new(match.MatchData, match.MatchOperation, match.MatchString));
 
             this.PluginSettings.Clear();
             foreach (var setting in profile.PluginSettings)
@@ -104,18 +110,9 @@ namespace Any2GSX.AppConfig
             return $"{Name} [{PluginId}]";
         }
 
-
-        public virtual string InfoString()
-        {
-            string plugin = string.IsNullOrWhiteSpace(PluginId) ? "" : $" ({PluginId})";
-            if (MatchType != ProfileMatchType.Default)
-                return $"{Name}{plugin}: {MatchType} ~ '{MatchString}'";
-            else
-                return $"{Name}{plugin}: {MatchType}";
-        }
-
         //PilotsDeck
-        public virtual bool PilotsDeckIntegration { get; set; } = false;
+        public virtual bool PilotsDeckIntegration { get; 
+            set; } = false;
 
         //OFP
         public virtual bool FuelRoundUp100 { get; set; } = true;
@@ -207,7 +204,6 @@ namespace Any2GSX.AppConfig
 
         //Audio
         public virtual bool RunAudioService { get; set; } = false;
-        public virtual string ChannelFileId { get; set; } = GenericId;
         [JsonIgnore]
         public virtual List<string> ChannelIds { get; } = [];
         public virtual List<AudioMapping> AudioMappings { get; set; } = [];
@@ -365,6 +361,17 @@ namespace Any2GSX.AppConfig
             }
             else
                 return false;
+        }
+
+        //Profile Matching
+        [JsonIgnore]
+        public int MatchingScore { get; set; } = 0;
+
+        public virtual void Match(AppService appService)
+        {
+            MatchingScore = 0;
+            foreach (var match in ProfileMatches)
+                MatchingScore += match.Match(appService);
         }
     }
 }

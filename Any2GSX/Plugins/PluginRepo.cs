@@ -248,7 +248,7 @@ namespace Any2GSX.Plugins
                     Config.SettingProfiles.RemoveAll(p => p.Name.Equals(profile.Name, StringComparison.InvariantCultureIgnoreCase));
                 }
 
-                if (Config.ImportProfile(json, out bool wasDefault))
+                if (Config.ImportProfile(json))
                 {
                     Config.SaveConfiguration();
                     result = true;
