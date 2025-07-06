@@ -271,7 +271,6 @@ namespace Any2GSX.Plugins
 
             ZipArchiveEntry entryPluginFile = null;
             ZipArchiveEntry entryChannelFile = null;
-            //ZipArchiveEntry entryAircraftProfile = null;
             bool hasAircraftProfiles = manifest?.AircraftProfileEntries?.Count > 0;
             int foundProfiles = 0;
             foreach (ZipArchiveEntry file in archive.Entries)

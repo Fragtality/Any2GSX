@@ -152,7 +152,11 @@ namespace Any2GSX
                 Logger.Debug($"Profile '{profile.Name}' Score: {profile.MatchingScore}");
             }
 
-            return settingProfiles.MaxBy(p => p.MatchingScore);
+            var maxProfile = settingProfiles.MaxBy(p => p.MatchingScore);
+            if (maxProfile?.MatchingScore > 0)
+                return maxProfile;
+            else
+                return null;
         }
 
         protected virtual void OnSessionReady(MsgSessionReady obj)
