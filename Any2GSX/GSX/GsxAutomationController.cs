@@ -143,42 +143,49 @@ namespace Any2GSX.GSX
 
         public virtual async Task Run()
         {
-            RunFlag = true;
-            DepartureServicesEnumerator = Profile.DepartureServices.GetEnumerator();
-            DepartureServicesEnumerator.MoveNext();
-            foreach (var activation in Profile.DepartureServices.Values)
-                activation.ActivationCount = 0;
-            
-            while (RunFlag && GsxController.IsActive && !GsxController.Token.IsCancellationRequested)
+            try
             {
-                if (Aircraft?.IsConnected == true && GsxController.IsGsxRunning && GsxController.CanAutomationRun)
+                RunFlag = true;
+                DepartureServicesEnumerator = Profile.DepartureServices.GetEnumerator();
+                DepartureServicesEnumerator.MoveNext();
+                foreach (var activation in Profile.DepartureServices.Values)
+                    activation.ActivationCount = 0;
+
+                while (RunFlag && GsxController.IsActive && !GsxController.Token.IsCancellationRequested)
                 {
-                    if (!IsStarted)
+                    if (Aircraft?.IsConnected == true && GsxController.IsGsxRunning && GsxController.CanAutomationRun)
                     {
-                        Logger.Information($"Automation Service started");
-                        IsStarted = true;
-                    }
+                        if (!IsStarted)
+                        {
+                            Logger.Information($"Automation Service started");
+                            IsStarted = true;
+                        }
 #if DEBUG
                     Logger.Verbose($"Automation Tick - State: {State} | ServicesValid: {ServicesValid}");
 #endif
-                    await EvaluateState();
+                        await EvaluateState();
 
-                    if (Profile.RunAutomationService && Aircraft.IsConnected && GsxController.Menu.FirstReadyReceived)
-                    {
-                        if (ServicesValid)
-                            await RunServices();
-                        if (SmartButtonRequest)
-                            await RunSmartCalls();
+                        if (Profile.RunAutomationService && Aircraft.IsConnected && GsxController.Menu.FirstReadyReceived)
+                        {
+                            if (ServicesValid)
+                                await RunServices();
+                            if (SmartButtonRequest)
+                                await RunSmartCalls();
+                        }
+
+                        if (Profile.RunAutomationService && SmartButtonRequest)
+                        {
+                            await Aircraft.ResetSmartButton();
+                            await AppService.Instance.CommBus.ResetSmartButton();
+                        }
                     }
 
-                    if (Profile.RunAutomationService && SmartButtonRequest)
-                    {
-                        await Aircraft.ResetSmartButton();
-                        await AppService.Instance.CommBus.ResetSmartButton();
-                    }
+                    await Task.Delay(Config.StateMachineInterval, Token);
                 }
-
-                await Task.Delay(Config.StateMachineInterval, Token);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
             }
             IsStarted = false;
 
@@ -662,10 +669,10 @@ namespace Any2GSX.GSX
                     }
                     else if (SmartButtonRequest
                             || activation == GsxServiceActivation.AfterCalled
-                            || activation == GsxServiceActivation.AfterRequested && (DepartureServicesCalled.Last()?.State >= GsxServiceState.Requested || DepartureServicesCalled.Last()?.IsSkipped == true || DepartureServicesCalled.Count == 0)
-                            || activation == GsxServiceActivation.AfterActive && (DepartureServicesCalled.Last()?.State >= GsxServiceState.Active || DepartureServicesCalled.Last()?.IsSkipped == true || DepartureServicesCalled.Count == 0)
-                            || (activation == GsxServiceActivation.AfterPrevCompleted && (DepartureServicesCalled.Last()?.IsCompleted == true || DepartureServicesCalled.Last()?.IsSkipped == true || DepartureServicesCalled.Count == 0))
-                            || (activation == GsxServiceActivation.AfterAllCompleted && DepartureServicesCalled.All(s => s.IsCompleted || s.IsSkipped)))
+                            || (activation == GsxServiceActivation.AfterRequested && (DepartureServicesCalled?.Count == 0 || DepartureServicesCalled?.SafeLast()?.State >= GsxServiceState.Requested || DepartureServicesCalled?.SafeLast()?.IsSkipped == true))
+                            || (activation == GsxServiceActivation.AfterActive && (DepartureServicesCalled?.Count == 0 || DepartureServicesCalled?.SafeLast()?.State >= GsxServiceState.Active || DepartureServicesCalled?.SafeLast()?.IsSkipped == true))
+                            || (activation == GsxServiceActivation.AfterPrevCompleted && (DepartureServicesCalled?.Count == 0 || DepartureServicesCalled?.SafeLast()?.IsCompleted == true || DepartureServicesCalled?.SafeLast()?.IsSkipped == true))
+                            || (activation == GsxServiceActivation.AfterAllCompleted && (DepartureServicesCalled?.Count == 0 || DepartureServicesCalled.All(s => s.IsCompleted || s.IsSkipped))))
                     {
                         if (DepartureServicesCurrent.ServiceType == GsxServiceType.Boarding)
                             await ServiceBoard.SetPaxTarget(Flightplan.CountPax);
