@@ -230,6 +230,9 @@ namespace Any2GSX.Notifications
                 call = SmartButtonCall.None;
                 phase = AutomationState;
                 status = "";
+
+                if (!GsxMenu.IsGateMenu)
+                    status = "Move to Gate!";
             }
             else if (AutomationState == AutomationState.Preparation)
             {
@@ -237,7 +240,9 @@ namespace Any2GSX.Notifications
                 phase = AutomationState;
                 status = "";
 
-                if (AutomationController.ExecutedReposition && GsxController.SkippedWalkAround && AutomationController.GroundEquipmentPlaced)
+                if (!GsxMenu.IsGateMenu)
+                    status = "Move to Gate!";
+                else if (AutomationController.ExecutedReposition && GsxController.SkippedWalkAround && AutomationController.GroundEquipmentPlaced)
                     status = "Trigger Departure!";
                 else if (((GsxController.HasGateJetway && !GsxController.ServiceJetway.IsConnected && !GsxController.ServiceJetway.IsOperating)
                     || (GsxController.HasGateStair && !GsxController.ServiceStairs.IsConnected && !GsxController.ServiceStairs.IsOperating))

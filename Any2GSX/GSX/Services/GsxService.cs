@@ -21,7 +21,6 @@ namespace Any2GSX.GSX.Services
         protected virtual Flightplan Flightplan => AppService.Instance.Flightplan;
 
         public virtual bool IsCalled { get; protected set; } = false;
-        public virtual int FailedCalls { get; protected set; } = 0;
         protected virtual bool SequenceResult => CallSequence?.IsSuccess ?? false;
         protected virtual GsxMenuSequence CallSequence { get; }
         protected abstract ISimResourceSubscription SubStateVar { get; }
@@ -120,7 +119,6 @@ namespace Any2GSX.GSX.Services
             IsSkipped = false;
             WasActive = false;
             WasCompleted = false;
-            FailedCalls = 0;
             StateOverride = GsxServiceState.Unknown;
             CallSequence.Reset();
             DoReset();
@@ -171,17 +169,8 @@ namespace Any2GSX.GSX.Services
             if (IsCalled)
                 return;
 
-            if (FailedCalls > 3 && Controller.Menu.IsGateSelectionMenu)
-            {
-                Logger.Warning($"Blocked Call for {Type}: GSX Gate Selection active");
-                return;
-            }
-
             if (await DoCall() == false)
-            {
-                FailedCalls++;
                 return;
-            }
             await Task.Delay(Controller.Config.DelayServiceStateChange, Controller.Token);
             IsCalled = CheckCalled();
         }

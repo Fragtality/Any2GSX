@@ -225,7 +225,7 @@ namespace Any2GSX.GSX
                         Logger.Debug($"Starting in {AutomationState.TaxiOut} - EnginesRunning {Aircraft.IsEngineRunning}");
                         StateChange(AutomationState.TaxiOut);
                     }
-                        
+
                 }
                 else if (Aircraft.ReadyForDepartureServices
                     || ServiceRefuel.State > GsxServiceState.Requested
@@ -239,13 +239,13 @@ namespace Any2GSX.GSX
                         Logger.Debug($"Starting in {AutomationState.Pushback} - WeightTotalKg {Aircraft.WeightTotalKg} | WeightTotalRampKg {Flightplan.WeightTotalRampKg}");
                         StateChange(AutomationState.Pushback);
                     }
-                    else
+                    else if (GsxController?.Menu?.IsGateMenu == true)
                     {
                         Logger.Debug($"Starting in {AutomationState.Departure} - ReadyForDepartureServices {Aircraft.ReadyForDepartureServices} | FlightplanLoaded {Flightplan.IsLoaded}");
                         StateChange(AutomationState.Departure);
                     }
                 }
-                else if (Aircraft?.IsConnected == true && GsxController?.SkippedWalkAround == true && GsxController?.Menu?.IsGateSelectionMenu == false)
+                else if (Aircraft?.IsConnected == true && GsxController?.SkippedWalkAround == true && GsxController?.Menu?.IsGateMenu == true)
                     StateChange(AutomationState.Preparation);
             }
             //intercept Flight
@@ -499,7 +499,7 @@ namespace Any2GSX.GSX
 
         protected virtual async Task RunPreparation()
         {
-            if (!ExecutedReposition && !IsGateConnected && !Aircraft.ReadyForDepartureServices)
+            if (!ExecutedReposition && !IsGateConnected && !Aircraft.ReadyForDepartureServices && !GsxController.Menu.WarpedToGate)
             {
                 if (Profile.CallReposition)
                 {
@@ -510,7 +510,7 @@ namespace Any2GSX.GSX
             }
             if (!ExecutedReposition)
             {
-                ExecutedReposition = ServiceReposition.IsCompleted || IsGateConnected || !Profile.CallReposition || Aircraft.ReadyForDepartureServices;
+                ExecutedReposition = ServiceReposition.IsCompleted || IsGateConnected || !Profile.CallReposition || Aircraft.ReadyForDepartureServices || GsxController.Menu.WarpedToGate;
                 if (ExecutedReposition)
                     Logger.Debug($"Reposition executed");
             }

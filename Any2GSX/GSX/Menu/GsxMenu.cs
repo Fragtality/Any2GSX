@@ -47,6 +47,8 @@ namespace Any2GSX.GSX.Menu
         public virtual bool FollowMeAnswered { get; protected set; } = false;
         public virtual bool MenuOpenRequesting { get; protected set; } = false;
         protected virtual bool MenuOpenAfterReady { get; set; } = false;
+        public virtual bool WaitingForGate { get; protected set; } = false;
+        public virtual bool WarpedToGate { get; protected set; } = false;
         public virtual bool SuppressMenuRefresh { get; set; } = false;
         public virtual MessageReceiver<MsgGsxMenuReady> MsgMenuReady { get; protected set; }
         public event Action<IGsxMenu> OnMenuReady;
@@ -91,7 +93,13 @@ namespace Any2GSX.GSX.Menu
                     Logger.Debug($"Deice Question was answered: {num}");
                     DeIceQuestionAnswered = true;
                 }
-                LastMenuSelection = num;
+                else if (MatchTitle(GsxConstants.MenuParkingChange) && WaitingForGate && num == 4)
+                {
+                    Logger.Debug($"Warped to Gate - trigger Menu Refresh");
+                    WaitingForGate = false;
+                    Task.Delay(2000, GsxController.Token).ContinueWith((_) => OpenHide()).ContinueWith((_) => WarpedToGate = true);
+                }
+                    LastMenuSelection = num;
                 Logger.Verbose($"Menu Selection {LastMenuSelection}");
             }
             else if (num == -2)
@@ -165,8 +173,16 @@ namespace Any2GSX.GSX.Menu
         {
             Logger.Debug($"Change/Select Parking active");
             FollowMeAnswered = false;
+
             if (MatchTitle(GsxConstants.MenuParkingChange))
+            {
+                if (GsxController.AutomationController.State < AutomationState.Departure)
+                {
+                    Logger.Debug($"App waiting for Gate");
+                    WaitingForGate = true;
+                }
                 await AppService.Instance.NotificationManager.OnMenuChangeParking(this);
+            }
         }
 
         protected virtual void OnCouatlStopped(MsgGsxCouatlStopped msg)
@@ -184,12 +200,16 @@ namespace Any2GSX.GSX.Menu
             DeIceQuestionAnswered = false;
             FollowMeAnswered = false;
             MenuOpenRequesting = false;
+            WaitingForGate = false;
+            WarpedToGate = false;
         }
 
         public virtual void ResetFlight()
         {
             DeIceQuestionAnswered = false;
             FollowMeAnswered = false;
+            WaitingForGate = false;
+            WarpedToGate = false;
         }
 
         public virtual void AddMenuCallback(string title, Func<IGsxMenu, Task> callback)
@@ -212,6 +232,7 @@ namespace Any2GSX.GSX.Menu
 
             if (MenuState == GsxMenuState.READY || MenuState == GsxMenuState.HIDE)
             {
+                WaitingForGate = false;
                 if (MenuState == GsxMenuState.READY)
                     await UpdateMenu();
             }
