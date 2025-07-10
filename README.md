@@ -54,6 +54,10 @@ If you use Addon Linker to start your Addons/Tools, you can also add it there:<b
 **Wait for simconnect** checked<br/>
 The Rest can be left at Default.<br/>
 
+### 1.4 - Core Concepts/Components
+
+
+
 <br/><br/><br/>
 
 ## 2 - Configuration
