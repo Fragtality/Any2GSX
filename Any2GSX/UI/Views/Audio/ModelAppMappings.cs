@@ -18,6 +18,7 @@ namespace Any2GSX.UI.Views.Audio
             CreateMemberBinding<string, string>(nameof(AudioMapping.Channel), new NoneConverter());
             CreateMemberBinding<string, string>(nameof(AudioMapping.DeviceName), new NoneConverter());
             CreateMemberBinding<bool, bool>(nameof(AudioMapping.UseLatch), new NoneConverter());
+            CreateMemberBinding<bool, bool>(nameof(AudioMapping.OnlyActive), new NoneConverter());
         }
 
         public override bool UpdateSource(AudioMapping oldItem, AudioMapping newItem)
@@ -28,6 +29,7 @@ namespace Any2GSX.UI.Views.Audio
                 oldItem.Device = newItem.Device;
                 oldItem.Binary = newItem.Binary;
                 oldItem.UseLatch = newItem.UseLatch;
+                oldItem.OnlyActive = newItem.OnlyActive;
                 return true;
             }
             catch { }

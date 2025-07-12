@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <SourceRevisionId>build$([System.DateTime]::UtcNow.ToString("yyyy.MM.dd.HHmm"))</SourceRevisionId>
-    <Version>0.1.2</Version>
+    <Version>0.1.3</Version>
     <Title>$(AssemblyName)</Title>
     <Authors>Fragtality</Authors>
     <Company>Fragtality</Company>
@@ -78,10 +78,10 @@
   </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="CFIT.AppFramework" Version="2025.188.19.21" />
-    <PackageReference Include="CFIT.AppLogger" Version="2025.186.23.2250" />
-    <PackageReference Include="CFIT.AppTools" Version="2025.188.18.3587" />
-    <PackageReference Include="CFIT.SimConnectLib" Version="2025.188.19.9" />
+    <PackageReference Include="CFIT.AppFramework" Version="2025.193.15.2282" />
+    <PackageReference Include="CFIT.AppLogger" Version="2025.193.15.2238" />
+    <PackageReference Include="CFIT.AppTools" Version="2025.193.15.2250" />
+    <PackageReference Include="CFIT.SimConnectLib" Version="2025.193.15.2270" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="CoreAudio" Version="1.40.0" />
     <PackageReference Include="NeoLua" Version="1.3.14" />

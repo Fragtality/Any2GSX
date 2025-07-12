@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -85,6 +86,17 @@ namespace Any2GSX.UI.Views.Audio
                 NotifyPropertyChanged(nameof(ProfileName));
         }
 
+        protected virtual void SetConfigValue<T>(T value, [CallerMemberName] string propertyName = null!)
+        {
+            if (!Config.IsPropertyType<T>(propertyName))
+                return;
+
+            OnPropertyChanging(propertyName);
+            Config.SetPropertyValue<T>(propertyName, value);
+            SaveConfig();
+            OnPropertyChanged(propertyName);
+        }
+
         [ObservableProperty]
         protected string _CurrentChannel = "";
 
@@ -155,7 +167,7 @@ namespace Any2GSX.UI.Views.Audio
             { DataFlow.Capture, DataFlow.Capture.ToString() },
             { DataFlow.All, DataFlow.All.ToString() },
         };
-        public virtual DataFlow AudioDeviceFlow { get => Config.AudioDeviceFlow; set { SetModelValue<DataFlow>(value); AudioController.ResetMappings = true; } }
+        public virtual DataFlow AudioDeviceFlow { get => Config.AudioDeviceFlow; set { SetConfigValue<DataFlow>(value); AudioController.ResetMappings = true; } }
 
         public virtual Dictionary<DeviceState, string> DeviceStates { get; } = new()
         {
@@ -165,6 +177,6 @@ namespace Any2GSX.UI.Views.Audio
             { DeviceState.Unplugged, DeviceState.Unplugged.ToString() },
             { DeviceState.MaskAll, DeviceState.MaskAll.ToString() },
         };
-        public virtual DeviceState AudioDeviceState { get => Config.AudioDeviceState; set { SetModelValue<DeviceState>(value); AudioController.ResetMappings = true; } }
+        public virtual DeviceState AudioDeviceState { get => Config.AudioDeviceState; set { SetConfigValue<DeviceState>(value); AudioController.ResetMappings = true; } }
     }
 }

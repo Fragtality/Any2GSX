@@ -473,7 +473,7 @@ namespace Any2GSX.GSX.Menu
                     while (timeWaited < Config.OperatorSelectTimeout && LastMenuSelection == -2 && !GsxController.Token.IsCancellationRequested);
                     if (GsxController.Token.IsCancellationRequested)
                         return false;
-
+                    Logger.Debug($"Wait ended after {timeWaited}ms - LastSelection {LastMenuSelection}");
                     if (timeWaited >= Config.OperatorSelectTimeout)
                         Timeout();
                     else
