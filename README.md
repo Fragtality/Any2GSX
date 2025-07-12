@@ -3,7 +3,7 @@
 Generalized Version of [Fenix2GSX](https://github.com/Fragtality/Fenix2GSX) bringing GSX Automation and App Volume Control to all Aircrafts! <br/>
 
 - **GSX Automation** (ie. calling Services, skipping Questions) can be enabled for all Aircrafts
-- **App Volume Control** available to all Aircrafts (if there is a Channel Definition available)
+- **App Volume Control** available to all Aircrafts to control the Volume of Apps via Knobs in the Cockpit
 - **Aircraft Plugin System** to enable Fuel-, Payload- and Equipment Sync for specific Aircrafts
 - **SmartButton** Control for every Aircraft to call the next Service / trigger the next Call (the INT/RAD Thingy known from Fenix2GSX)
 - **EFB App** for MSFS2024 to check on the App Status, SmartButton Trigger and GSX Menu
@@ -53,10 +53,49 @@ If you use Addon Linker to start your Addons/Tools, you can also add it there:<b
 **Program to launch** C:\Users\YOURUSERNAME\AppData\Roaming\Any2GSX\bin\Any2GSX.exe<br/>
 **Wait for simconnect** checked<br/>
 The Rest can be left at Default.<br/>
+<br/><br/>
 
-### 1.4 - Core Concepts/Components
+### 1.4 - Core Concepts & Features
 
+**Aircraft Profiles**
 
+Unless otherwise stated in the App or Readme, the Term 'Aircraft Profile' referrs to the Profiles configurable within the App. So that has nothing to do with the Aircraft Profiles GSX will use.<br/>
+Aircraft Profiles are an essential Part of the App, basically the Glue bringing everything together: they determine what Any2GSX Features (GSX Automation, Volume Control, PilotsDeck Integration) should be active for a specific Aircraft and which Aircraft Plugin and/or Audio Channel should be loaded for that. All Automation Settings found in the 'Automation' View are stored per Profile - so together with the Ability to filter on specific IDs, Airlines or Titles/Liveries you can have different Settings for different Airlines having different SOPs to follow (or just having different Operator Preferences for different Airlines). Check [Section 2.3.3](#233---aircraft-profiles-view) for Details.<br/>
+<br/>
+
+**GSX Automation**
+
+Within the App, Automation referrs to all Options which either call GSX Services automatically or answer GSX Questions/Pop-Ups automatically. Which is NOT *Integration*: that is understood as the Aircraft and its Systems responding/reacting to GSX Services as they get active (who or what ever called these Services) - so typically Fuel-, Payload- and Ground-Equipment-Sync.<br/>
+Any2GSX differentiates between what is an Automation and what is Integration. So even with the GSX *Automation* completely turned off for an Aircraft Profile, the configured Aircraft Plugin will still provide *Integration* like Fuel- and Payload-Synch. AND Ground-Equipment-Sync: so Equipment like Chocks, GPU, PCA is still automatically placed or removed! (Since that is an Response/Reaction to the GSX Pushback Service - see the Definition above).<br/>
+<br/>
+
+**Volume Control**
+
+The Volume Control Features allows to map specific Apps to Audio Channels in the Cockpit (e.g. the App 'vPilot' on Channel 'VHF1'). When that Channel's Volume is manipulated in the virtual Cockpit (e.g. turning the VHF1 Knob), the Volume of the App will be set accordingly.<br/>
+It is mostly the same Code as in Fenix2GSX and works the same Way, with on big Difference: For that Feature to work in Any2GSX, you will need an *Audio Channel Definition* File providing the necessary Information of the Aircraft Controls. It basically tells the App what Channels there are and how they can be read.<br/>
+Note that the whole Volume Control Feature runs completely separate from everything else. So even if you don't use/own GSX at all, you can still use Any2GSX to control the Volume of Apps!<br/>
+<br/>
+
+**PilotsDeck Integration**
+
+Any2GSX can Integrate with my StreamDeck Plugin [PilotsDeck](https://github.com/Fragtality/PilotsDeck) (so you need that Plugin on your StreamDeck in order to use this Feature). This Integration serves as an Replacement for the Functionality provided by the GSX Script shared with my PilotsDeck Profiles.<br/>
+When the Integration is enabled, Any2GSX will send Data to the Plugin which then can be used by the Plugin's Actions to display Data like the current Flight-Phase, next SmartButton Call, De/Boarding Progress and the whole GSX Menu (color-coded by Service-State while at the Gate).<br/>
+So basically you can use your StreamDeck as a complete Replacement for the in-Game GSX Menu and to interface with Any2GSX' Automation. A premade [GSX Pro Profile](https://github.com/Fragtality/PilotsDeck/tree/master/Integrations/GSX%20Pro%20(MSFS)) is available on the PilotsDeck Repository.<br/>
+<br/>
+
+**SmartButton**
+
+The SmartButton is a Way to send a Signal to the App that it should call/trigger the next 'Action'. For Example to call the next GSX Service (i.e. call Boarding while Refuel is still active), call Pushback or confirm a good Engine-Start to GSX. For Fenix2GSX Users: it is the INT/RAD Switch Feature in a generalized Form.<br/>
+A SmartButton Request can be send via different Ways:
+- Aircraft Plugins can map it to actual Cockpit Controls for an 'out of Box' Experience
+- When the generic Aircraft Plugin is used, the User can define a SimVar and Comparison for a manual Mapping to a Cockpit Control
+- In any Case, it will always monitor the Variable `L:ANY2GSX_SMARTBUTTON_REQ` for Changes for generic Mapping in external App (e.g. like PilotsDeck)
+<br/>
+
+**Aircraft Plugins**
+
+Any2GSX does have its own Plugin System to enable Integration with specific Aircrafts.
+<br/>
 
 <br/><br/><br/>
 
@@ -83,7 +122,7 @@ The first Time you start the App (or the Config was Reset) it will automatically
 
 After this intial Step you might want to check out the 'Plugins' View to check-out which Aircraft Plugins, Channel Definitions or Aircraft Profiles are available to download (see [Section 2.3.4](#234---plugins-view) for Details).<br/><br/>
 
-Since Any2GSX is active for all Aircrafts, I'd recommend to check out the '**Aircraft Profiles**' View next (No, nothing to do with GSX Aircraft Profiles). They are an essential Part of the App, basically the Glue bringing everything together: they determine what Any2GSX Features (GSX Automation, Volume Control, PilotsDeck Integration) should be active for a specific Aircraft and which Aircraft Plugin and/or Audio Channel should be loaded for that. All Automation Settings found in the 'Automation' View are stored per Profile - so together with the Ability to filter on specific IDs, Airlines or Titles/Liveries you can have different Settings for different Airlines having different SOPs to follow (or just having different Operator Preferences for different Airlines). Check [Section 2.3.3](#233---aircraft-profiles-view) for Details.<br/><br/>
+Since Any2GSX is active for all Aircrafts, I'd recommend to check out the '**Aircraft Profiles**' View next (No, nothing to do with GSX Aircraft Profiles).<br/><br/>
 
 #### 2.3.1 - Automation View
 
