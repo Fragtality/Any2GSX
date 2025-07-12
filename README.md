@@ -69,17 +69,18 @@ Within the App, Automation referrs to all Options which either call GSX Services
 Any2GSX differentiates between what is an Automation and what is Integration. So even with the GSX *Automation* completely turned off for an Aircraft Profile, the configured Aircraft Plugin will still provide *Integration* like Fuel- and Payload-Synch. AND Ground-Equipment-Sync: so Equipment like Chocks, GPU, PCA is still automatically placed or removed! (Since that is an Response/Reaction to the GSX Pushback Service - see the Definition above).<br/>
 <br/>
 
-**Volume Control**
+**Volume Control / Audio Channel Definition**
 
 The Volume Control Features allows to map specific Apps to Audio Channels in the Cockpit (e.g. the App 'vPilot' on Channel 'VHF1'). When that Channel's Volume is manipulated in the virtual Cockpit (e.g. turning the VHF1 Knob), the Volume of the App will be set accordingly.<br/>
 It is mostly the same Code as in Fenix2GSX and works the same Way, with on big Difference: For that Feature to work in Any2GSX, you will need an *Audio Channel Definition* File providing the necessary Information of the Aircraft Controls. It basically tells the App what Channels there are and how they can be read.<br/>
+These Audio Channel Files are Textfiles containing the Definition in a JSON Notation. So it is relatively easy to extent the App for a specific Aircraft with good Text-Editor (Notepad++, VSCode). The Intention is a bit like GSX' Aircraft or Airport Profiles: knowledgable Users can create these Channel Definitions and can then share that with others. Any2GSX' [Plugin-Repository](https://github.com/Fragtality/Any2GSX-Plugins) can also provide the Channel Definitions in a central Place - so if you have created a Definition and want to share it centrally, just get in Touch with me / open an Issue/PR in the Plugin-Repo to get it added! :+1:<br/>
 Note that the whole Volume Control Feature runs completely separate from everything else. So even if you don't use/own GSX at all, you can still use Any2GSX to control the Volume of Apps!<br/>
 <br/>
 
 **PilotsDeck Integration**
 
 Any2GSX can Integrate with my StreamDeck Plugin [PilotsDeck](https://github.com/Fragtality/PilotsDeck) (so you need that Plugin on your StreamDeck in order to use this Feature). This Integration serves as an Replacement for the Functionality provided by the GSX Script shared with my PilotsDeck Profiles.<br/>
-When the Integration is enabled, Any2GSX will send Data to the Plugin which then can be used by the Plugin's Actions to display Data like the current Flight-Phase, next SmartButton Call, De/Boarding Progress and the whole GSX Menu (color-coded by Service-State while at the Gate).<br/>
+When the Integration is enabled, Any2GSX will send Data to the Plugin which then can be used by the Plugin's Actions to display Data like the current Flight-Phase, current SmartButton Action, De/Boarding Progress and the whole GSX Menu (color-coded by Service-State while at the Gate).<br/>
 So basically you can use your StreamDeck as a complete Replacement for the in-Game GSX Menu and to interface with Any2GSX' Automation. A premade [GSX Pro Profile](https://github.com/Fragtality/PilotsDeck/tree/master/Integrations/GSX%20Pro%20(MSFS)) is available on the PilotsDeck Repository.<br/>
 <br/>
 
@@ -94,9 +95,26 @@ A SmartButton Request can be send via different Ways:
 
 **Aircraft Plugins**
 
-Any2GSX does have its own Plugin System to enable Integration with specific Aircrafts.
+Any2GSX does have its own Plugin System to enable Integration with specific Aircrafts - for Example to provide Fuel-, Payload- and Ground-Equipment-Sync. The Intention is that other People can also write Plugins to extent the App for additional Aircrafts. If a Plugin is needed at all: Airplanes with a proper (independent) GSX Integration (like FBW) don't need that.<br/>
+Plugins can be directly installed in the UI either from the central [Plugin-Repository](https://github.com/Fragtality/Any2GSX-Plugins) or from a Zip-File when shared externally. As with the Audio Channels: if you created a Plugin and want it to be shared centrally, please get in Touch! 😉<br/>
+When no Plugin is available (or needed), the App has a builtin 'generic' Plugin with the Ability to configure/map SimVars to the most basic but essential Aircraft Data (like Avionics powered, Power connected, Nav Lights on, etc).<br/>
+Any2GSX has two Plugin Types using different Languages and Approaches: Either as Lua-Script only requiring a (good) Texteditor or as Binary/DLL written in C# requiring a full-blown IDE like Visual Studio. Lua-Plugins are quite powerful, in that they allow Access to all Sim Ressources (i.e. Variables, Events) and provide Access to the Plugin Interfaces - so they can mostly do the same as a Binary Plugin. The Binary Plugins are mostly for Cases where somekind of special Resource (PMDG's SimConnect CDAs) or external Resource (REST-API Call, Memory-mapped File) needs to be interfaced for an Integration with the Aircraft Systems.<br/>
 <br/>
 
+**EFB App**
+
+For MSFS 2024, Any2GSX will install an App into the Simulators EFB providing:
+- Basic State Information for Any2GSX: Flight-Phase and Status, De/Boarding Progress, loaded Aircraft Profile, current SmartButton Action
+- Another Way to toggle a SmartButton Requests
+- Alternative Frontend for GSX Menu Interaction
+
+For MSFS 2024 it is recommended to use the EFB App to answer GSX Questions manually.<br/>
+<br/>
+
+**CommBus (WASM) Module**
+
+Any2GSX has its own (WASM) Module that needs to be installed into the Sim. The App *cannot* run without that Module installed!<br/>
+As the Name suggests it provides the App Access to Simulator's CommBus API providing an additional Way to interface with Aircrafts.<br/>
 <br/><br/><br/>
 
 ## 2 - Configuration
