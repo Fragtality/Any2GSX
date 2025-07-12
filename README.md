@@ -60,13 +60,14 @@ The Rest can be left at Default.<br/>
 **Aircraft Profiles**
 
 Unless otherwise stated in the App or Readme, the Term 'Aircraft Profile' referrs to the Profiles configurable within the App. So that has nothing to do with the Aircraft Profiles GSX will use.<br/>
-Aircraft Profiles are an essential Part of the App, basically the Glue bringing everything together: they determine what Any2GSX Features (GSX Automation, Volume Control, PilotsDeck Integration) should be active for a specific Aircraft and which Aircraft Plugin and/or Audio Channel should be loaded for that. All Automation Settings found in the 'Automation' View are stored per Profile - so together with the Ability to filter on specific IDs, Airlines or Titles/Liveries you can have different Settings for different Airlines having different SOPs to follow (or just having different Operator Preferences for different Airlines). Check [Section 2.3.3](#233---aircraft-profiles-view) for Details.<br/>
+Aircraft Profiles are an essential Part of the App, basically the Glue bringing everything together: they determine what Any2GSX Features (GSX Automation, Volume Control, PilotsDeck Integration) should be active for a specific Aircraft and which Aircraft Plugin and/or Audio Channel should be loaded for that. All Automation Settings found in the 'Automation' View are stored per Profile - so together with the Ability to filter on specific IDs, Airlines or Titles/Liveries you can have different Settings for different Airlines having different SOPs to follow (or just having different Operator Preferences for different Airlines).<br/>
 <br/>
 
 **GSX Automation**
 
 Within the App, Automation referrs to all Options which either call GSX Services automatically or answer GSX Questions/Pop-Ups automatically. Which is NOT *Integration*: that is understood as the Aircraft and its Systems responding/reacting to GSX Services as they get active (who or what ever called these Services) - so typically Fuel-, Payload- and Ground-Equipment-Sync.<br/>
-Any2GSX differentiates between what is an Automation and what is Integration. So even with the GSX *Automation* completely turned off for an Aircraft Profile, the configured Aircraft Plugin will still provide *Integration* like Fuel- and Payload-Synch. AND Ground-Equipment-Sync: so Equipment like Chocks, GPU, PCA is still automatically placed or removed! (Since that is an Response/Reaction to the GSX Pushback Service - see the Definition above).<br/>
+Any2GSX differentiates between what is an Automation and what is Integration. So even with the GSX *Automation* completely turned off for an Aircraft Profile, the configured Aircraft Plugin will still provide *Integration* like Fuel- and Payload-Sync. AND Ground-Equipment-Sync: so Equipment like Chocks, GPU, PCA is still automatically placed or removed! (Since that is an Response/Reaction to the GSX Pushback Service - see the Definition above).<br/>
+In any Case, the Automation works in different Phases reflecting the general Flight State so that the App calls the appropiate Services. For Example calling the Departure Services (Refuel, Catering, Boarding, ...) in the Departure Phase or calling Pushback in the Pushback Phase. The Sequence is: SessionStart -> Preparation -> Departure -> Pushback -> Taxi-Out -> Flight -> Taxi-In -> Arrival -> Turnarond -> Departure. The App can also be (re)started in Flight, where it will directly switch from SessionStart to Flight (and then continue normally).<br/>
 <br/>
 
 **Volume Control / Audio Channel Definition**
@@ -140,24 +141,91 @@ The first Time you start the App (or the Config was Reset) it will automatically
 
 After this intial Step you might want to check out the 'Plugins' View to check-out which Aircraft Plugins, Channel Definitions or Aircraft Profiles are available to download (see [Section 2.3.4](#234---plugins-view) for Details).<br/><br/>
 
-Since Any2GSX is active for all Aircrafts, I'd recommend to check out the '**Aircraft Profiles**' View next (No, nothing to do with GSX Aircraft Profiles).<br/><br/>
+Since Any2GSX can be used with all Aircrafts, I'd recommend to check out the '**Aircraft Profiles**' View next to configure if and how it should be active for a specific Aircraft. Check [Section 2.3.3](#233---aircraft-profiles-view) for Details.<br/><br/>
 
 #### 2.3.1 - Automation View
 
 **Gate & Doors**
+
 Configure when Doors, Jetway and Stairs are operated - for Example if Jetway/Stairs should be connected on Session Start and when they should be removed.<br/>
 The Jetway & Stair Options apply to all Aircrafts, but the Door-Handling Options only apply to Aircraft-Plugins having their own Door-Sync-Code and have implemented these Settings!<br/>
 <br/>
 
 **Ground Equipment**
+
 Mostly the Min/Max Values for the Chock and Final LS Delays. The Chock Delay and remove Equipment on Beacon Options only apply to Aircraft Plugins implementing Chock-/Ground-Equip Handling!<br/>
 The Final LS Delay applies to all Aircrafts. It's primarily a Timer which can trigger other Events when expired (like removing the Jetway, or starting Pushback with an attached Tug).<br/>
 <br/>
 
-<br/><br/>
+**OFP Import**
+
+Options allowing to modify the OFP Data when imported - for Example to round up Fuel or randomize the Passenger Count. Note that these are only relevant when Any2GSX is providing Fuel- & Payload-Sync through an Aircraft Plugin!<br/>
+In addtition the Delays used in the Turnaround Phase can be configured here, which control when Any2GSX will check again for a new OFP on SimBrief.<br/>
+<br/>
+
+**Fuel & Payload**
+
+These Options allow to customize Fuel and Payload Handling like the Refuel Rate, Payload-Reset on Startup or FOB Save & Load.<br/>
+So they are really Integration Settings, so they still apply when GSX Automation was turned of for the Aircraft Profile. In any Case: they only apply when Any2GSX is providing Fuel- & Payload-Sync through an Aircraft Plugin!<br/>
+<br/>
+
+**GSX Services**
+
+Configure if and when GSX Services are called:
+- Reposition on Startup (either use Fenix2GSX for that or the GSX Setting - but not both!)
+- The Service Activation and Constraints (if and when) as well as Order of the Departure Services (Refuel, Catering, Boarding as well as Lavatory & Water)
+- Calling Deboard on Arrival
+- If and when Pushback should be called automatically
+
+<br/>
+
+**Operator Selection**
+
+Enable or Disable the automatic Operator Selection. You can also define Preferences to control which Operator is picked by Any2GSX! If no preferred Operator is found, it will use the 'GSX Choice' in the Menu.<br/>
+The Preferred Operator List Operator List works only on the *Name* of the Operator as seen in the *GSX Menu*!<br/>
+The Strings you add to the Preferred Operator List will be used in a (case insensitive) Substring-Search - so does *Name* listed in the *Menu* contains that Text. The List is evaluated from Top to Bottom - so the higher of two available Operator is choosen.<br/>
+<br/>
+
+**Company Hubs**
+
+Manage a List of *Airport* ICAO Codes which define "Company Hubs" for this Aircraft Profile. 1 to 4 Letters per Code.<br/>
+The Codes are matched in the Order of the List, from Top to Bottom. For each Code, the Departure ICAO is matched if it starts (!) with the Code - so whole Regions can be matched.<br/>
+If the current Departure Airport is matched, Departure Services with the "Only on Hub" Constraint can be called (otherwise they are skipped). So these Hubs have nothing to do with the Operator Selection!<br/>
+<br/>
+
+**Skip Questions**
+
+All Options related to skip / automatically Answer certain GSX Questions or Sim Interactions: Crew Question, Tug Question, Follow-Me Question, skipping Walkaround and reopen the Pushback Menu automatically.<br/>
+Also the GSX Menu Action triggered from the 'ClearGate' SmartButton Call can be customized (so the Menu after picking the Gate while taxiing to it): per Default it is mapped to select the Option to remove AI Aircrafts from the Gate. But that can also be changed to call the Follow-Me on purpose or even warp to the Gate.<br/>
+<br/>
+
+**Plugin Options**
+
+Aircraft Plugins can provide their own Options which are very specific to the Aircraft (e.g. Cargo Lights, Cargo Model/Visual used). If the Plugin has such Options, they can be found in this Category.<br/>
+For Aircraft Profiles using the 'generic' Plugin, the Options to define basic Aircraft Data/Information is also located in this Category. For Example Options to map the SmartButton to a Cockpit Control, define an additional Trigger for the Departure Phase and most importantly Variables providing Aircraft Power & Light States. The Later are essential for the App's Phase and Automation Flow:
+
+- Avionics powered: Signaling if the essential Aircraft Systems are powered - so typically always true once the Aircraft was woke up from Cold & Dark. Used to determine when Volume Control should become active and is also used for evaluating if the Aircraft is ready for Departure Services.
+- External Power available & connected: Signaling if Ground Power is available and when it is connected. The connected State is also used to evaluate if the Aircraft is ready for Departure Services.
+- Beacon & Nav Lights: Signaling when the Lights are on (like actually on, not just the Switch Position). The Nav Lights are used for the ready-for-Departure Evaluation and the Beacon (depending on Configuration) to trigger the Pushback Call.
+- Parking Brake: Signaling when the Parking Brake is set. Essential Check used in various Phases.
+
+For each of these Variables a Name and a Unit has to be provided (L-Vars have to be prefixed with `L:`). If in Doubt, use the Unit `Number`. All Variable used must evaluate to true/non-zero to indicate the on/connected/available State!
+<br/>
+<br/>
 
 #### 2.3.2 - Volume Control View
 
+Any2GSX will only start to control Volume once the Plane's Avionics are powered. Once the Aircraft is powered, Any2GSX will set each Audio-Channel to the configured Startup State (e.g. 100% Volume and unmuted for VHF1). To customize the Startup State, select the appropiate Channel and set the Volume and Mute State that should be set.<br/>
+When the Sim Session has ended or Any2GSX is closed, it will try to reset all Audio Sessions of the controlled Applications to their last known State (before it started controlling the Volume). That might not work on Applications which reset their Audio Sessions at the same Time (like GSX). So GSX can stay muted when switching to another Plane (if it was muted) - keep that in Mind.<br/>
+Any2GSX will control all Audio Sessions on all Devices for a configured Application by default. You can change the Configuration to limit the Volume Control to a certain Device per Application - but on that Device it will still control all Sessions at once.<br/>
+By default, Any2GSX will only consider App Audio Sessions which are flagged as active. Some Apps (like MSFS2024) can spawn inactive Sessions which become active later or by Demand. In that Cases 'Only active' has to be unchecked to also include inactive Sessions.<br/><br/>
+
+You can map freely Applications to any of the Aircraft's Channels - as defined by the selected Audio Channel in the loaded Aircraft Profile. All Mappings are associated to the Aircraft Profile so they are also automatically loaded when the Session starts.<br/>
+To identify an Application you need to enter it's Binary Name without .exe Extension. The UI will present a List of matching (running!) Applications to your Input to ease Selection. The Use Mute Checkbox determines if the pulling or pushing the Volume Knob is used as Trigger to unmute or mute the Application.<br/><br/>
+
+Some Audio Devices act 'strangely' or throw Exceptions when being scanned by Any2GSX for Audio-Sessions. If you have such a Device, you can add it to the Blacklist so that Any2GSX ignores it (normally it should automatically add Devices throwing Exceptions).<br/>
+But there also Cases where Input (Capture) Devices are reported as Output (Render) Devices which leads to Any2GSX controlling the Volume of your Microphone! In such Cases these "false-output" also need to be added to the Blacklist.<br/>
+Matching is done on the Start of the Device Name, but it is recommended to use the exact Device Name for blacklisting. Tip: when you hit Ctrl+C on the Device Dropdown (under App Mappings), the selected Device's Name is automatically pasted to Blacklist Input Field.
 <br/><br/>
 
 #### 2.3.3 - Aircraft Profiles View
