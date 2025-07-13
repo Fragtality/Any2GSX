@@ -224,6 +224,8 @@ For each of these Variables a Name and a Unit has to be provided (L-Vars have to
 
 #### 2.3.2 - Volume Control View
 
+<img src="img/ui-volume.png" width="66%"><br/>
+
 Any2GSX will only start to control Volume once the Plane's Avionics are powered. Once the Aircraft is powered, Any2GSX will set each Audio-Channel to the configured Startup State (e.g. 100% Volume and unmuted for VHF1). To customize the Startup State, select the appropiate Channel and set the Volume and Mute State that should be set.<br/>
 When the Sim Session has ended or Any2GSX is closed, it will try to reset all Audio Sessions of the controlled Applications to their last known State (before it started controlling the Volume). That might not work on Applications which reset their Audio Sessions at the same Time (like GSX). So GSX can stay muted when switching to another Plane (if it was muted) - keep that in Mind.<br/>
 Any2GSX will control all Audio Sessions on all Devices for a configured Application by default. You can change the Configuration to limit the Volume Control to a certain Device per Application - but on that Device it will still control all Sessions at once.<br/>
@@ -238,6 +240,8 @@ Matching is done on the Start of the Device Name, but it is recommended to use t
 <br/><br/>
 
 #### 2.3.3 - Aircraft Profiles View
+
+<img src="img/ui-profiles.png" width="66%"><br/>
 
 Aircraft Profiles (again, nothing to do with GSX' Aircraft Profiles) play an essential Role when using Any2GSX. These Profiles allow to have different Automation Settings and Volume Control Mappings for different Aircrafts. Generally, the Profiles define if and which Any2GSX Feature should be active for a given Aircraft (GSX Automation, Volume Control or PilotsDeck Integration). Per default none of these Features are active so the User has full Control of what is active when.<br/>
 Besides defining the active Features, the Aircraft Profile also defines which Aircraft Plugin and Audio Channel (Definition) should be loaded for given Aircraft - i.e. to load the INI.A306 Plugin when the iniBuilds A300-600 Aircraft is active or load the FBW.A380 Audio Channel when the FlyByWire A380 is active. Typically when installing an Aircraft Plugin, the App/Plugin will create a default Profile for the associated Aircraft so that it just works "out of the Box".<br/><br/>
@@ -263,6 +267,8 @@ Note that each Profile's Name has to be unique. Trying to import a Profile with 
 <br/><br/>
 
 #### 2.3.4 - Plugins View
+
+<img src="img/ui-plugins.png" width="66%"><br/>
 
 <br/><br/>
 
