@@ -137,7 +137,7 @@ As the Name suggests it provides the App Access to Simulator's CommBus API provi
 The Configuration is done through the **GUI**, open it by **clicking on the System-Tray/Notification-Icon**. All Settings have **Tooltips** explaining them further. It is recommended to familiarize yourself with the Settings and the general Usage (see [Section 3](#3---usage)) first before starting the first 'serious' Flight with the App!<br/><br/>
 
 The first Time you start the App (or the Config was Reset) it will automatically open the GUI and the '**App Settings**' View - please enter your **SimBrief User** (Name and ID both accepted) for the App to work properly!<br/>
-<img src="img/ui-first.png" width="520"><br/><br/>
+<img src="img/ui-first.png" width="66%"><br/><br/>
 
 After this intial Step you might want to check out the 'Plugins' View to check-out which Aircraft Plugins, Channel Definitions or Aircraft Profiles are available to download (see [Section 2.3.4](#234---plugins-view) for Details).<br/><br/>
 
@@ -172,12 +172,21 @@ So they are really Integration Settings, so they still apply when GSX Automation
 **GSX Services**
 
 Configure if and when GSX Services are called:
-- Reposition on Startup (either use Fenix2GSX for that or the GSX Setting - but not both!)
+- Reposition on Startup (either use Any2GSX for that or the GSX Setting - but not both!)
 - The Service Activation and Constraints (if and when) as well as Order of the Departure Services (Refuel, Catering, Boarding as well as Lavatory & Water)
 - Calling Deboard on Arrival
 - If and when Pushback should be called automatically
 
-<br/>
+<img src="img/ui-auto.png" width="66%"><br/>
+
+- *Minimum Flight Time*: The Service is only called when the Flight Time (scheduled Block Time) is above the configured Minimum. So zero means always.
+- *Constraint*: Further restrict the Service Call
+  - *Only Departure*: Only call the Service in the first Departure Phase (the first Leg). Resetting the App in between will also reset that Constraint!
+  - *Only Turn*: Only call the Service after the first Turnaround (so the second and following Departure Phases). Resetting the App in between will also reset that Constraint!
+  - *Only on Hub*: Only call the Service on Airports defined as Company Hubs (see below)
+- *Call on Cargo*: When enabled, the Service is called when the Aircraft is reported as Cargo Plane (by generic Plugin Setting or by the Aircraft Plugin). Else only on Passenger Aircrafts.
+
+<br/><br/>
 
 **Operator Selection**
 
