@@ -9,6 +9,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Text.Json;
+using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 
@@ -139,7 +140,10 @@ namespace Any2GSX.UI.Views.Profiles
                 }
 
                 if (Config.ImportProfile(json))
+                {
+                    AppService.Instance.Config?.SettingProfiles?.Sort((x, y) => x.Name.CompareTo(y.Name));
                     ProfileCollection.NotifyCollectionChanged();
+                }
             }
             catch (Exception ex)
             {
@@ -195,6 +199,7 @@ namespace Any2GSX.UI.Views.Profiles
                 }
 
                 Config.SettingProfiles.Add(clone);
+                AppService.Instance.Config?.SettingProfiles?.Sort((x, y) => x.Name.CompareTo(y.Name));
                 ProfileCollection.NotifyCollectionChanged();
                 Logger.Debug($"Cloned Profile '{profileItem.Source.Name}'");
             }

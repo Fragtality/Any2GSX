@@ -787,8 +787,30 @@ namespace Any2GSX.GSX
         {
             if (Aircraft.HasPca && Aircraft.IsApuRunning && Aircraft.IsApuBleedOn && Aircraft.EquipmentPca)
             {
-                Logger.Information($"Automation: Disconnecting PCA");
-                await Aircraft.SetEquipmentPca(ServicePushBack.PushStatus >= 3 && ServicePushBack.IsActive);
+                Logger.Information($"Automation: Disconnecting PCA on APU Bleed on");
+                await Aircraft.SetEquipmentPca(false, ServicePushBack.PushStatus >= 3 || ServicePushBack.IsActive);
+            }
+
+            if (Profile.GradualGroundEquipRemoval)
+            {
+                if (Aircraft.HasGpuInternal && Aircraft.EquipmentPower && Aircraft.IsAvionicPowered && !Aircraft.IsExternalPowerConnected)
+                {
+                    Logger.Information($"Automation: Removing GPU on External Power disconnect");
+                    await Aircraft.SetEquipmentPower(false);
+                }
+
+                bool gpuCondition = !Aircraft.HasGpuInternal || (Aircraft.HasGpuInternal && !Aircraft.EquipmentPower);
+                if (Aircraft.HasChocks && Aircraft.EquipmentChocks && Aircraft.IsBrakeSet && gpuCondition)
+                {
+                    Logger.Information($"Automation: Removing Chocks on Parking Brake set");
+                    await Aircraft.SetEquipmentChocks(false);
+                }
+
+                if (Aircraft.HasCones && Aircraft.EquipmentCones && Aircraft.IsBrakeSet && gpuCondition)
+                {
+                    Logger.Information($"Automation: Removing Cones on Parking Brake set");
+                    await Aircraft.SetEquipmentCones(false);
+                }
             }
 
             if (GroundEquipmentPlaced && !Aircraft.IsExternalPowerConnected && Aircraft.IsBrakeSet && Aircraft.LightBeacon)

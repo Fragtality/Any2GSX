@@ -8,12 +8,14 @@ using System.Windows.Controls;
 
 namespace Any2GSX.UI.Views.Profiles
 {
-    public partial class ViewProfiles : UserControl, IView
+    public partial class ViewProfiles : UserControl, IView, INotifyPropertyChanged
     {
         protected virtual ModelProfiles ViewModel { get; }
         protected virtual ViewModelSelector<SettingProfile, ModelProfileItem> ViewProfileSelector { get; }
         protected virtual ViewModelSelector<ProfileMatching, ProfileMatching> ViewMatchingSelector { get; }
         protected virtual bool IsSelectionChanging { get; set; } = false;
+        public virtual Visibility AddVisibility => (ViewProfileSelector?.HasSelection == false && !string.IsNullOrWhiteSpace(InputName?.Text) ? Visibility.Visible : Visibility.Collapsed);
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         public ViewProfiles()
         {
@@ -28,6 +30,7 @@ namespace Any2GSX.UI.Views.Profiles
             RefreshPluginList();
             RefreshChannelList();
 
+            ViewProfileSelector.BindAddUpdateButton(ButtonAddProfile, ImageAddProfile, GetProfile);
             ViewProfileSelector.BindTextElement(InputName, nameof(ModelProfileItem.Name), "", null, true);
             InputName.KeyUp += (_, e) => OnProfileNameChange(Sys.IsEnter(e));
             InputName.LostFocus += (_, e) => OnProfileNameChange(true);
@@ -43,6 +46,7 @@ namespace Any2GSX.UI.Views.Profiles
                     ViewProfileSelector.SelectedDisplayItem.InhibitConfigSave = false;
                 }
             };
+            SelectorPlugin.MouseEnter += (_, e) => { IsSelectionChanging = false; ViewModel.InhibitConfigSave = false; };
 
             ViewProfileSelector.BindMember(SelectorChannel, nameof(ModelProfileItem.ChannelFileId), null, SettingProfile.GenericId);
             SelectorChannel.SelectionChanged += (_, _) =>
@@ -55,6 +59,7 @@ namespace Any2GSX.UI.Views.Profiles
                     IsSelectionChanging = false;
                 }
             };
+            SelectorChannel.MouseEnter += (_, e) => { IsSelectionChanging = false; ViewModel.InhibitConfigSave = false; };
 
             ViewProfileSelector.BindMember(CheckboxFeatureGSX, nameof(ModelProfileItem.RunAutomationService), null, false);
             CheckboxFeatureGSX.Click += (_, _) =>
@@ -78,6 +83,7 @@ namespace Any2GSX.UI.Views.Profiles
             };
 
             ViewProfileSelector.PropertyChanged += ProfileSelectorPropertyChanged;
+            ViewProfileSelector.AddUpdateCommand.Executed += () => NotifyPropertyChanged(nameof(AddVisibility));
 
             ViewProfileSelector.BindRemoveButton(ButtonRemoveProfile, ViewModel.IsSelectionNonDefault);
             ViewProfileSelector.RemoveCommand.Executed += () => ViewModel.CheckActiveProfile();
@@ -112,6 +118,7 @@ namespace Any2GSX.UI.Views.Profiles
                 IsSelectionChanging = true;
                 ViewModel.ProfileSelectionChanged(ViewProfileSelector.SelectedItem);
                 ViewMatchingSelector.ClearSelection();
+                NotifyPropertyChanged(nameof(AddVisibility));
                 ViewModel.InhibitConfigSave = false;
             }
         }
@@ -126,6 +133,33 @@ namespace Any2GSX.UI.Views.Profiles
                 ViewModel.ProfileCollection.NotifyCollectionChanged();
                 ViewProfileSelector.SetSelectedIndex(index);
                 ViewModel.InhibitConfigSave = false;
+            }
+
+            NotifyPropertyChanged(nameof(AddVisibility));
+        }
+        
+        protected virtual void NotifyPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+
+        protected virtual SettingProfile GetProfile()
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(InputName?.Text))
+                    return new SettingProfile() { Name = InputName?.Text,
+                                                  PluginId = SelectorPlugin.SelectedValue as string, ChannelFileId = SelectorChannel.SelectedValue as string,
+                                                  RunAutomationService = CheckboxFeatureGSX?.IsChecked == true,
+                                                  RunAudioService = CheckboxFeatureVolume?.IsChecked == true,
+                                                  PilotsDeckIntegration = CheckboxFeaturePilotsdeck?.IsChecked == true };
+                else
+                    return null;
+            }
+            catch
+            {
+                return null;
             }
         }
 
@@ -149,6 +183,7 @@ namespace Any2GSX.UI.Views.Profiles
             plugins.Add(SettingProfile.GenericId);
             plugins.AddRange(ViewModel.AppService.PluginController.Plugins.Keys);
             SelectorPlugin.ItemsSource = plugins;
+            SelectorPlugin.SelectedIndex = 0;
             ViewModel.NotifyPropertyChanged(nameof(SettingProfile.PluginId));
         }
 
@@ -157,6 +192,7 @@ namespace Any2GSX.UI.Views.Profiles
             List<string> channels = [SettingProfile.GenericId];
             channels.AddRange(ViewModel.AppService.PluginController.Channels.Keys);
             SelectorChannel.ItemsSource = channels;
+            SelectorChannel.SelectedIndex = 0;
             ViewModel.NotifyPropertyChanged(nameof(SettingProfile.ChannelFileId));
         }
 

@@ -121,7 +121,12 @@
                     <Label Grid.Column="0" Grid.Row="0" FontWeight="Medium" Style="{StaticResource ProfileDefault}" ToolTip="The Name to identify this Profile.">
                         Profile Name:
                     </Label>
-                    <TextBox Grid.Column="1" Grid.Row="0" Name="InputName" IsHitTestVisible="{Binding IsEditAllowed}" MinWidth="256" HorizontalAlignment="Stretch" Style="{StaticResource ProfileInputText}"  ToolTip="The Name to identify this Profile."/>
+                    <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Horizontal">
+                        <TextBox Name="InputName" IsHitTestVisible="{Binding IsEditAllowed}" MinWidth="256" HorizontalAlignment="Stretch" Style="{StaticResource ProfileInputText}" ToolTip="The Name to identify this Profile."/>
+                        <Button Name="ButtonAddProfile" Margin="8,4,0,0" Style="{StaticResource BtnSquareSmall}" Visibility="{Binding AddVisibility, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" ToolTip="Add/Update Profile Match">
+                            <Image Name="ImageAddProfile" Source="../../Icons/add.png" Style="{StaticResource ImgSquareSmall}"/>
+                        </Button>
+                    </StackPanel>
 
                     <Label Grid.Column="0" Grid.Row="1" Style="{StaticResource ProfileDefault}" ToolTip="The Aircraft Plugin to load/use for this Aircraft.">
                         Aircraft Plugin:
@@ -160,7 +165,7 @@
                     <Label Grid.Column="0" Grid.Row="4" Style="{StaticResource ProfileDefault}" VerticalAlignment="Top" ToolTip="Define on which Aircrafts this Profile should be loaded.">
                         Profile Matches:
                     </Label>
-                    <ListView Name="SelectorMatches" Grid.Column="1" Grid.Row="4" Margin="0,8,0,0" MinHeight="96" MinWidth="256" HorizontalAlignment="Stretch"
+                    <ListView Name="SelectorMatches" Grid.Column="1" Grid.Row="4" IsHitTestVisible="{Binding IsEditAllowed}" Margin="0,8,0,0" MinHeight="96" MinWidth="256" HorizontalAlignment="Stretch"
                               ToolTip="Each Match in this List is evaluated on Session Start (for each Profile).&#x0a;A Match consists of a Data Source (i.e. the SimObject Path), an Operation (i.e. contains) and a String/Text to be matched.&#x0a;Each positive Match yields a Score added to the total Score of this Profile.&#x0a;The Profile with the highest Score will then be loaded.">
                         <ListView.ItemTemplate>
                             <DataTemplate>
@@ -169,18 +174,18 @@
                         </ListView.ItemTemplate>
                     </ListView>
                     <StackPanel Grid.Column="1" Grid.Row="5" Orientation="Horizontal" Margin="0,6,0,0" MinHeight="24">
-                        <ComboBox Style="{StaticResource ComboBoxDefault}" MinWidth="64" Margin="0,0,6,0" MinHeight="24"
+                        <ComboBox Style="{StaticResource ComboBoxDefault}" IsEnabled="{Binding IsEditAllowed}" MinWidth="64" Margin="0,0,6,0" MinHeight="24"
                                   ItemsSource="{Binding MatchDataTexts}" Name="SelectorMatchData" SelectedIndex="0" SelectedValuePath="Key" DisplayMemberPath="Value"
                                   ToolTip="Data Source used for Matching:&#x0a;- Airline as read in the SimVar 'ATC AIRLINE' (Score: 1)&#x0a;- Title/Livery as read in the SimVar 'TITLE' (2020) or 'LIVERY NAME' (2024) (Score: 2)&#x0a;- Registration/Id as read in the SimVar 'ATC ID' (Score: 4)&#x0a;- SimObject Path as reported by the SystemEvent 'AircraftLoaded' (Score: 8)"/>
-                        <ComboBox Style="{StaticResource ComboBoxDefault}" MinWidth="64" Margin="0,0,6,0" MinHeight="24"
+                        <ComboBox Style="{StaticResource ComboBoxDefault}" IsEnabled="{Binding IsEditAllowed}" MinWidth="64" Margin="0,0,6,0" MinHeight="24"
                                   ItemsSource="{Binding MatchOperationTexts}" Name="SelectorMatchOperation" SelectedIndex="0" SelectedValuePath="Key" DisplayMemberPath="Value"
                                   ToolTip="Operation used to match the Data Source against the Match String."/>
-                        <TextBox Style="{StaticResource TextBoxLeft}" MinWidth="140" Margin="0,0,6,0" MinHeight="24" Name="InputMatchString"
+                        <TextBox Style="{StaticResource TextBoxLeft}" IsHitTestVisible="{Binding IsEditAllowed}" MinWidth="140" Margin="0,0,6,0" MinHeight="24" Name="InputMatchString"
                                  ToolTip="The Match String - the Text to search for. You can define multiple Strings used for matching separated with a | (Pipe)."/>
-                        <Button Name="ButtonAddMatch" Margin="0,0,6,0" Style="{StaticResource BtnSquareSmall}" ToolTip="Add/Update Profile Match">
+                        <Button Name="ButtonAddMatch" Margin="0,0,6,0" IsHitTestVisible="{Binding IsEditAllowed}" Style="{StaticResource BtnSquareSmall}" ToolTip="Add/Update Profile Match">
                             <Image Name="ImageAddMatching" Source="../../Icons/add.png" Style="{StaticResource ImgSquareSmall}"/>
                         </Button>
-                        <Button Name="ButtonRemoveMatch" Style="{StaticResource BtnSquareSmall}" ToolTip="Remove Profile Match">
+                        <Button Name="ButtonRemoveMatch" IsHitTestVisible="{Binding IsEditAllowed}" Style="{StaticResource BtnSquareSmall}" ToolTip="Remove Profile Match">
                             <Image Source="../../Icons/remove.png" Style="{StaticResource ImgSquareSmall}"/>
                         </Button>
                     </StackPanel>

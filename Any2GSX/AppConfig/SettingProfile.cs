@@ -139,6 +139,7 @@ namespace Any2GSX.AppConfig
         public virtual bool CallPushbackOnBeacon { get; set; } = false;
         public virtual int CallPushbackWhenTugAttached { get; set; } = 2; // 0 => false | 1 => after Departure Services | 2 => after Final LS
         public virtual bool ClearGroundEquipOnBeacon { get; set; } = true;
+        public virtual bool GradualGroundEquipRemoval { get; set; } = false;
         public virtual bool CallDeboardOnArrival { get; set; } = true;
         public virtual int ChockDelayMin { get; set; } = 10;
         public virtual int ChockDelayMax { get; set; } = 20;
