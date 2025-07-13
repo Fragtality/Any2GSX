@@ -230,6 +230,27 @@ Matching is done on the Start of the Device Name, but it is recommended to use t
 
 #### 2.3.3 - Aircraft Profiles View
 
+Aircraft Profiles (again, nothing to do with GSX' Aircraft Profiles) play an essential Role when using Any2GSX. These Profiles allow to have different Automation Settings and Volume Control Mappings for different Aircrafts. Generally, the Profiles define if and which Any2GSX Feature should be active for a given Aircraft (GSX Automation, Volume Control or PilotsDeck Integration). Per default none of these Features are active so the User has full Control of what is active when.<br/>
+Besides defining the active Features, the Aircraft Profile also defines which Aircraft Plugin and Audio Channel (Definition) should be loaded for given Aircraft - i.e. to load the INI.A306 Plugin when the iniBuilds A300-600 Aircraft is active or load the FBW.A380 Audio Channel when the FlyByWire A380 is active. Typically when installing an Aircraft Plugin, the App/Plugin will create a default Profile for the associated Aircraft so that it just works "out of the Box".<br/><br/>
+
+To determine the Profile to load, Any2GSX uses a Matching System using different Data Sources yielding different Scores when a Match is found adding up to a total Score for each Profile. The App will evaluate all Profiles on Session Start and then will use the Profile with the highest overall Score. If no Profile had matched/scored anything, the App will use the default Profile. The following Data Sources can be used for Matching:
+
+- *Airline*: Matching against the SimVar `ATC AIRLINE`. Score: 1
+- *Title/Livery*: Matching against the SimVar `TILE` (2020) or `LIVERY NAME` (2024). Score: 2
+- *ATC ID*: Matching against the SimVar `ATC ID`. Score: 4
+- *SimObject*: Matching against the SimObject Path (`AircraftLoaded` SystemEvent). Score: 8
+
+Each Profile can have multiple Profile Matches, each defining a String/Text that should be compared (equals, starts with, contains) against a Data Source. In general it is recommended to use SimObject to match the Aircraft and have at least one Profile just using that. Additional Profiles can then also match for a certain Airline or Airframe to have different Settings (i.e. Operator Preferences) for different Airlines.<br/><br/>
+
+The Buttons on Top of the Profile List allow to:
+- <img src="https://icons.getbootstrap.com/assets/icons/play.svg"> Set the selected Profile as the active Profile (i.e. to setup your Profiles outside of the Sim / without needing to load the Aircraft).
+- <img src="https://icons.getbootstrap.com/assets/icons/download.svg"> / <img src="https://icons.getbootstrap.com/assets/icons/upload.svg"> To Import/Export the selected Profile to/from the Clipboard to share Profiles with others quickly.
+- <img src="https://icons.getbootstrap.com/assets/icons/copy.svg"> Clone the selected Profile (making a Copy of it)
+- <img src="https://icons.getbootstrap.com/assets/icons/dash-circle.svg"> Delete the selected Profile
+
+<br/>
+Note that each Profile's Name has to be unique. Trying to import a Profile with the same Name for Example will override the existing Profile. Also the 'default' Profile cannot be altered (except for the Any2GSX Features) or deleted - it is the Failback when nothing else can be matched!
+
 <br/><br/>
 
 #### 2.3.4 - Plugins View
