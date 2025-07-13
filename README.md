@@ -186,6 +186,8 @@ Configure if and when GSX Services are called:
   - *Only on Hub*: Only call the Service on Airports defined as Company Hubs (see below)
 - *Call on Cargo*: When enabled, the Service is called when the Aircraft is reported as Cargo Plane (by generic Plugin Setting or by the Aircraft Plugin). Else only on Passenger Aircrafts.
 
+Note that for the first Service, Activation Rules considering preceding Services don't have an Effect. Or put differently: Unless it is configured as Skip or Manual, the first Service is always called (if there no further Constraints added).
+
 <br/><br/>
 
 **Operator Selection**
@@ -255,6 +257,8 @@ To determine the Profile to load, Any2GSX uses a Matching System using different
 
 Each Profile can have multiple Profile Matches, each defining a String/Text that should be compared (equals, starts with, contains) against a Data Source. In general it is recommended to use SimObject to match the Aircraft and have at least one Profile just using that. Additional Profiles can then also match for a certain Airline or Airframe to have different Settings (i.e. Operator Preferences) for different Airlines.<br/><br/>
 
+The String/Text used in a Profile Match can contain multiple Strings at once, separated by a Pipe `|`. For Example searching the SimObject Path for `inibuilds-aircraft-a306` or `A300-600` can be written as `inibuilds-aircraft-a306|A300-600`. If more than one String does match, the resulting Score will still be the same (still 8 Points for the given Example). It could also be written with two different Profile Matches each containing only one String - but in such Scenarios (with multiple Matches), especially when matching against the SimObject Path, the Profile will have such an high total Score that no other Profile can reach. So only do so if that Effect is intended!<br/><br/>
+
 The Buttons on Top of the Profile List allow to:
 - <img src="https://icons.getbootstrap.com/assets/icons/play.svg"> Set the selected Profile as the active Profile (i.e. to setup your Profiles outside of the Sim / without needing to load the Aircraft).
 - <img src="https://icons.getbootstrap.com/assets/icons/download.svg"> / <img src="https://icons.getbootstrap.com/assets/icons/upload.svg"> To Import/Export the selected Profile to/from the Clipboard to share Profiles with others quickly.
@@ -270,9 +274,32 @@ Note that each Profile's Name has to be unique. Trying to import a Profile with 
 
 <img src="img/ui-plugins.png" width="66%"><br/>
 
+The Plugins View will show all installed Aircraft Plugins & Audio Channels. It also allows to remove installed Plugins & Channels, but ensure the Plugin/Channel is not configured in any Aircraft Profile!<br/><br/>
+
+Plugins, Channels and Profiles available from the central [Plugin-Repository](https://github.com/Fragtality/Any2GSX-Plugins) will be displayed in the 'Available from GitHub' Section. The App will highlight installed Plugins/Channels which have an updated Version available. To update an already installed Plugin/Channel just hit 'Install ... from Repo' again.<br/>
+Note that Plugins (as Profiles) can automatically install the appropiate Channel Definition (if available). For Example after installing the INI.A350 Plugin, the Audio Channels for the A350 are automatically installed too. Or when importing the FlyByWire A380 Profile from the Repo, the FBW.A380 Audio Channel is also installed.<br/><br/>
+
+Plugins can also provide customized GSX (!) Aircraft Profiles, in Cases where the internal GSX or Developer-provided Profiles don't work with Plugin. In such Cases, the App will ask if the Profiles should be installed (they are automatically placed in the relevant GSX Folder). Existing Profiles will be overridden! If Profiles should just be automatically installed without Question, select the Checkbox.<br/>
+It is not required to install the GSX Aircraft Profiles provided by Plugins - they will/should typically report in their Description if something has to be changed in the GSX Aircraft Profiles. But in that Case, the User has to ensure the required/recommended Profile Settings are applied manually!
+
 <br/><br/>
 
 #### 2.3.5 - App Settings View
+
+<img src="img/ui-first.png" width="66%"><br/>
+
+The 'App Settings' View will contain Options which apply to the whole Application & all Profiles. Options like the UI Unit used, SimBrief User, Restart GSX Options, used Ports for Communication or saved Fuel Values.<br/>
+
+- *UI Unit Source*: Change what Source to check to automatically switch the Unit used in the UI. Per Default the Unit used in the SimBrief OFP is used, but the App can also switch to the Unit used by the Aircraft - if the Aircraft Plugin supports that!
+- *SimBrief User*: Both the Username or numerical ID are accepted. A valid SimBrief User needs to be configured for the App to work correctly. No other OFP Sources are planned.
+- *FOB Reset Percent*: When an Aircraft supports to save/load the FOB (and that is enabled in the Profile), this Percentage (of the total Fuel Capacity) is Part of the Calculation to find the default Value to (re)set the FOB if no saved FOB is found.
+- *Fuel Compare Variance*: When the FOB is checked to be equal, this Value is the maximum Difference allowed. For Example for the FOB still be considered as planned although the APU already burned some of the planned Fuel.
+- *Restart GSX on Taxi-In*: GSX will automatically be restarted once the Aircraft has touched down again and is below 30 Knots GS. Note that this a 'hard' Reset - the Couatl Binary is killed and then started again!
+- *Restart GSX on Startup*: GSX will automatically be restarted on Startup when the Menu fails to open after several Attempts. Note that this a 'hard' Reset - the Couatl Binary is killed and then started again!
+- *CommBus Port*: The TCP Port Range used by the App to receive Data from the WASM/JS Modules. The App will only use one Port, it will the use the first working Port in that Range. If the Port Range is already in Use or just doesn't work, change the it here.
+- *PilotsDeck URL*: If the StreamDeck is not connected to the same PC or if the default PilotsDeck Port was changed, set the correct URL here for your Setup.
+- *Refresh Gate Menu for EFB*: Automatically refreshes the GSX Gate Menu ('Activate Services at...') for the EFB App - so you always have the 'live' Menu there. Only needed if the PilotsDeck Integration isn't used (which also refreshes the Menu automatically).
+- *Saved Fuel Values*: The FOB Values stored for each Airframe. If there are "invalid" Values (i.e. through Testing) you can delete them here.
 
 <br/><br/><br/>
 
