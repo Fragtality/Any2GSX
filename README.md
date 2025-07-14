@@ -309,7 +309,7 @@ The 'App Settings' View will contain Options which apply to the whole Applicatio
 
 #### 3.1 - General Service Flow / SOP
 
-This Section describes the general Flow of the App and Flight Phases it will go through (and when they change).<br/>
+This Section describes the general Flow of the App and Flight Phases it will go through (and when they change).<br/><br/>
 
 #### 3.1.1 - Session Start
 
@@ -331,6 +331,7 @@ This Section describes the general Flow of the App and Flight Phases it will go 
 
 #### 3.1.2 - Preparation Phase
 
+- With all Automations enabled, the GSX Menu can be disabled (=Icon not white) to prevent Menu-Popups.
 - Reposition is executed (if configured, default enabled).
 - Ground-Equipment is placed (if available through the Aircraft Plugin).
 - Jetway & Stairs are requested (if configured and if reported as available, default enabled).
@@ -353,7 +354,11 @@ This Section describes the general Flow of the App and Flight Phases it will go 
 
 - If Jetway/Stairs are not connected, the App will try to connect them now (if configured, default enabled).
 - The Departure Services are called as configured in [GSX Services](#gsx-services).
-- If the Aircraft requires to call GSX Service on its own for its (not really) Integration to work, ensure the respective Services are set to manually.
+  - Use the SmartButton to manually call the next Service in the Queue (for Example to start Boarding while Refuel is still active).
+  - Per Default the App will answer all relevant Pop-Ups/Questions in this Phase (Operator, Crew Boarding, Tug Attachment).
+  - If the App is configured to allow manual Answers to these Questions, ensure that they are answered!
+  - There has to be an Answer, or else a proper Flow cannot be guaranteed.
+- If the Aircraft requires to call GSX Services on its own for its (not really) Integration to work, ensure the respective Services are set to manually.
 - If manual Interaction is required depends on the Aircraft and/or Aircraft Plugin used. For Example:
   - Starting the GSX 'Integration' of the Aircraft through EFB/FMS if it needs to call the Services by itself.
   - For Aircrafts not having a Fuel-Sync, Refuel has to be started manually through EFB/FMS once the Fuel-Hose is connected.
@@ -362,34 +367,98 @@ This Section describes the general Flow of the App and Flight Phases it will go 
 - If the Aircraft is refueled on the Stair Side, the App will attempt to call the Stairs shortly before the Refuel Service (if configured, default enabled).
   - Given the configurable Delay was sufficient, GSX can be tricked into having Refuel & Stairs active at the same Time.
   - This can rarely cause GSX to crash! Any2GSX can recover from that, but if that happens too often (or should not happen at all), disable the 'Attempt to connect Stairs while Refuel ...' Option!
+- Anytime during Departure, the App will remove PCA (if supported by the Aircraft Plugin) once the APU and APU Bleed (or equivalent Indication for 'AC is provided') is on.
+- When all Departure Services are either completed or skipped, the App will and advance to the Pushback Phase. It also removes the Stairs then (if configured, default enabled but only for Jetway Stands).
+- The App will skip the whole Departure Phase if the Aircraft reports Boarding completed but GSX Boarding wasn't called. In the default/generic Implemenation, Boarding Completed is signaled when the Aircraft is at or over the planned Ramp Weight.
+- The App will also skip forward to the Pushback Phase if GSX Pushback Service should become active (not just requested) or Refuel/Boarding are reported as bypassed (typically happens when Pushback gets active).
 
 <br/><br/>
 
 #### 3.1.4 - Pushback Phase
 
+- If no alternative Frontend (PilotsDeck Integration, EFB App) for the GSX Menu is used: enable the GSX Menu again (=Icon white)! (Latest before Pushback is called for being able to answer the De-Ice Question and select the Direction)
+- When the App switches to the Pushback Phase, it will intiate the Final LS Delay/Countdown. Once the Delay expires:
+  - All open Doors are closed, if the Aircraft Plugin supports that (if configured, default enabled).
+  - Jetway and Stairs (if still connected) are removed (if configured, default enabled).
+  - Pushback is called when the Tug was already attached during Boarding (if configured, default enabled).
+- All mentioned Ground-Equipment Interactions only apply to Aircraft Plugins supporting that, so if not supported, manual Interaction is required here!
+- Once the Beacon is on, Brake is set and Power is disconnected the Ground-Equipment is removed (if configured, default enabled).
+  - If configured (default disabled) Pushback will be called in this Case.
+- If configured (default disabled) the Ground-Equipment is gradually removed (i.e. GPU is removed once Power is disconnected)
+- When the SmartButton is used in this Phase, it will remove the Ground-Equipment and call GSX' Pushback Service.
+- Removal of Ground-Equipment is in all Cases *not forced* - it is removed when it is safe to remove (i.e. Power is disconnected, Brakes are set).
+- The App will try to automatically reopen the Pushback Direction Menu if the GSX Menu should timeout (if configured, default enabled).
+- Successive SmartButton Calls will also try to reopen the Pushback Direction Menu.
+- Once the Direction is selected and Pushback is commenced, the GSX Menu can be disabled again. The SmartButton can be used to stop Pushback or confirm a good Engine Start.
+- When Pushback is completely finished, the App will advance to the Taxi-Out Phase.
+- It is fine to call Pushback on Taxi-Out Stands via SmartButton to remove the Ground-Equipment - as long as the Airport Profile is properly configured (Pushback is disabled, not just all Directions set to none).
+- In any Case, the App monitors the Engine running State and uses that as final Failback to remove still present Ground-Equipment and will also advance to Taxi-Out once the Aircraft starts moving.
+
 <br/><br/>
 
 #### 3.1.5 - Taxi-Out Phase
+
+- If a De-Ice Pad is selected in that Phase, the PilotsDeck Integration/EFB App will display the parsed Pad Name for Reference.
+- If a Pad was selected, the App will try to open/refresh the GSX Menu when ever the Aircraft is below 2 Knots GS and the Brake is set (to check if De-Ice can be called/started).
+- Use the SmartButton to call/start De-Ice on the Pad.
 
 <br/><br/>
 
 #### 3.1.6 - Flight Phase
 
+- INOP 😉
+- Once the Aircraft is report on Ground and is below 30 Knots GS, the App will switch to the Taxi-In Phase.
+- It might work to preselect the Arrival Gate while Airbone, but that wasn't tested.
+- If you try that, ensure you have not set the App Setting to restart GSX on Taxi-In!
+
 <br/><br/>
 
 #### 3.1.7 - Taxi-In Phase
+
+- If configured (default disabled), the App will now (hard) reset GSX to ensure a working / non-stuck State.
+- With all Automations enabled, the Gate-Selection is the only Time the GSX Menu needs to be enabled on the Arrival Airport.
+- It is strongly recommended to select the Arrival Gate while Taxiing.
+- The Operator Selection and Follow-Me Question are automatically answered (if configured, default enabled).
+- The PilotsDeck Integration/EFB App will display the parsed Gate Name for Reference.
+- When a Gate was selected, the SmartButton will trigger the 'ClearGate' Action (every time it is pressed).
+  - Per Default that is bound to the Menu Option to remove AI Aircrafts from that Gate.
+  - It can also be configured to actually call the Follow-Me, Show the Gate or directly warp to the Gate for Example.
+- The App will advance to the Arrival Phase once the Engines are shutdown, Brake is set and Beacon is off.
+- It will also skip forward to the Arrival Phase if GSX Deboarding Service should become requested/active.
 
 <br/><br/>
 
 #### 3.1.8 - Arrival Phase
 
+- All mentioned Ground-Equipment Interactions only apply to Aircraft Plugins supporting that, so if not supported, manual Interaction is required here!
+- Chocks are placed after the Chock Delay has expired.
+- When Jetway/Stairs are connected, GPU (and PCA) will be placed.
+  - The App has a 60s Failback to place the GPU if Jetway/Stairs are not reported correctly by GSX.
+- GSX Deboard is called (if configured, default enabled). If not called automatically, use the SmartButton to call it manually.
+- If Deboard is not called, the App will connect Jetway/Stairs instead (if configured, default enabled).
+- If manual Interaction is required depends on the Aircraft and/or Aircraft Plugin used. For Example:
+  - For Aircrafts not having a Payload-Sync, the Payload has to be manually removed through EFB/FMS.
+  - If the Aircraft has custom Doors and no native Door-Sync, the Doors need to be opened/closed manually for Deboarding.
+- Once the Deboard Service is reported as completed, the App will advance to the Turn-Around Phase.
+
 <br/><br/>
 
 #### 3.1.9 - Turn-Around Phase
 
+- The App will wait 90s (configurable) before checking SimBrief for a new (different) OFP ID. But only if the Aircraft is reported as ready for Departure Services and Jetway/Stairs are connected!
+- After that initial Delay, the App will check SimBrief every 30s (configurable) for new OFP ID (with the same Constraints mentioned above).
+- When a new OFP is detected it will be imported and the App will advance back to the Departure Phase again. (GSX is also refreshed so that the VDGS shows the new Flight-Number/-Info.
+- The Turn-Around Phase can be cancelled anytime by pressing the SmartButton!
+- The App will skip forward to the Departure Phase if one the Services is already running (Refuel, Catering, Boarding - GSX/VDGS is only refreshed if Boarding is not yet running).
+- The App will skip forward to the Pushback Phase if the Pushback services is requested or active. (No GSX/VDGS Refresh either)
+
 <br/><br/>
 
 #### 3.2 - SmartButton Calls
+
+A short Overview of the possible SmartButton Actions:
+
+- 
 
 <br/><br/><br/>
 
