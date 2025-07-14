@@ -221,7 +221,7 @@ For Aircraft Profiles using the 'generic' Plugin, the Options to define basic Ai
 
 For each of these Variables a Name and a Unit has to be provided (L-Vars have to be prefixed with `L:`). If in Doubt, use the Unit `Number`. All Variable used must evaluate to true/non-zero to indicate the on/connected/available State!
 
-<br/><br/><br/>
+<br/><br/>
 
 #### 2.3.2 - Volume Control View
 
@@ -301,7 +301,7 @@ The 'App Settings' View will contain Options which apply to the whole Applicatio
 - *Refresh Gate Menu for EFB*: Automatically refreshes the GSX Gate Menu ('Activate Services at...') for the EFB App - so you always have the 'live' Menu there. Only needed if the PilotsDeck Integration isn't used (which also refreshes the Menu automatically).
 - *Saved Fuel Values*: The FOB Values stored for each Airframe. If there are "invalid" Values (i.e. through Testing) you can delete them here.
 
-<br/><br/><br/><br/>
+<br/><br/><br/>
 
 ### 3 - Usage
 
