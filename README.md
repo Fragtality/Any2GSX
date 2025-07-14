@@ -39,7 +39,7 @@ You do **not need to remove** the old Version for an Update (unless instructed) 
 
 It is highly likely that you need to **Unblock/Exclude** the Installer & App from BitDefender and other AV-/Security-Software.<br/>
 The App will be installed to (cannot be changed): `%appdata%\Any2GSX` (`C:\Users\YOURUSERNAME\AppData\Roaming\Any2GSX`)<br/>
-**DO NOT** run the Installer or App "as Admin" - it might work, it might fail.<br/><br/>
+**DO NOT** run the Installer or App "as Admin" - it might work, it might fail.<br/><br/><br/>
 
 ### 1.3 - Auto-Start
 
@@ -187,7 +187,6 @@ Configure if and when GSX Services are called:
 - *Call on Cargo*: When enabled, the Service is called when the Aircraft is reported as Cargo Plane (by generic Plugin Setting or by the Aircraft Plugin). Else only on Passenger Aircrafts.
 
 Note that for the first Service, Activation Rules considering preceding Services don't have an Effect. Or put differently: Unless it is configured as Skip or Manual, the first Service is always called (if there no further Constraints added).
-
 <br/>
 
 ##### Operator Selection
@@ -239,7 +238,7 @@ To identify an Application you need to enter it's Binary Name without .exe Exten
 Some Audio Devices act 'strangely' or throw Exceptions when being scanned by Any2GSX for Audio-Sessions. If you have such a Device, you can add it to the Blacklist so that Any2GSX ignores it (normally it should automatically add Devices throwing Exceptions).<br/>
 But there also Cases where Input (Capture) Devices are reported as Output (Render) Devices which leads to Any2GSX controlling the Volume of your Microphone! In such Cases these "false-output" also need to be added to the Blacklist.<br/>
 Matching is done on the Start of the Device Name, but it is recommended to use the exact Device Name for blacklisting. Tip: when you hit Ctrl+C on the Device Dropdown (under App Mappings), the selected Device's Name is automatically pasted to Blacklist Input Field.
-<br/><br/>
+<br/><br/><br/>
 
 #### 2.3.3 - Aircraft Profiles View
 
@@ -267,8 +266,7 @@ The Buttons on Top of the Profile List allow to:
 
 <br/>
 Note that each Profile's Name has to be unique. Trying to import a Profile with the same Name for Example will override the existing Profile. Also the 'default' Profile cannot be altered (except for the Any2GSX Features) or deleted - it is the Failback when nothing else can be matched!
-
-<br/><br/><br/>
+<br/><br/>
 
 #### 2.3.4 - Plugins View
 
