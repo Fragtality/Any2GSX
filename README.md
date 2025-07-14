@@ -474,6 +474,31 @@ A short Overview of the possible SmartButton Actions:
 
 ## 4 - Addon NOTAMs
 
+Note: the NOTAMs a copied directly from Fenix2GSX - they should hold true for Any2GSX too.<br/>
+
+### 4.1 - Self-Loading Cargo
+
+Any2GSX and **Self-Loading Cargo** (SLC) should work together: Based on User Reports, you need to disable '**Ground Crew**' in SLC!<br/>
+Generally you only want one Application to control the Service-Flow and Ground-Equipment.
+
+<br/><br/>
+
+### 4.2 - FlowPro
+
+It is strongly recommended to disable the Option **Skip 'Ready to Fly'**. Else it might happen that Any2GSX starts in the Flight State.<br/>
+<img src="img/flowpro.png" width="400"><br/><br/>
+In order to enable/disable the GSX Menu-Entry and **prevent** the GSX Menu to open/**pop-up** when Any2GSX does the Service Calls, you need to open FlowPro and Scroll on the GSX Icon. Green means on, not-green means off.<br/>
+<img src="img/flowproGSX.png" width="400">
+<br/><br/>
+NOTE: Please **uninstall** the Plugin **[Flow GSX Launcher](https://de.flightsim.to/file/46482/flow-gsx-launcher)**: it is outdated since that Widget is already included since Flow Version 2023.30.4.13.
+<br/><br/>
+
+### 4.3 - FS2Crew
+
+**FS2Crew (Fenix Edition)**: You basically don't need any Ground- or Door-Handling Features of Fs2Crew. This is what another User recommends as Settings to let Any2GSX and FS2Crew work together (thanks for sharing):<br/>
+<img src="img/Fs2Crew.png" width="1006"><br/><br/>
+If you deviate from that, that is fine, but don't bother me with Any2GSX is not working properly then - Generally you only want one Application to control the Service-Flow and Ground-Equipment 😜
+
 <br/><br/><br/>
 
 ## 5 - NOTAMs (Usage Tips)
