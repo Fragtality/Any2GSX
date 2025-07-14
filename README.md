@@ -188,7 +188,7 @@ Configure if and when GSX Services are called:
 
 Note that for the first Service, Activation Rules considering preceding Services don't have an Effect. Or put differently: Unless it is configured as Skip or Manual, the first Service is always called (if there no further Constraints added).
 
-<br/><br/>
+<br/>
 
 ##### Operator Selection
 
@@ -222,7 +222,7 @@ For Aircraft Profiles using the 'generic' Plugin, the Options to define basic Ai
 
 For each of these Variables a Name and a Unit has to be provided (L-Vars have to be prefixed with `L:`). If in Doubt, use the Unit `Number`. All Variable used must evaluate to true/non-zero to indicate the on/connected/available State!
 <br/>
-<br/>
+<br/><br/>
 
 #### 2.3.2 - Volume Control View
 
@@ -268,7 +268,7 @@ The Buttons on Top of the Profile List allow to:
 <br/>
 Note that each Profile's Name has to be unique. Trying to import a Profile with the same Name for Example will override the existing Profile. Also the 'default' Profile cannot be altered (except for the Any2GSX Features) or deleted - it is the Failback when nothing else can be matched!
 
-<br/><br/>
+<br/><br/><br/>
 
 #### 2.3.4 - Plugins View
 
@@ -282,7 +282,7 @@ Note that Plugins (as Profiles) can automatically install the appropiate Channel
 Plugins can also provide customized GSX (!) Aircraft Profiles, in Cases where the internal GSX or Developer-provided Profiles don't work with Plugin. In such Cases, the App will ask if the Profiles should be installed (they are automatically placed in the relevant GSX Folder). Existing Profiles will be overridden! If Profiles should just be automatically installed without Question, select the Checkbox.<br/>
 It is not required to install the GSX Aircraft Profiles provided by Plugins - they will/should typically report in their Description if something has to be changed in the GSX Aircraft Profiles. But in that Case, the User has to ensure the required/recommended Profile Settings are applied manually!
 
-<br/><br/>
+<br/><br/><br/>
 
 #### 2.3.5 - App Settings View
 
@@ -301,7 +301,7 @@ The 'App Settings' View will contain Options which apply to the whole Applicatio
 - *Refresh Gate Menu for EFB*: Automatically refreshes the GSX Gate Menu ('Activate Services at...') for the EFB App - so you always have the 'live' Menu there. Only needed if the PilotsDeck Integration isn't used (which also refreshes the Menu automatically).
 - *Saved Fuel Values*: The FOB Values stored for each Airframe. If there are "invalid" Values (i.e. through Testing) you can delete them here.
 
-<br/><br/><br/>
+<br/><br/><br/><br/>
 
 ### 3 - Usage
 
