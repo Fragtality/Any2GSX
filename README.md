@@ -474,7 +474,9 @@ A short Overview of the possible SmartButton Actions:
 
 ## 4 - Addon NOTAMs
 
-Note: the NOTAMs a copied directly from Fenix2GSX - they should hold true for Any2GSX too.<br/>
+Note: the NOTAMs a copied directly from Fenix2GSX - they should hold true for Any2GSX too.
+
+<br/><br/>
 
 ### 4.1 - Self-Loading Cargo
 
@@ -507,4 +509,92 @@ If you deviate from that, that is fine, but don't bother me with Any2GSX is not 
 
 ## 6 - FCOM (Troubleshooting)
 
+1) Ensure you have fully read and understood the Readme 😉
+2) Ensure you have checked the Instructions below for common/known Issues
+3) Ensure your GSX Installation is working correctly - Any2GSX ain't gonna fix it!
+4) If you report an Issue because you are *really really* sure that Any2GSX is misbehaving: provide a **meaningful Description** of the Issue and attach the **Log-File** covering the Issue ('Log-Directory' in the Systray or `%appdata%\Fenix2GSX\log`). If there are **multiple Flights** in one Log (it is one Log per Day for 3 Days), provide a **rough Timestamp** where/when to look.
+5) If your Issue is related to Volume Control, it is strongly recommended to attach the AudioDebug.txt File from the Log Directory (=> 'Write Debug Info' Button in the 'Volume Control' View)
+
+
+**NOTE**: It is my personal Decision to provide support or not. So if you don't put any Effort in reading the Readme or properly reporting your Issue, I won't put any Effort in doing any Support or even responding at all. **You need** to help me in order for **me to help you**! 😉<br/><br/>
+
+
+You can use the '**App Monitor**' View of the UI to monitor the current State of Fenix2GSX:
+<img src="img/appmonitorpng" width="817"><br/><br/>
+
+- The **Sim State** Section reports on the Connection to MSFS - it should be all green and a Version and Aircraft should be reported.
+- The **GSX State** Section reports the State of GSX and it Services. Any2GSX can only do as good as the Information provided by GSX!
+- The **App State** Section reports most noteably reports the current App Phase, the current OFP Data, how many Departure Services are queued - besides the general State of its Services/Controllers.
+- The **Aircraft/Plugin State** Section reports basic Information about the Aircraft. Use that to check if the configured SimVars reflect the correct State when configuring the generic Plugin Settings.
+- The **Message Log** Section prints all informational (and above) Messages from the Log - it gives you a rough Idea what Any2GSX is doing.
+
+**NOTE**: Although a **Screenshot** of the UI might be helpful in certain Situations, it is **not enough** to report an Issue! Always include the **Log-File**!
+
+<br/><br/>
+
+### 6.1 - Does not Start
+
+- It does not open a Window if you expect that. The GUI is only needed for Configuration and can be opened by clicking on the Icon in the SysTray / Notification Area (these Icons beside your Clock)
+- Ensure you have rebooted your PC after .NET 8 was installed for the first Time
+- Check if the .NET Runtimes are correctly installed by running the Command `dotnet --list-runtimes` - it should show an Entry like `Microsoft.WindowsDesktop.App` (with Version 8.0.x).
+- Please just don't "run as Admin" because you think that is needed. You can try if that helps, but it should run just fine without that!
+- Certain AV/Security Software might require setting an Exception
+
+<br/><br/>
+
+### 6.2 - There are no Log Files
+
+- Please just don't "run as Admin" because you think that is needed. You can try if that helps, but it should run just fine without that!
+
+<br/><br/>
+
+### 6.3 - Does not become active
+
+Check if the GSX Menu is working. If the GSX Menu does not work, Any2GSX will not even start its Service Flow. Consider using the App Setting to automatically (hard) reset GSX on Startup for such Scenarios.<br/><br/>
+If the GSX Menu is working, there might be a Problem with the reported Aircraft Data. Check if the SimVars reflect the correct States (i.e. Avionics powered, External available, External connected, Nav Lights).
+
+<br/><br/>
+
+### 6.4 - Any2GSX in Flight/Taxi-In when starting on the Ground
+
+- Can be caused by FlowPro - check the recommended [Settings](#42---FlowPro).
+
+<br/><br/>
+
+### 6.5 - Jetway does not connect
+
+There can be certain Situations where the Jetways stops responding. This an 100% Asobo-Problem: Any Application, including GSX, is then not able to call Jetways anymore via SimEvent ("TOGGLE_JETWAY"). When you are in such a Situation, you can try to call the Jetway via the ATC Menu - but that doesn't really fix the Situation.<br/>
+This can be caused by too many SimObjects being spawned, check the Tips below to reduce the Object Count.<br/>
+
+<br/><br/>
+
+### 6.6 - Refuel Stops / Problems with Boarding or Deboarding / other Erratic Behavior
+
+It is also likely that you have Issues with the SimConnect Interface (the API which both GSX and Any2GSX use) being overloaded by too many SimObjects (one of these Things Asobo is incapable or unwilling of fixing).<br/>
+In most Cases this is caused by AI Aircraft or other Tools spawning SimObjects (e.g. Nool VDGS or even GSX itself). Reduce the Number of SimObjects and check if it works better then:
+
+- Remove Microsoft Fireworks (see below)
+- If only tried while connecting to an Online Network, try if it works in an Offline Session
+- Disable Road and Boat Traffic in the MSFS Settings
+- Disable Traffic in the MSFS Settings (Airport Vehicle / Ground Aircraft / Worker)
+- Reduce the amount of AI Planes in your Tool's Settings
+- External AI Tools might have the Option to spawn Ground Services for AI Aircraft (AIG-TC e.g.) - be sure to disable that!
+- Disable AI Traffic all together - whether it be MSFS or an external Tool
+- Disable "Ground Clutter" in GSX (FSDT Installer -> Config)
+- Disable other Addons spawning SimObjects
+
+<br/>
+
+**Remove Microsoft Fireworks**
+
+- Go to the Content Manager
+- Search for 'Fireworks'
+- The "City Update 3: Texas" should be listed -> go do List View
+- Remove the Package "Microsoft Fireworks"
+
+<br/>
+
+**Offline Installer**
+
+There have been also Cases where the GSX Installation was somehow "corrupted". You can try to run the Check in the FSDT Installer multiple Times or use the [offline Installer](https://www.fsdreamteam.com/forum/index.php/topic,26826.0.html) (run a Check again after using that Installer). Else a complete fresh / clean Installation of GSX might be required.<br/>
 <br/><br/><br/>
