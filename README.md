@@ -57,20 +57,20 @@ The Rest can be left at Default.<br/>
 
 ### 1.4 - Core Concepts & Features
 
-**Aircraft Profiles**
+#### Aircraft Profiles
 
 Unless otherwise stated in the App or Readme, the Term 'Aircraft Profile' referrs to the Profiles configurable within the App. So that has nothing to do with the Aircraft Profiles GSX will use.<br/>
 Aircraft Profiles are an essential Part of the App, basically the Glue bringing everything together: they determine what Any2GSX Features (GSX Automation, Volume Control, PilotsDeck Integration) should be active for a specific Aircraft and which Aircraft Plugin and/or Audio Channel should be loaded for that. All Automation Settings found in the 'Automation' View are stored per Profile - so together with the Ability to filter on specific IDs, Airlines or Titles/Liveries you can have different Settings for different Airlines having different SOPs to follow (or just having different Operator Preferences for different Airlines).<br/>
 <br/>
 
-**GSX Automation**
+#### GSX Automation
 
 Within the App, Automation referrs to all Options which either call GSX Services automatically or answer GSX Questions/Pop-Ups automatically. Which is NOT *Integration*: that is understood as the Aircraft and its Systems responding/reacting to GSX Services as they get active (who or what ever called these Services) - so typically Fuel-, Payload- and Ground-Equipment-Sync.<br/>
 Any2GSX differentiates between what is an Automation and what is Integration. So even with the GSX *Automation* completely turned off for an Aircraft Profile, the configured Aircraft Plugin will still provide *Integration* like Fuel- and Payload-Sync. AND Ground-Equipment-Sync: so Equipment like Chocks, GPU, PCA is still automatically placed or removed! (Since that is an Response/Reaction to the GSX Pushback Service - see the Definition above).<br/>
 In any Case, the Automation works in different Phases reflecting the general Flight State so that the App calls the appropiate Services. For Example calling the Departure Services (Refuel, Catering, Boarding, ...) in the Departure Phase or calling Pushback in the Pushback Phase. The Sequence is: SessionStart -> Preparation -> Departure -> Pushback -> Taxi-Out -> Flight -> Taxi-In -> Arrival -> Turnarond -> Departure. The App can also be (re)started in Flight, where it will directly switch from SessionStart to Flight (and then continue normally).<br/>
 <br/>
 
-**Volume Control / Audio Channel Definition**
+#### Volume Control / Audio Channel Definition
 
 The Volume Control Features allows to map specific Apps to Audio Channels in the Cockpit (e.g. the App 'vPilot' on Channel 'VHF1'). When that Channel's Volume is manipulated in the virtual Cockpit (e.g. turning the VHF1 Knob), the Volume of the App will be set accordingly.<br/>
 It is mostly the same Code as in Fenix2GSX and works the same Way, with on big Difference: For that Feature to work in Any2GSX, you will need an *Audio Channel Definition* File providing the necessary Information of the Aircraft Controls. It basically tells the App what Channels there are and how they can be read.<br/>
@@ -78,14 +78,14 @@ These Audio Channel Files are Textfiles containing the Definition in a JSON Nota
 Note that the whole Volume Control Feature runs completely separate from everything else. So even if you don't use/own GSX at all, you can still use Any2GSX to control the Volume of Apps!<br/>
 <br/>
 
-**PilotsDeck Integration**
+#### PilotsDeck Integration
 
 Any2GSX can Integrate with my StreamDeck Plugin [PilotsDeck](https://github.com/Fragtality/PilotsDeck) (so you need that Plugin on your StreamDeck in order to use this Feature). This Integration serves as an Replacement for the Functionality provided by the GSX Script shared with my PilotsDeck Profiles.<br/>
 When the Integration is enabled, Any2GSX will send Data to the Plugin which then can be used by the Plugin's Actions to display Data like the current Flight-Phase, current SmartButton Action, De/Boarding Progress and the whole GSX Menu (color-coded by Service-State while at the Gate).<br/>
 So basically you can use your StreamDeck as a complete Replacement for the in-Game GSX Menu and to interface with Any2GSX' Automation. A premade [GSX Pro Profile](https://github.com/Fragtality/PilotsDeck/tree/master/Integrations/GSX%20Pro%20(MSFS)) is available on the PilotsDeck Repository.<br/>
 <br/>
 
-**SmartButton**
+#### SmartButton
 
 The SmartButton is a Way to send a Signal to the App that it should call/trigger the next 'Action'. For Example to call the next GSX Service (i.e. call Boarding while Refuel is still active), call Pushback or confirm a good Engine-Start to GSX. For Fenix2GSX Users: it is the INT/RAD Switch Feature in a generalized Form.<br/>
 A SmartButton Request can be send via different Ways:
@@ -94,7 +94,7 @@ A SmartButton Request can be send via different Ways:
 - In any Case, it will always monitor the Variable `L:ANY2GSX_SMARTBUTTON_REQ` for Changes for generic Mapping in external App (e.g. like PilotsDeck)
 <br/>
 
-**Aircraft Plugins**
+#### Aircraft Plugins
 
 Any2GSX does have its own Plugin System to enable Integration with specific Aircrafts - for Example to provide Fuel-, Payload- and Ground-Equipment-Sync. The Intention is that other People can also write Plugins to extent the App for additional Aircrafts. If a Plugin is needed at all: Airplanes with a proper (independent) GSX Integration (like FBW) don't need that.<br/>
 Plugins can be directly installed in the UI either from the central [Plugin-Repository](https://github.com/Fragtality/Any2GSX-Plugins) or from a Zip-File when shared externally. As with the Audio Channels: if you created a Plugin and want it to be shared centrally, please get in Touch! 😉<br/>
@@ -102,7 +102,7 @@ When no Plugin is available (or needed), the App has a builtin 'generic' Plugin 
 Any2GSX has two Plugin Types using different Languages and Approaches: Either as Lua-Script only requiring a (good) Texteditor or as Binary/DLL written in C# requiring a full-blown IDE like Visual Studio. Lua-Plugins are quite powerful, in that they allow Access to all Sim Ressources (i.e. Variables, Events) and provide Access to the Plugin Interfaces - so they can mostly do the same as a Binary Plugin. The Binary Plugins are mostly for Cases where somekind of special Resource (PMDG's SimConnect CDAs) or external Resource (REST-API Call, Memory-mapped File) needs to be interfaced for an Integration with the Aircraft Systems.<br/>
 <br/>
 
-**EFB App**
+#### EFB App
 
 For MSFS 2024, Any2GSX will install an App into the Simulators EFB providing:
 - Basic State Information for Any2GSX: Flight-Phase and Status, De/Boarding Progress, loaded Aircraft Profile, current SmartButton Action
@@ -112,7 +112,7 @@ For MSFS 2024, Any2GSX will install an App into the Simulators EFB providing:
 For MSFS 2024 it is recommended to use the EFB App to answer GSX Questions manually.<br/>
 <br/>
 
-**CommBus (WASM) Module**
+#### CommBus (WASM) Module
 
 Any2GSX has its own (WASM) Module that needs to be installed into the Sim. The App *cannot* run without that Module installed!<br/>
 As the Name suggests it provides the App Access to Simulator's CommBus API providing an additional Way to interface with Aircrafts.<br/>
@@ -145,31 +145,31 @@ Since Any2GSX can be used with all Aircrafts, I'd recommend to check out the '**
 
 #### 2.3.1 - Automation View
 
-**Gate & Doors**
+##### Gate & Doors
 
 Configure when Doors, Jetway and Stairs are operated - for Example if Jetway/Stairs should be connected on Session Start and when they should be removed.<br/>
 The Jetway & Stair Options apply to all Aircrafts, but the Door-Handling Options only apply to Aircraft-Plugins having their own Door-Sync-Code and have implemented these Settings!<br/>
 <br/>
 
-**Ground Equipment**
+##### Ground Equipment
 
 Mostly the Min/Max Values for the Chock and Final LS Delays. The Chock Delay and remove Equipment on Beacon Options only apply to Aircraft Plugins implementing Chock-/Ground-Equip Handling!<br/>
 The Final LS Delay applies to all Aircrafts. It's primarily a Timer which can trigger other Events when expired (like removing the Jetway, or starting Pushback with an attached Tug).<br/>
 <br/>
 
-**OFP Import**
+##### OFP Import
 
 Options allowing to modify the OFP Data when imported - for Example to round up Fuel or randomize the Passenger Count. Note that these are only relevant when Any2GSX is providing Fuel- & Payload-Sync through an Aircraft Plugin!<br/>
 In addtition the Delays used in the Turnaround Phase can be configured here, which control when Any2GSX will check again for a new OFP on SimBrief.<br/>
 <br/>
 
-**Fuel & Payload**
+##### Fuel & Payload
 
 These Options allow to customize Fuel and Payload Handling like the Refuel Rate, Payload-Reset on Startup or FOB Save & Load.<br/>
 So they are really Integration Settings, so they still apply when GSX Automation was turned of for the Aircraft Profile. In any Case: they only apply when Any2GSX is providing Fuel- & Payload-Sync through an Aircraft Plugin!<br/>
 <br/>
 
-**GSX Services**
+##### GSX Services
 
 Configure if and when GSX Services are called:
 - Reposition on Startup (either use Any2GSX for that or the GSX Setting - but not both!)
@@ -190,27 +190,27 @@ Note that for the first Service, Activation Rules considering preceding Services
 
 <br/><br/>
 
-**Operator Selection**
+##### Operator Selection
 
 Enable or Disable the automatic Operator Selection. You can also define Preferences to control which Operator is picked by Any2GSX! If no preferred Operator is found, it will use the 'GSX Choice' in the Menu.<br/>
 The Preferred Operator List Operator List works only on the *Name* of the Operator as seen in the *GSX Menu*!<br/>
 The Strings you add to the Preferred Operator List will be used in a (case insensitive) Substring-Search - so does *Name* listed in the *Menu* contains that Text. The List is evaluated from Top to Bottom - so the higher of two available Operator is choosen.<br/>
 <br/>
 
-**Company Hubs**
+##### Company Hubs
 
 Manage a List of *Airport* ICAO Codes which define "Company Hubs" for this Aircraft Profile. 1 to 4 Letters per Code.<br/>
 The Codes are matched in the Order of the List, from Top to Bottom. For each Code, the Departure ICAO is matched if it starts (!) with the Code - so whole Regions can be matched.<br/>
 If the current Departure Airport is matched, Departure Services with the "Only on Hub" Constraint can be called (otherwise they are skipped). So these Hubs have nothing to do with the Operator Selection!<br/>
 <br/>
 
-**Skip Questions**
+##### Skip Questions
 
 All Options related to skip / automatically Answer certain GSX Questions or Sim Interactions: Crew Question, Tug Question, Follow-Me Question, skipping Walkaround and reopen the Pushback Menu automatically.<br/>
 Also the GSX Menu Action triggered from the 'ClearGate' SmartButton Call can be customized (so the Menu after picking the Gate while taxiing to it): per Default it is mapped to select the Option to remove AI Aircrafts from the Gate. But that can also be changed to call the Follow-Me on purpose or even warp to the Gate.<br/>
 <br/>
 
-**Plugin Options**
+##### Plugin Options
 
 Aircraft Plugins can provide their own Options which are very specific to the Aircraft (e.g. Cargo Lights, Cargo Model/Visual used). If the Plugin has such Options, they can be found in this Category.<br/>
 For Aircraft Profiles using the 'generic' Plugin, the Options to define basic Aircraft Data/Information is also located in this Category. For Example Options to map the SmartButton to a Cockpit Control, define an additional Trigger for the Departure Phase and most importantly Variables providing Aircraft Power & Light States. The Later are essential for the App's Phase and Automation Flow:
