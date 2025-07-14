@@ -305,17 +305,63 @@ The 'App Settings' View will contain Options which apply to the whole Applicatio
 
 ### 3 - Usage
 
+<br/>
+
 #### 3.1 - General Service Flow / SOP
 
+This Section describes the general Flow of the App and Flight Phases it will go through (and when they change).<br/>
+
 #### 3.1.1 - Session Start
+
+- The App will always start in this Phase - Regardless when it was started or restarted in between. So most typically when the Sim Session is started.
+- It is recommended to already have the SimBrief OFP filed/generated before starting the Sim Session! (For the correct Aircraft-Type - Any2GSX does not do any Type-Checks!)
+- Depending on the State of the Sim and Aircraft it can advance to different Phases from here in the following Order/Priority:
+  - *Flight* Phase if the Aircraft is not reported as being on the Ground.
+  - *Pushback* Phase if the Beacon Light is on (with the Engines not running) or GSX Pushback is active (the Push Status being greater 0).
+  - *Taxi-Out* Phase if the Engines (at least one) are already running.
+  - *Pushback* Phase if the Aircraft is already reported as ready for Departure Services and/or GSX Services are already requested - but with the Aircraft's total Weight being already greater or equal to the planned Ramp Value.
+  - *Departure* Phase if the Aircraft is already reported as ready for Departure Services and/or GSX Services are already requested and GSX being in the Gate Menu ('Activate Services at ...').
+  - *Preparation* Phase after the Aircraft Plugin reports connected, Walkaround was skipped (Sim is not in Avatar Mode) and GSX being in the Gate Menu.
+- So most typically, the App will switch to the Preparation Phase after entering the Cockpit.
+- If the App directly skips ahead, the SimBrief OFP is imported directly.
+- For MSFS2020: Since there is no Walkaround Mode, the App automatically considers the Mode as skipped.
+- When GSX is not in the Gate Menu due to Scenery/Airport Profile Issues, the App will remain in this State until the User moved the Aircraft to a valid Position.
 
 <br/><br/>
 
 #### 3.1.2 - Preparation Phase
 
+- Reposition is executed (if configured, default enabled).
+- Ground-Equipment is placed (if available through the Aircraft Plugin).
+- Jetway & Stairs are requested (if configured and if reported as available, default enabled).
+  - For Online-Network (VATSIM/IVAO) Scenarios, it might be better to disable the automatic Jetway/Stairs Request for Cases where the Position needs to be changed.
+  - Jetway/Stairs can then be manually triggered by the SmartButton once a valid Position was found.
+  - If the Aircraft is refueled on the Stair Side (as reported by the Plugin Setting), the Stairs will *NOT* be called as GSX does not allow Refuel & Stairs at the same Time.
+- The App will set the Payload to empty and FOB to the default/last saved Amount (if supported by the Aircraft Plugin and if configured, default enabled).
+  - With no Aircraft Plugin or the Plugin not supporting that, ensure Payload and Fuel are reset manually (else Refuel or the whole Departure might be skipped).
+- The App will then remain in this State until the Aircraft reports Ground-Equipment placed and ready for Departure Services:
+  - Ground-Equipment is considered as placed when External Power is reported as available and either Chocks are placed or Parking Brake is set.
+  - The Aircraft is considered as ready for Departure when the Avionics are powered, External Power is connected and Nav Lights are on.
+  - These Conditions apply to the generic Plugin, Aircraft specific Plugins can overwrite that to use the OFP Import in the EFB or FMS a ready for Departure Trigger (Plugins typically report that in their Description).
+  - For the generic Plugin, it is possible to configure an additional SimVar & Comparison to be used inn the ready for Departure Trigger.
+- Once the Conditions are met the App will switch to the Departure Phase. When it switches the Phase it will import the SimBrief OFP itself and also triggers GSX to reimport the OFP.
+- When one of the Departure Services (Refuel, Catering or Boarding) is requested manually/externally in this Phase, it will also advance the Departure Phase (and import the OFP, but not refresh GSX).
+
 <br/><br/>
 
 #### 3.1.3 - Departure Phase
+
+- If Jetway/Stairs are not connected, the App will try to connect them now (if configured, default enabled).
+- The Departure Services are called as configured in [GSX Services](#gsx-services).
+- If the Aircraft requires to call GSX Service on its own for its (not really) Integration to work, ensure the respective Services are set to manually.
+- If manual Interaction is required depends on the Aircraft and/or Aircraft Plugin used. For Example:
+  - Starting the GSX 'Integration' of the Aircraft through EFB/FMS if it needs to call the Services by itself.
+  - For Aircrafts not having a Fuel-Sync, Refuel has to be started manually through EFB/FMS once the Fuel-Hose is connected.
+  - For Aircrafts not having a Payload-Sync, the Payload has to be manually applied through EFB/FMS.
+  - If the Aircraft has custom Doors and no native Door-Sync, the Doors need to be opened/closed manually for the GSX Services (Boarding, Catering).
+- If the Aircraft is refueled on the Stair Side, the App will attempt to call the Stairs shortly before the Refuel Service (if configured, default enabled).
+  - Given the configurable Delay was sufficient, GSX can be tricked into having Refuel & Stairs active at the same Time.
+  - This can rarely cause GSX to crash! Any2GSX can recover from that, but if that happens too often (or should not happen at all), disable the 'Attempt to connect Stairs while Refuel ...' Option!
 
 <br/><br/>
 
