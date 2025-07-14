@@ -458,7 +458,17 @@ This Section describes the general Flow of the App and Flight Phases it will go 
 
 A short Overview of the possible SmartButton Actions:
 
-- 
+- *Preparation* => Call Jetway/Stairs (when not configured to connect automatically and only if allowed)
+- *Departure* => Call the next Service in the Queue (Service Constraints still apply!)
+- *Pushback*
+  - Service not yet called => Remove Ground-Equipment and request Pushback
+  - Service called, Direction not selected => Reopen Direction Menu
+  - Pushback being commenced => Stop Pushback
+  - GSX waiting for Confirmation => Confirm Engine Start
+- *Taxi-Out* => Start De-Ice if a Pad was selected and arrived at that Pad
+- *Taxi-In* => Customizable 'ClearGate' Action - typically remove AI Aircrafts from the Gate
+- *Arrival* => Call Deboard (when not configured to be called automatically)
+- *Turn-Around* => Skip Turn-Around (go to Departure Phase again)
 
 <br/><br/><br/>
 
