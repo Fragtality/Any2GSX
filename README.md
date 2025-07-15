@@ -1,11 +1,11 @@
 # Any2GSX
 <img src="img/icon.png" width="128"><br/>
-Generalized Version of [Fenix2GSX](https://github.com/Fragtality/Fenix2GSX) bringing GSX Automation and App Volume Control to all Aircrafts! <br/>
+Generalized Version of [Any2GSX](https://github.com/Fragtality/Any2GSX) bringing GSX Automation and App Volume Control to all Aircrafts! <br/>
 
 - **GSX Automation** (ie. calling Services, skipping Questions) can be enabled for all Aircrafts
 - **App Volume Control** available to all Aircrafts to control the Volume of Apps via Knobs in the Cockpit
 - **Aircraft Plugin System** to enable Fuel-, Payload- and Equipment Sync for specific Aircrafts
-- **SmartButton** Control for every Aircraft to call the next Service / trigger the next Call (the INT/RAD Thingy known from Fenix2GSX)
+- **SmartButton** Control for every Aircraft to call the next Service / trigger the next Call (the INT/RAD Thingy known from Any2GSX)
 - **EFB App** for MSFS2024 to check on the App Status, SmartButton Trigger and GSX Menu
 - **PilotsDeck** Integration bringing the GSX Menu to your StreamDeck (replacing the GSX Script known from my PilotsDeck Profiles)
 
@@ -73,7 +73,7 @@ In any Case, the Automation works in different Phases reflecting the general Fli
 #### Volume Control / Audio Channel Definition
 
 The Volume Control Features allows to map specific Apps to Audio Channels in the Cockpit (e.g. the App 'vPilot' on Channel 'VHF1'). When that Channel's Volume is manipulated in the virtual Cockpit (e.g. turning the VHF1 Knob), the Volume of the App will be set accordingly.<br/>
-It is mostly the same Code as in Fenix2GSX and works the same Way, with on big Difference: For that Feature to work in Any2GSX, you will need an *Audio Channel Definition* File providing the necessary Information of the Aircraft Controls. It basically tells the App what Channels there are and how they can be read.<br/>
+It is mostly the same Code as in Any2GSX and works the same Way, with on big Difference: For that Feature to work in Any2GSX, you will need an *Audio Channel Definition* File providing the necessary Information of the Aircraft Controls. It basically tells the App what Channels there are and how they can be read.<br/>
 These Audio Channel Files are Textfiles containing the Definition in a JSON Notation. So it is relatively easy to extent the App for a specific Aircraft with good Text-Editor (Notepad++, VSCode). The Intention is a bit like GSX' Aircraft or Airport Profiles: knowledgable Users can create these Channel Definitions and can then share that with others. Any2GSX' [Plugin-Repository](https://github.com/Fragtality/Any2GSX-Plugins) can also provide the Channel Definitions in a central Place - so if you have created a Definition and want to share it centrally, just get in Touch with me / open an Issue/PR in the Plugin-Repo to get it added! :+1:<br/>
 Note that the whole Volume Control Feature runs completely separate from everything else. So even if you don't use/own GSX at all, you can still use Any2GSX to control the Volume of Apps!<br/>
 <br/>
@@ -87,7 +87,7 @@ So basically you can use your StreamDeck as a complete Replacement for the in-Ga
 
 #### SmartButton
 
-The SmartButton is a Way to send a Signal to the App that it should call/trigger the next 'Action'. For Example to call the next GSX Service (i.e. call Boarding while Refuel is still active), call Pushback or confirm a good Engine-Start to GSX. For Fenix2GSX Users: it is the INT/RAD Switch Feature in a generalized Form.<br/>
+The SmartButton is a Way to send a Signal to the App that it should call/trigger the next 'Action'. For Example to call the next GSX Service (i.e. call Boarding while Refuel is still active), call Pushback or confirm a good Engine-Start to GSX. For Any2GSX Users: it is the INT/RAD Switch Feature in a generalized Form.<br/>
 A SmartButton Request can be send via different Ways:
 - Aircraft Plugins can map it to actual Cockpit Controls for an 'out of Box' Experience
 - When the generic Aircraft Plugin is used, the User can define a SimVar and Comparison for a manual Mapping to a Cockpit Control
@@ -474,7 +474,7 @@ A short Overview of the possible SmartButton Actions:
 
 ## 4 - Addon NOTAMs
 
-Note: the NOTAMs a copied directly from Fenix2GSX - they should hold true for Any2GSX too.
+Note: the NOTAMs a copied directly from Any2GSX - they should hold true for Any2GSX too.
 
 <br/><br/>
 
@@ -512,15 +512,15 @@ If you deviate from that, that is fine, but don't bother me with Any2GSX is not 
 1) Ensure you have fully read and understood the Readme 😉
 2) Ensure you have checked the Instructions below for common/known Issues
 3) Ensure your GSX Installation is working correctly - Any2GSX ain't gonna fix it!
-4) If you report an Issue because you are *really really* sure that Any2GSX is misbehaving: provide a **meaningful Description** of the Issue and attach the **Log-File** covering the Issue ('Log-Directory' in the Systray or `%appdata%\Fenix2GSX\log`). If there are **multiple Flights** in one Log (it is one Log per Day for 3 Days), provide a **rough Timestamp** where/when to look.
+4) If you report an Issue because you are *really really* sure that Any2GSX is misbehaving: provide a **meaningful Description** of the Issue and attach the **Log-File** covering the Issue ('Log-Directory' in the Systray or `%appdata%\Any2GSX\log`). If there are **multiple Flights** in one Log (it is one Log per Day for 3 Days), provide a **rough Timestamp** where/when to look.
 5) If your Issue is related to Volume Control, it is strongly recommended to attach the AudioDebug.txt File from the Log Directory (=> 'Write Debug Info' Button in the 'Volume Control' View)
 
 
 **NOTE**: It is my personal Decision to provide support or not. So if you don't put any Effort in reading the Readme or properly reporting your Issue, I won't put any Effort in doing any Support or even responding at all. **You need** to help me in order for **me to help you**! 😉<br/><br/>
 
 
-You can use the '**App Monitor**' View of the UI to monitor the current State of Fenix2GSX:
-<img src="img/appmonitorpng" width="817"><br/><br/>
+You can use the '**App Monitor**' View of the UI to monitor the current State of Any2GSX:
+<img src="img/ui-monitor.png" width="66%"><br/><br/>
 
 - The **Sim State** Section reports on the Connection to MSFS - it should be all green and a Version and Aircraft should be reported.
 - The **GSX State** Section reports the State of GSX and it Services. Any2GSX can only do as good as the Information provided by GSX!
