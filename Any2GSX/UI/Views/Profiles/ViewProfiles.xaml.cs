@@ -1,6 +1,7 @@
 ﻿using Any2GSX.AppConfig;
 using CFIT.AppFramework.UI.ViewModels;
 using CFIT.AppTools;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows;
@@ -44,6 +45,7 @@ namespace Any2GSX.UI.Views.Profiles
                     ViewProfileSelector.SelectedDisplayItem.InhibitConfigSave = IsSelectionChanging;
                     ViewProfileSelector.SelectedDisplayItem.PluginId = plugin;
                     ViewProfileSelector.SelectedDisplayItem.InhibitConfigSave = false;
+                    RefreshList();
                 }
             };
             SelectorPlugin.MouseEnter += (_, e) => { IsSelectionChanging = false; ViewModel.InhibitConfigSave = false; };
@@ -125,17 +127,23 @@ namespace Any2GSX.UI.Views.Profiles
 
         protected virtual void OnProfileNameChange(bool isEnter)
         {
-            if (isEnter && ViewProfileSelector.HasSelection && !string.IsNullOrWhiteSpace(InputName?.Text) && !InputName.Text.Equals(ViewProfileSelector.SelectedItem.Name))
+            if (isEnter && ViewProfileSelector.HasSelection && !string.IsNullOrWhiteSpace(InputName?.Text)
+                && InputName?.Text?.Equals(ViewProfileSelector?.SelectedItem?.Name, StringComparison.InvariantCultureIgnoreCase) == false)
             {
                 ViewProfileSelector.SelectedDisplayItem.Name = InputName.Text;
-                int index = ViewProfileSelector.SelectedIndex;
-                ViewModel.InhibitConfigSave = true;
-                ViewModel.ProfileCollection.NotifyCollectionChanged();
-                ViewProfileSelector.SetSelectedIndex(index);
-                ViewModel.InhibitConfigSave = false;
+                RefreshList();
             }
+            else
+                NotifyPropertyChanged(nameof(AddVisibility));
+        }
 
-            NotifyPropertyChanged(nameof(AddVisibility));
+        protected virtual void RefreshList()
+        {
+            int index = ViewProfileSelector.SelectedIndex;
+            ViewModel.InhibitConfigSave = true;
+            ViewModel.ProfileCollection.NotifyCollectionChanged();
+            ViewProfileSelector.SetSelectedIndex(index);
+            ViewModel.InhibitConfigSave = false;
         }
         
         protected virtual void NotifyPropertyChanged(string propertyName)
@@ -198,14 +206,17 @@ namespace Any2GSX.UI.Views.Profiles
 
         public virtual void Start()
         {
+            IsSelectionChanging = true;
             RefreshPluginList();
             RefreshChannelList();
             SelectorProfiles.SelectedItem = AppService.Instance?.Config?.CurrentProfile;
             ViewModel.Start();
+            IsSelectionChanging = false;
         }
 
         public virtual void Stop()
         {
+            ViewProfileSelector?.ClearSelection();
             ViewModel?.Stop();
         }
     }

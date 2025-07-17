@@ -9,7 +9,6 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Text.Json;
-using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 
@@ -186,7 +185,7 @@ namespace Any2GSX.UI.Views.Profiles
                 string json = JsonSerializer.Serialize<SettingProfile>(profileItem.Source);
                 var clone = JsonSerializer.Deserialize<SettingProfile>(json);
                 clone.Name = $"Clone of {profileItem.Source.Name}";
-                if (clone.IsDefault)
+                if (profileItem.Source.IsDefault)
                 {
                     Logger.Debug($"Create Clone of Default Profile");
                     clone.IsReadOnly = false;
