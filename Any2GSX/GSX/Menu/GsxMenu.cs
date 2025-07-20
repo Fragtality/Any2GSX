@@ -10,6 +10,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Any2GSX.GSX.Menu
@@ -17,6 +18,7 @@ namespace Any2GSX.GSX.Menu
     public class GsxMenu() : IGsxMenu
     {
         protected virtual GsxController GsxController => AppService.Instance.GsxController;
+        public virtual CancellationToken RequestToken => AppService.Instance.RequestToken;
         protected virtual Config Config => GsxController.Config;
         protected virtual SettingProfile Profile => AppService.Instance.SettingProfile;
         protected virtual NotificationManager NotificationManager => AppService.Instance.NotificationManager;
@@ -97,7 +99,7 @@ namespace Any2GSX.GSX.Menu
                 {
                     Logger.Debug($"Warped to Gate - trigger Menu Refresh");
                     WaitingForGate = false;
-                    Task.Delay(2000, GsxController.Token).ContinueWith((_) => OpenHide()).ContinueWith((_) => WarpedToGate = true);
+                    Task.Delay(2000, RequestToken).ContinueWith((_) => OpenHide()).ContinueWith((_) => WarpedToGate = true);
                 }
                     LastMenuSelection = num;
                 Logger.Verbose($"Menu Selection {LastMenuSelection}");
@@ -224,25 +226,33 @@ namespace Any2GSX.GSX.Menu
 
         protected virtual async void OnMenuEvent(ISimResourceSubscription sub, object value)
         {
-            MenuState = (GsxMenuState)sub.GetValue<int>();
-            Logger.Debug($"Received Menu Event: {MenuState}");
-
-            if (!FirstReadyReceived && MenuState == GsxMenuState.READY)
-                FirstReadyReceived = true;
-
-            if (MenuState == GsxMenuState.READY || MenuState == GsxMenuState.HIDE)
+            try
             {
-                WaitingForGate = false;
+                MenuState = (GsxMenuState)sub.GetValue<int>();
+                Logger.Debug($"Received Menu Event: {MenuState}");
+
+                if (!FirstReadyReceived && MenuState == GsxMenuState.READY)
+                    FirstReadyReceived = true;
+
+                if (MenuState == GsxMenuState.READY || MenuState == GsxMenuState.HIDE)
+                {
+                    WaitingForGate = false;
+                    if (MenuState == GsxMenuState.READY)
+                        await UpdateMenu();
+                }
+
                 if (MenuState == GsxMenuState.READY)
-                    await UpdateMenu();
+                {
+                    GsxController.MessageService.Send(MessageGsx.Create<MsgGsxMenuReady>(GsxController, MenuState));
+                    _ = TaskTools.RunLogged(() => OnMenuReady?.Invoke(this));
+                }
+                _ = TaskTools.RunLogged(() => OnMenuReceived?.Invoke(this));
             }
-
-            if (MenuState == GsxMenuState.READY)
+            catch (Exception ex)
             {
-                GsxController.MessageService.Send(MessageGsx.Create<MsgGsxMenuReady>(GsxController, MenuState));
-                _ = TaskTools.RunLogged(() => OnMenuReady?.Invoke(this));
+                if (ex is not TaskCanceledException)
+                    Logger.LogException(ex);
             }
-            _ = TaskTools.RunLogged(() => OnMenuReceived?.Invoke(this));
         }
 
         public virtual async Task UpdateMenu()
@@ -266,7 +276,7 @@ namespace Any2GSX.GSX.Menu
             if (lastTitle != MenuTitle)
             {
                 Logger.Debug($"Menu Title changed: '{MenuTitle}'");
-                await TaskTools.RunLogged(() => MenuTitleChanged?.Invoke(MenuTitle), GsxController.Token);
+                await TaskTools.RunLogged(() => MenuTitleChanged?.Invoke(MenuTitle), RequestToken);
                 if (IsGateMenu)
                     FollowMeAnswered = false;
             }
@@ -279,10 +289,10 @@ namespace Any2GSX.GSX.Menu
 
             var matchingCallbacks = MenuCallbacks.Where(c => MatchTitle(c.Key));
             foreach (var callback in matchingCallbacks)
-                await TaskTools.RunLogged(() => callback.Value.Invoke(this), GsxController.Token);
+                await TaskTools.RunLogged(() => callback.Value.Invoke(this), RequestToken);
 
             if (!SuppressMenuRefresh && MenuOpenAfterReady)
-                _ = Task.Delay(1000, GsxController.Token).ContinueWith((_) => Open());
+                _ = Task.Delay(1000, RequestToken).ContinueWith((_) => Open());
         }
 
         public virtual void Hide()
@@ -302,7 +312,7 @@ namespace Any2GSX.GSX.Menu
             if (MenuOpenRequesting)
             {
                 Logger.Debug($"Menu Open already requested - delaying ...");
-                await Task.Delay(Config.MenuOpenTimeout, GsxController.Token);
+                await Task.Delay(Config.MenuOpenTimeout, RequestToken);
             }
             MenuOpenRequesting = true;
 
@@ -314,12 +324,12 @@ namespace Any2GSX.GSX.Menu
                 await SubMenuOpen.WriteValue(1);
                 if (waitReady)
                 {
-                    msg = await MsgMenuReady.ReceiveAsync(false, Config.MenuOpenTimeout);
-                    if (msg == null)
+                    msg = await MsgMenuReady.ReceiveAsync(false, Config.MenuOpenTimeout, RequestToken);
+                    if (msg == null && !RequestToken.IsCancellationRequested)
                     {
                         Logger.Debug($"Retry Open ...");
                         await SubMenuOpen.WriteValue(1);
-                        msg = await MsgMenuReady.ReceiveAsync(false, Config.MenuOpenTimeout);
+                        msg = await MsgMenuReady.ReceiveAsync(false, Config.MenuOpenTimeout, RequestToken);
                     }
                 }
             }
@@ -361,7 +371,7 @@ namespace Any2GSX.GSX.Menu
             if (waitReady && !IsMenuReady)
             {
                 Logger.Verbose($"wait menu");
-                await MsgMenuReady.ReceiveAsync();
+                await MsgMenuReady.ReceiveAsync(false, Config.MenuOpenTimeout, RequestToken);
             }
 
             Logger.Debug($"Menu Select Item {number} => Value {number - 1}");
@@ -383,7 +393,7 @@ namespace Any2GSX.GSX.Menu
             int counter = 0;
             foreach (var command in sequence.Commands)
             {
-                if (!GsxController.IsGsxRunning && !sequence.IgnoreGsxState)
+                if ((!GsxController.IsGsxRunning && !sequence.IgnoreGsxState) || RequestToken.IsCancellationRequested)
                     break;
 
                 if (await RunCommand(command) == true)
@@ -391,7 +401,7 @@ namespace Any2GSX.GSX.Menu
             }
             result = counter == sequence.Commands.Count;
             if (result)
-                _ = TaskTools.RunLogged(() => sequence.CallbackCompleted?.Invoke(sequence), GsxController.Token);
+                _ = TaskTools.RunLogged(() => sequence.CallbackCompleted?.Invoke(sequence), RequestToken);
             
             sequence.IsExecuting = false;
             IsSequenceActive = false;
@@ -420,7 +430,7 @@ namespace Any2GSX.GSX.Menu
             else if (command.WaitReady && MenuState != GsxMenuState.READY)
             {
                 Logger.Verbose($"wait rdy");
-                await MsgMenuReady.ReceiveAsync(true);
+                await MsgMenuReady.ReceiveAsync(true, Config.MenuOpenTimeout, RequestToken);
             }
 
             if (command.HasTitle && !MatchTitle(command.Title))
@@ -437,11 +447,11 @@ namespace Any2GSX.GSX.Menu
             }
             else if (command.Type == GsxMenuCommandType.DummyWait)
             {
-                await Task.Delay(Config.MenuCheckInterval * 2, GsxController.Token);
+                await Task.Delay(Config.MenuCheckInterval * 2, RequestToken);
             }
             else if (command.Type == GsxMenuCommandType.Reset)
             {
-                await Task.Delay(Config.MenuCheckInterval, GsxController.Token);
+                await Task.Delay(Config.MenuCheckInterval, RequestToken);
                 await OpenHide();
             }
             else if (command.Type == GsxMenuCommandType.Operator)
@@ -451,12 +461,12 @@ namespace Any2GSX.GSX.Menu
                 do
                 {
                     if (!IsMenuReady || !WasOperatorSelected)
-                        await Task.Delay(Config.MenuCheckInterval, GsxController.Token);
+                        await Task.Delay(Config.MenuCheckInterval, RequestToken);
                     timeWaited += Config.MenuCheckInterval;
                 }
-                while (timeWaited < Config.OperatorWaitTimeout && !IsMenuReady && !WasOperatorSelected && !GsxController.Token.IsCancellationRequested);
+                while (timeWaited < Config.OperatorWaitTimeout && !IsMenuReady && !WasOperatorSelected && !GsxController.Token.IsCancellationRequested && !RequestToken.IsCancellationRequested);
                 Logger.Verbose($"Rdy wait ended");
-                if (GsxController.Token.IsCancellationRequested)
+                if (GsxController.Token.IsCancellationRequested || RequestToken.IsCancellationRequested)
                     return false;
 
                 if (IsOperatorMenu && (!Profile.OperatorAutoSelect || !Profile.RunAutomationService))
@@ -470,8 +480,8 @@ namespace Any2GSX.GSX.Menu
                             await Task.Delay(Config.MenuCheckInterval, GsxController.Token);
                         timeWaited += Config.MenuCheckInterval;
                     }
-                    while (timeWaited < Config.OperatorSelectTimeout && LastMenuSelection == -2 && !GsxController.Token.IsCancellationRequested);
-                    if (GsxController.Token.IsCancellationRequested)
+                    while (timeWaited < Config.OperatorSelectTimeout && LastMenuSelection == -2 && !GsxController.Token.IsCancellationRequested && !RequestToken.IsCancellationRequested);
+                    if (GsxController.Token.IsCancellationRequested || RequestToken.IsCancellationRequested)
                         return false;
                     Logger.Debug($"Wait ended after {timeWaited}ms - LastSelection {LastMenuSelection}");
                     if (timeWaited >= Config.OperatorSelectTimeout)

@@ -17,7 +17,7 @@ namespace Any2GSX.Notifications
     public class PilotsDeckConnector : ExternalConnector
     {
         public virtual string DirPlugin => Path.Join(Sys.FolderAppDataRoaming(), @"Elgato\StreamDeck\Plugins\com.extension.pilotsdeck.sdPlugin");
-        public virtual string BinaryPlugin => "PilotsDeck";
+        public static string BinaryPlugin => "PilotsDeck";
         public virtual string BinaryExectuable => $"{BinaryPlugin}.exe";
         public virtual GsxMenu Menu => GsxController.Menu;
 
@@ -30,7 +30,6 @@ namespace Any2GSX.Notifications
         public virtual string VarDeckInfoCargo => Config.DeckVarInfoCargo;
         public virtual CancellationToken Token => AppService.Instance.Token;
         protected virtual HttpClient HttpClient { get; }
-        public virtual bool InhibitExceptions { get; protected set; } = true;
         public virtual Dictionary<GsxServiceState, string> StateColors { get; } = new()
         {
             { GsxServiceState.Unknown, "[[#727272" },
@@ -56,7 +55,6 @@ namespace Any2GSX.Notifications
         {
             if (IsInitialized)
                 return;
-            InhibitExceptions = false;
 
             if (Sys.GetProcessRunning(BinaryPlugin))
                 await RegisterVariables();
@@ -102,7 +100,7 @@ namespace Any2GSX.Notifications
             }
             catch (Exception ex)
             {
-                if (ex is not TaskCanceledException && !InhibitExceptions)
+                if (ex is not TaskCanceledException)
                     Logger.LogException(ex);
             }
         }
@@ -121,7 +119,9 @@ namespace Any2GSX.Notifications
             }
             catch (Exception ex)
             {
-                if (ex is not TaskCanceledException && !InhibitExceptions)
+                if (ex is HttpRequestException)
+                    Logger.Error("HttpRequestException while writing PilotsDeck Variable");
+                else if (ex is not TaskCanceledException)
                     Logger.LogException(ex);
             }
         }

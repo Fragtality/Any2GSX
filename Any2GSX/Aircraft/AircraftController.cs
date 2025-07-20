@@ -10,6 +10,7 @@ using CFIT.SimConnectLib;
 using CFIT.SimConnectLib.SimResources;
 using CFIT.SimConnectLib.SimVars;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 
@@ -17,6 +18,7 @@ namespace Any2GSX.Aircraft
 {
     public class AircraftController : ServiceController<Any2GSX, AppService, Config, Definition>
     {
+        public virtual CancellationToken RequestToken => AppService.Instance.RequestToken;
         public virtual PluginController PluginController => AppService.Instance?.PluginController;
         public virtual GsxController GsxController => AppService.Instance?.GsxController;
         public virtual GsxAutomationController AutomationController => GsxController?.AutomationController;
@@ -96,12 +98,12 @@ namespace Any2GSX.Aircraft
                 Logger.Debug($"Interface initialized.");
 
                 Logger.Debug($"Waiting for Aircraft Interface Connection ...");
-                while (!Aircraft.IsConnected && !Token.IsCancellationRequested)
+                while (!Aircraft.IsConnected && !Token.IsCancellationRequested && !RequestToken.IsCancellationRequested)
                 {
-                    await Task.Delay(Config.CheckInterval, Token);
+                    await Task.Delay(Config.CheckInterval, RequestToken);
                     await Aircraft.CheckConnection();
                 }
-                await Task.Delay(Config.CheckInterval * 2, Token);
+                await Task.Delay(Config.CheckInterval * 2, RequestToken);
                 Logger.Debug($"Aircraft connected.");
 
                 if (Config.DisplayUnitSource == DisplayUnitSource.Aircraft && Aircraft.UnitAircraft != Config.DisplayUnitCurrent)
@@ -110,15 +112,15 @@ namespace Any2GSX.Aircraft
                     Config.SetDisplayUnit(Aircraft.UnitAircraft);
                 }
 
-                while (SimConnect?.IsSessionRunning == true && IsExecutionAllowed)
+                while (SimConnect?.IsSessionRunning == true && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
                 {
                     if (Aircraft?.IsConnected == true)
                         await Aircraft?.RunInterval();
                     else
                         await Aircraft?.CheckConnection();
 
-                    if (SimConnect?.IsSessionRunning == true && IsExecutionAllowed && Aircraft?.RunIntervalMs > 0)
-                        await Task.Delay(Aircraft.RunIntervalMs, Token);
+                    if (SimConnect?.IsSessionRunning == true && IsExecutionAllowed && Aircraft?.RunIntervalMs > 0 && !RequestToken.IsCancellationRequested)
+                        await Task.Delay(Aircraft.RunIntervalMs, RequestToken);
                 }
             }
             catch (Exception ex)

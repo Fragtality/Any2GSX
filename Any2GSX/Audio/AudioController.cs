@@ -7,12 +7,14 @@ using CFIT.SimConnectLib;
 using CFIT.SimConnectLib.SimResources;
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Any2GSX.Audio
 {
     public class AudioController : ServiceController<Any2GSX, AppService, Config, Definition>
     {
+        public virtual CancellationToken RequestToken => AppService.Instance.RequestToken;
         public virtual SimConnectManager SimConnect => Any2GSX.Instance.AppService.SimConnect;
         public virtual bool IsActive { get; protected set; } = false;
         protected virtual AircraftController AircraftController => AppService.Instance.AircraftController;
@@ -161,7 +163,7 @@ namespace Any2GSX.Audio
         {
             try
             {
-                while ((!IsPlanePowered || !AircraftController.IsConnected) && IsExecutionAllowed)
+                while ((!IsPlanePowered || !AircraftController.IsConnected) && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
                     await Task.Delay(Config.AudioServiceRunInterval, Token);
 
                 RegisterChannels();
@@ -171,7 +173,7 @@ namespace Any2GSX.Audio
                 IsActive = true;
                 Logger.Debug($"Aircraft powered. AudioService active");
                 await SetStartupVolumes();
-                while (SimConnect.IsSessionRunning && IsExecutionAllowed)
+                while (SimConnect.IsSessionRunning && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
                 {
                     rescanNeeded = SessionManager.HasInactiveSessions || SessionManager.HasEmptySearches || ResetMappings || ResetChannels;
                     if (rescanNeeded)
@@ -218,7 +220,7 @@ namespace Any2GSX.Audio
 
                     ResetVolumes = false;
                     rescanNeeded = false;
-                    await Task.Delay(Config.AudioServiceRunInterval, Token);
+                    await Task.Delay(Config.AudioServiceRunInterval, RequestToken);
                 }
             }
             catch (Exception ex)

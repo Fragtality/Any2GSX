@@ -8,6 +8,7 @@ namespace Any2GSX.PluginInterface.Interfaces
     {
         public IConfig AppConfig { get; }
         public IProductDefinition ProductDefinition { get; }
+        public CancellationToken RequestToken { get; }
         public ReceiverStore ReceiverStore { get; }
         public SimStore SimStore { get; }
         public InputEventManager InputEventManager { get; }

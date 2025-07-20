@@ -95,7 +95,7 @@ namespace Any2GSX.Notifications
         {
             try
             {
-                if (Profile?.PilotsDeckIntegration == true)
+                if (Profile?.PilotsDeckIntegration == true && Sys.GetProcessRunning(PilotsDeckConnector.BinaryPlugin))
                 {
                     Logger.Debug($"Start PilotsDeck Connector");
                     var pilotsdeck = new PilotsDeckConnector();
@@ -166,8 +166,15 @@ namespace Any2GSX.Notifications
 
         protected virtual async Task CallOnConnectors(Func<ExternalConnector, Task> action)
         {
-            foreach (var connector in Connectors)
-                await action?.Invoke(connector);
+            try
+            {
+                foreach (var connector in Connectors)
+                    await action?.Invoke(connector);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
         }
 
         protected virtual Task DeiceOnStateChanged(IGsxService service)
@@ -469,7 +476,7 @@ namespace Any2GSX.Notifications
                 if ((Profile.PilotsDeckIntegration || Config.RefreshMenuForEfb) && !GsxMenu.SuppressMenuRefresh && !GsxMenu.IsSequenceActive && ClearInhibitTime <= DateTime.Now
                     && !(automation == AutomationState.SessionStart || automation == AutomationState.Pushback || automation == AutomationState.Flight))
                 {
-                    if (Profile.PilotsDeckIntegration)
+                    if (Profile.PilotsDeckIntegration && DeckConnector != null)
                         await DeckConnector.SetConnected(true, Profile.Name);
                     Logger.Debug($"PilotsDeck Integration: Refresh Menu (After Clear)");
                     await GsxMenu.OpenHide();
@@ -491,29 +498,37 @@ namespace Any2GSX.Notifications
 
         protected virtual async void OnMenuReceived(IGsxMenu menu)
         {
-            if (!NotifyUpdates)
-                return;
-
-            if (GsxMenu.MenuState == GsxMenuState.READY || GsxMenu.MenuState == GsxMenuState.HIDE)
+            try
             {
-                ClearInhibitTime = DateTime.MaxValue;
-                await CallOnConnectors((connector) => connector.SetMenuTitle(GsxMenu.MenuTitle));
-                await CallOnConnectors((connector) => connector.SetMenuLines(GsxMenu.MenuLines));
-            }
-            else
-                await ClearMenu(GsxMenu.MenuState == GsxMenuState.TIMEOUT);
+                if (!NotifyUpdates)
+                    return;
 
-            if (GsxMenu.MenuState == GsxMenuState.TIMEOUT && (Profile.PilotsDeckIntegration || Config.RefreshMenuForEfb))
-            {
-                var automation = GsxController.AutomationController.State;
-                if ((GsxController.ServicePushBack.PushStatus == 0 || GsxController.ServicePushBack.State < GsxServiceState.Requested) && !GsxMenu.SuppressMenuRefresh && !GsxMenu.IsSequenceActive
-                    && (automation == AutomationState.Preparation || automation == AutomationState.Departure || automation == AutomationState.Pushback || automation == AutomationState.Arrival || automation == AutomationState.TurnAround))
+                if (GsxMenu.MenuState == GsxMenuState.READY || GsxMenu.MenuState == GsxMenuState.HIDE)
                 {
-                    if (Profile.PilotsDeckIntegration)
-                        await DeckConnector.SetConnected(true, Profile.Name);
-                    Logger.Debug($"PilotsDeck Integration: Refresh Menu (Timeout)");
-                    await GsxMenu.OpenHide();
+                    ClearInhibitTime = DateTime.MaxValue;
+                    await CallOnConnectors((connector) => connector.SetMenuTitle(GsxMenu.MenuTitle));
+                    await CallOnConnectors((connector) => connector.SetMenuLines(GsxMenu.MenuLines));
                 }
+                else
+                    await ClearMenu(GsxMenu.MenuState == GsxMenuState.TIMEOUT);
+
+                if (GsxMenu.MenuState == GsxMenuState.TIMEOUT && (Profile.PilotsDeckIntegration || Config.RefreshMenuForEfb))
+                {
+                    var automation = GsxController.AutomationController.State;
+                    if ((GsxController.ServicePushBack.PushStatus == 0 || GsxController.ServicePushBack.State < GsxServiceState.Requested) && !GsxMenu.SuppressMenuRefresh && !GsxMenu.IsSequenceActive
+                        && (automation == AutomationState.Preparation || automation == AutomationState.Departure || automation == AutomationState.Pushback || automation == AutomationState.Arrival || automation == AutomationState.TurnAround))
+                    {
+                        if (Profile.PilotsDeckIntegration && DeckConnector != null)
+                            await DeckConnector.SetConnected(true, Profile.Name);
+                        Logger.Debug($"PilotsDeck Integration: Refresh Menu (Timeout)");
+                        await GsxMenu.OpenHide();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (ex is not TaskCanceledException)
+                    Logger.LogException(ex);
             }
         }
 

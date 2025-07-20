@@ -15,6 +15,7 @@ using CFIT.SimConnectLib.SimResources;
 using CFIT.SimConnectLib.SimVars;
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Any2GSX.GSX
@@ -22,6 +23,7 @@ namespace Any2GSX.GSX
     public class GsxController(Config config) : ServiceController<Any2GSX, AppService, Config, Definition>(config), IGsxController
     {
         protected bool _lock = false;
+        public virtual CancellationToken RequestToken => AppService.Instance.RequestToken;
         public virtual SimConnectManager SimConnect => AppService.Instance?.SimConnect;
         public virtual SimConnectController SimController => AppService.Instance?.SimService?.Controller;
         public virtual AircraftController AircraftController => AppService.Instance?.AircraftController;
@@ -71,7 +73,7 @@ namespace Any2GSX.GSX
         public virtual bool IsOnGround { get; protected set; } = true;
         public virtual bool FirstGroundCheck { get; protected set; } = true;
         public virtual bool IsAirStart { get; protected set; } = false;
-        public virtual bool CanAutomationRun => AircraftController.IsConnected && (Menu.FirstReadyReceived || IsAirStart);
+        public virtual bool CanAutomationRun => AircraftController.IsConnected && (Menu.FirstReadyReceived || IsAirStart || Aircraft.IsEngineRunning);
         protected virtual int GroundCounter { get; set; } = 0;
         public virtual bool IsPaused => SimConnect.IsPaused;
         public virtual bool IsWalkaround => CheckWalkAround();
@@ -242,29 +244,33 @@ namespace Any2GSX.GSX
         {
             try
             {
-                if (!Menu.FirstReadyReceived || (SimStore["IS AIRCRAFT"]?.GetNumber() != 0 && SimStore["IS AVATAR"]?.GetNumber() != 1))
-                    await Task.Delay(Config.GsxServiceStartDelay, Token);
+                Menu.Reset();
+                await Task.Delay(Config.GsxServiceStartDelay, Token);
 
                 if (IsMsfs2024 && SimConnect.CameraState == 30)
                 {
                     Logger.Debug($"Checking MSFS 2024 Aircraft/Avatar Vars ...");
                     int count = 0;
-                    while (SimStore["IS AIRCRAFT"]?.GetNumber() != 0 && SimStore["IS AVATAR"]?.GetNumber() != 1 && IsExecutionAllowed && !Token.IsCancellationRequested)
+                    while (((SimStore["IS AIRCRAFT"]?.GetNumber() == 0 && SimStore["IS AVATAR"]?.GetNumber() == 0)
+                        || (SimStore["IS AIRCRAFT"]?.GetNumber() == 1 && SimStore["IS AVATAR"]?.GetNumber() == 1))
+                        && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
                     {
-                        await Task.Delay(Config.TimerGsxCheck, Token);
+                        await Task.Delay(Config.TimerGsxCheck, RequestToken);
                         count++;
                     }
 
                     if (count > 0)
-                        await Task.Delay(Config.GsxServiceStartDelay / 2, Token);
+                        await Task.Delay(Config.GsxServiceStartDelay / 2, RequestToken);
                     Logger.Debug($"MSFS 2024 Aircraft/Avatar Vars valid");
                 }
+                if (!IsExecutionAllowed || RequestToken.IsCancellationRequested)
+                    return;
 
                 AutomationController.Reset();
                 Logger.Debug($"GsxService active (VarsReceived: {CouatlVarsReceived} | FirstReady: {Menu.FirstReadyReceived})");
                 IsActive = true;
                 Logger.Information($"GsxController active - waiting for Menu to be ready");
-                while (SimConnect.IsSessionRunning && IsExecutionAllowed && !Token.IsCancellationRequested)
+                while (SimConnect.IsSessionRunning && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
                 {
                     if (Config.LogLevel == LogLevel.Verbose)
                         Logger.Verbose($"Controller Tick - VarsReceived: {CouatlVarsReceived} | FirstReady: {Menu.FirstReadyReceived} | VarsValid: {CouatlVarsValid} | IsGsxRunning: {IsGsxRunning}");
@@ -283,7 +289,8 @@ namespace Any2GSX.GSX
 
                     if (!Menu.FirstReadyReceived && IsProcessRunning && NextMenuStartupCheck <= DateTime.Now && AutomationController.IsOnGround)
                     {
-                        if (IsProcessRunning && Profile.RunAutomationService && !AutomationController.IsStarted && AircraftController.IsConnected && SkippedWalkAround && Aircraft.GroundSpeed < 1)
+                        if (IsProcessRunning && Profile.RunAutomationService && !AutomationController.IsStarted && AircraftController.IsConnected
+                            && SkippedWalkAround && Aircraft.GroundSpeed < 1 && Aircraft?.IsEngineRunning == false)
                         {
                             Logger.Debug($"HasChocks {Aircraft.HasChocks} | EquipmentChocks {Aircraft.EquipmentChocks} | IsBrakeSet {Aircraft.IsBrakeSet} | Type {Aircraft.GetType().Name}");
                             if (Aircraft.HasChocks && !Aircraft.EquipmentChocks)
@@ -302,7 +309,7 @@ namespace Any2GSX.GSX
                         {
                             Logger.Information($"Trying to open GSX Menu ...");
                             await Menu.OpenHide();
-                            await Task.Delay(1000, Token);
+                            await Task.Delay(1000, RequestToken);
                         }
 
                         if ((!CouatlVarsValid || !IsProcessRunning) && AppService.Instance.LastGsxRestart <= DateTime.Now - TimeSpan.FromSeconds(Config.WaitGsxRestart))
@@ -314,7 +321,7 @@ namespace Any2GSX.GSX
                                 Logger.Information($"Restarting GSX ...");
                                 await AppService.Instance.RestartGsx();
                                 CouatlInvalidCount = 0;
-                                await Task.Delay(Config.GsxServiceStartDelay, App.Token);
+                                await Task.Delay(Config.GsxServiceStartDelay, RequestToken);
                             }
                         }
 
@@ -332,14 +339,15 @@ namespace Any2GSX.GSX
 
                         if (!AutomationController.IsStarted && CanAutomationRun)
                         {
-                            await Task.Delay(1000);
-                            _ = AutomationController.Run();
+                            await Task.Delay(1000, RequestToken);
+                            if (!AutomationController.RunFlag)
+                                _ = AutomationController.Run();
                         }
                     }
 
                     CheckProcess();
 
-                    await Task.Delay(Config.TimerGsxCheck, Token);
+                    await Task.Delay(Config.TimerGsxCheck, RequestToken);
                 }
             }
             catch (Exception ex)
@@ -425,7 +433,7 @@ namespace Any2GSX.GSX
 #if DEBUG
             Logger.Verbose($"ac: {SimStore["IS AIRCRAFT"]?.GetNumber()} | av: {SimStore["IS AVATAR"]?.GetNumber()}");
 #endif
-            while (Profile.RunAutomationService && IsWalkaround && !SkippedWalkAround && Profile.SkipWalkAround && IsExecutionAllowed)
+            while (Profile.RunAutomationService && IsWalkaround && !SkippedWalkAround && Profile.SkipWalkAround && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
             {
                 Logger.Information("Automation: Skip Walkaround");
                 if (IsWalkaround && !notified)
@@ -449,13 +457,13 @@ namespace Any2GSX.GSX
             Logger.Debug("Toggling Walkaround ...");
             string title = WindowTools.GetMsfsWindowTitle();
             Sys.SetForegroundWindow(title);
-            await Task.Delay(Config.DelayForegroundChange, Token);
+            await Task.Delay(Config.DelayForegroundChange, RequestToken);
             string active = Sys.GetActiveWindowTitle();
             if (active == title)
             {
                 Logger.Debug($"Sending Keystrokes");
                 WindowTools.SendWalkaroundKeystroke();
-                await Task.Delay(Config.DelayAircraftModeChange, Token);
+                await Task.Delay(Config.DelayAircraftModeChange, RequestToken);
             }
             else
                 Logger.Debug($"Active Window did not match to '{title}'");

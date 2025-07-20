@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -30,10 +31,12 @@ namespace Any2GSX
         AppGsx = 2,
     }
 
-    public class AppService(Config config) : AppService<Any2GSX, AppService, Config, Definition>(config), IAppResources
+    public class AppService : AppService<Any2GSX, AppService, Config, Definition>, IAppResources
     {
         public virtual IConfig AppConfig => Config;
         public virtual IProductDefinition ProductDefinition => Definition;
+        public virtual CancellationTokenSource RequestTokenSource { get; protected set; }
+        public virtual CancellationToken RequestToken { get; protected set; }
         public virtual ModuleCommBus CommBus { get; protected set; }
         public virtual ICommBus ICommBus => CommBus;
         public virtual InputEventManager InputEventManager => SimConnect.InputManager;
@@ -56,8 +59,21 @@ namespace Any2GSX
         public virtual SettingProfile SettingProfile { get; protected set; } = null;
         public event Action<SettingProfile> ProfileChanged;
         public virtual ApiController ApiController { get; protected set; }
-
         public virtual AppResetRequest ResetRequested {  get; set; } = AppResetRequest.None;
+        public virtual bool IsSessionInitializing { get; protected set; } = false;
+        public virtual bool IsSessionInitialized { get; protected set; } = false;
+        public virtual bool SessionStopRequested { get; protected set; } = false;
+
+        public AppService(Config config) : base(config)
+        {
+            RefreshToken();
+        }
+
+        protected virtual void RefreshToken()
+        {
+            RequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(Any2GSX.Instance.Token);
+            RequestToken = RequestTokenSource.Token;
+        }
 
         protected override void CreateServiceControllers()
         {
@@ -172,14 +188,27 @@ namespace Any2GSX
         {
             try
             {
+                if (IsSessionInitialized || IsSessionInitializing)
+                    return;
+                IsSessionInitializing = true;
+                SessionStopRequested = false;
+
+                Logger.Debug($"Refresh Token");
+                RefreshToken();
+
                 Logger.Debug($"Reset CommBus");
                 await CommBus.Reset();
                 await Task.Delay(750, Token);
 
                 Logger.Debug($"Waiting for CommBus Module ...");
-                while (!CommBus.IsConnected && !Token.IsCancellationRequested)
+                while (!CommBus.IsConnected && !Token.IsCancellationRequested && !RequestToken.IsCancellationRequested)
                     await Task.Delay(Config.CheckInterval, Token);
                 Logger.Debug($"CommBus Module connected");
+                if (SessionStopRequested || RequestToken.IsCancellationRequested)
+                {
+                    IsSessionInitializing = false;
+                    return;
+                }
 
                 Logger.Debug($"Fetching Setting Profile");
                 SetSettingProfile();
@@ -187,6 +216,11 @@ namespace Any2GSX
 
                 if (startMode == PluginStartMode.PreWalkaround)
                     await StartAircraftController(startMode);
+                if (SessionStopRequested || RequestToken.IsCancellationRequested)
+                {
+                    IsSessionInitializing = false;
+                    return;
+                }
 
                 Logger.Debug($"Start GSX Controller");
                 GsxController.Start();
@@ -194,12 +228,22 @@ namespace Any2GSX
                 while (!GsxController.IsActive && !Token.IsCancellationRequested)
                     await Task.Delay(Config.CheckInterval, Token);
                 Logger.Debug($"GSX Controller active");
+                if (SessionStopRequested || RequestToken.IsCancellationRequested)
+                {
+                    IsSessionInitializing = false;
+                    return;
+                }
 
                 if (startMode == PluginStartMode.WaitConnected)
                     await StartAircraftController(startMode);
+                if (SessionStopRequested || RequestToken.IsCancellationRequested)
+                {
+                    IsSessionInitializing = false;
+                    return;
+                }
 
                 Logger.Debug($"Start Notification Manager");
-                NotificationManager.Start();                
+                NotificationManager.Start();
 
                 if (SettingProfile.RunAudioService)
                 {
@@ -212,6 +256,9 @@ namespace Any2GSX
                 if (ex is not TaskCanceledException)
                     Logger.LogException(ex);
             }
+
+            IsSessionInitializing = false;
+            IsSessionInitialized = true;
             Logger.Debug($"Init done");
         }
 
@@ -220,7 +267,7 @@ namespace Any2GSX
             Logger.Debug($"Start AircraftController ({mode})");
             AircraftController.Start();
             Logger.Debug($"Waiting for Aircraft Interface connected ...");
-            while (!AircraftController.IsConnected && !Token.IsCancellationRequested)
+            while (!AircraftController.IsConnected && !Token.IsCancellationRequested && !RequestToken.IsCancellationRequested)
                 await Task.Delay(Config.CheckInterval, Token);
             Logger.Debug($"Aircraft Interface connected");
         }
@@ -234,6 +281,11 @@ namespace Any2GSX
         {
             try
             {
+                SessionStopRequested = true;
+
+                Logger.Debug($"Cancel Request Token");
+                RequestTokenSource.Cancel();
+
                 Logger.Debug($"Stop AudioController");
                 AudioController?.Stop();
 
@@ -261,6 +313,8 @@ namespace Any2GSX
                 if (ex is not TaskCanceledException)
                     Logger.LogException(ex);
             }
+
+            IsSessionInitialized = false;
             Logger.Debug($"Cleanup done");
         }
 
@@ -277,7 +331,7 @@ namespace Any2GSX
             Sys.KillProcess(App.Config.BinaryGsx2024);
 
             Logger.Debug($"Wait for Binary Start ({Config.DelayGsxBinaryStart}ms) ...");
-            await Task.Delay(Config.DelayGsxBinaryStart, App.Token);
+            await Task.Delay(Config.DelayGsxBinaryStart, Token);
 
             if (SimService.Manager.GetSimVersion() == SimVersion.MSFS2020 && !Sys.GetProcessRunning(App.Config.BinaryGsx2020))
             {
@@ -293,13 +347,12 @@ namespace Any2GSX
                 Sys.StartProcess(Path.Join(dir, $"{App.Config.BinaryGsx2024}.exe"), dir);
             }
 
-            await Task.Delay(Config.DelayGsxBinaryStart, App.Token);
+            await Task.Delay(Config.DelayGsxBinaryStart, Token);
         }
 
-        bool flag = true;
         protected override async Task MainLoop()
         {
-            await Task.Delay(App.Config.TimerGsxCheck, App.Token);
+            await Task.Delay(App.Config.TimerGsxCheck, Token);
 
             if (ResetRequested > AppResetRequest.None)
             {
@@ -307,7 +360,7 @@ namespace Any2GSX
                 Logger.Information($"Restarting App Services ...");
                 OnSessionEnded(null);
                 if (ResetRequested == AppResetRequest.App)
-                    await Task.Delay(1500, App.Token);
+                    await Task.Delay(2500, Token);
                 else
                 {
                     Logger.Information($"Restarting GSX ...");
@@ -315,13 +368,6 @@ namespace Any2GSX
                 }
                 OnSessionReady(null);
                 ResetRequested = AppResetRequest.None;
-            }
-
-            if (!flag && AircraftController?.Aircraft?.IsConnected == true)
-            {
-                await CommBus.RegisterCommBus("TabletToPlane", BroadcastFlag.WASM, (evt, data) => Logger.Debug("TabletToPlane -- " + data));
-                await CommBus.RegisterCommBus("PlaneToTablet", BroadcastFlag.JS, (evt, data) => Logger.Debug("PlaneToTablet -- " + data));
-                flag = true;
             }
         }
 

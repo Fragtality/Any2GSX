@@ -22,6 +22,7 @@ namespace Any2GSX.GSX
     public class GsxAutomationController() : IGsxAutomationController
     {
         public virtual GsxController GsxController => AppService.Instance.GsxController;
+        public virtual CancellationToken RequestToken => AppService.Instance.RequestToken;
         public virtual AircraftController AircraftController => AppService.Instance.AircraftController;
         public virtual AircraftBase Aircraft => AircraftController.Aircraft;
         public virtual Flightplan Flightplan => AppService.Instance.Flightplan;
@@ -32,7 +33,7 @@ namespace Any2GSX.GSX
         public virtual Config Config => GsxController.Config;
         public virtual SettingProfile Profile => AppService.Instance.SettingProfile;
         public virtual bool IsInitialized { get; protected set; } = false;
-        protected virtual bool RunFlag { get; set; } = true;
+        public virtual bool RunFlag { get; protected set; } = false;
         public virtual bool IsStarted { get; protected set; } = false;
         public virtual AutomationState State { get; protected set; } = AutomationState.SessionStart;
         public virtual bool IsOnGround => GsxController.IsOnGround;
@@ -94,7 +95,7 @@ namespace Any2GSX.GSX
         public virtual void Reset()
         {
             IsStarted = false;
-            RunFlag = true;
+            RunFlag = false;
             State = AutomationState.SessionStart;
 
             foreach (var service in GsxServices)
@@ -151,7 +152,7 @@ namespace Any2GSX.GSX
                 foreach (var activation in Profile.DepartureServices.Values)
                     activation.ActivationCount = 0;
 
-                while (RunFlag && GsxController.IsActive && !GsxController.Token.IsCancellationRequested)
+                while (RunFlag && GsxController.IsActive && !GsxController.Token.IsCancellationRequested && !RequestToken.IsCancellationRequested)
                 {
                     if (Aircraft?.IsConnected == true && GsxController.IsGsxRunning && GsxController.CanAutomationRun)
                     {
@@ -180,12 +181,13 @@ namespace Any2GSX.GSX
                         }
                     }
 
-                    await Task.Delay(Config.StateMachineInterval, Token);
+                    await Task.Delay(Config.StateMachineInterval, RequestToken);
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogException(ex);
+                if (ex is not TaskCanceledException)
+                    Logger.LogException(ex);
             }
             IsStarted = false;
 
@@ -379,7 +381,7 @@ namespace Any2GSX.GSX
             if (Profile.RunAutomationService)
             {
                 await GsxController.ReloadSimbrief();
-                await Task.Delay(Config.TimerGsxStartupMenuCheck / 2, Token);
+                await Task.Delay(Config.TimerGsxStartupMenuCheck / 2, RequestToken);
             }
         }
 
@@ -416,7 +418,7 @@ namespace Any2GSX.GSX
 
             Logger.Information($"State Change: {State} => {newState}");
             State = newState;
-            TaskTools.RunLogged(() => OnStateChange?.Invoke(State), Token);
+            TaskTools.RunLogged(() => OnStateChange?.Invoke(State), RequestToken);
         }
 
         public virtual void OnCouatlStarted()
@@ -505,7 +507,7 @@ namespace Any2GSX.GSX
                 {
                     Logger.Information("Automation: Reposition Aircraft on Gate");
                     await ServiceReposition.Call();
-                    await Task.Delay(1000, Token);
+                    await Task.Delay(1000, RequestToken);
                 }
             }
             if (!ExecutedReposition)
@@ -521,21 +523,21 @@ namespace Any2GSX.GSX
                 {
                     Logger.Information($"Automation: Placing Chocks on Preparation");
                     await Aircraft.SetEquipmentChocks(true);
-                    await Task.Delay(500, GsxController.Token);
+                    await Task.Delay(500, RequestToken);
                 }
 
                 if (Aircraft.HasCones && !Aircraft.EquipmentCones)
                 {
                     Logger.Information($"Automation: Placing Cones on Preparation");
                     await Aircraft.SetEquipmentCones(true);
-                    await Task.Delay(500, GsxController.Token);
+                    await Task.Delay(500, RequestToken);
                 }
 
                 if (Aircraft.HasGpuInternal && !Aircraft.EquipmentPower)
                 {
                     Logger.Information($"Automation: Placing GPU on Preparation");
                     await Aircraft.SetEquipmentPower(true);
-                    await Task.Delay(500, GsxController.Token);
+                    await Task.Delay(500, RequestToken);
                 }
 
                 if (Aircraft.HasPca && !Aircraft.EquipmentPca && Profile.ConnectPca > 0)
@@ -544,7 +546,7 @@ namespace Any2GSX.GSX
                     {
                         Logger.Information($"Automation: Placing PCA on Preparation");
                         await Aircraft.SetEquipmentPca(true);
-                        await Task.Delay(500, GsxController.Token);
+                        await Task.Delay(500, RequestToken);
                     }
                 }
 
@@ -552,7 +554,7 @@ namespace Any2GSX.GSX
                 {
                     Logger.Information($"Automation: Calling GSX GPU on Preparation");
                     await GsxServices[GsxServiceType.GPU].Call();
-                    await Task.Delay(500, GsxController.Token);
+                    await Task.Delay(500, RequestToken);
                 }
 
                 GroundEquipmentPlaced = EvaluateGroundEquip();
@@ -687,7 +689,7 @@ namespace Any2GSX.GSX
                         {
                             Logger.Information($"Automation: Call Departure Service {DepartureServicesCurrent.ServiceType} (with Stairs attached)");
                             await ServiceStairs.Call();
-                            await Task.Delay(Profile.DelayCallRefuelAfterStair * 1000, Token);
+                            await Task.Delay(Profile.DelayCallRefuelAfterStair * 1000, RequestToken);
                             await current.Call();
                             if (current.IsCalled)
                                 MoveDepartureQueue(current);
@@ -748,7 +750,7 @@ namespace Any2GSX.GSX
                 Logger.Information($"Waiting for Final Loadsheet (ETA {FinalDelay}s) ...");
                 while (FinalDelay > 0)
                 {
-                    await Task.Delay(1000, Token);
+                    await Task.Delay(1000, RequestToken);
                     FinalDelay--;
                 }
                 Logger.Information($"Final Loadsheet received!");
@@ -757,7 +759,7 @@ namespace Any2GSX.GSX
                 {
                     Logger.Information($"Automation: Close Doors on Final Loadsheet");
                     await AircraftController.Aircraft.DoorsAllClose();
-                    await Task.Delay(Config.StateMachineInterval * 2, Token);
+                    await Task.Delay(Config.StateMachineInterval * 2, RequestToken);
                 }
 
                 if (Profile.RunAutomationService && !JetwayStairRemoved && IsGateConnected && Profile.RemoveJetwayStairsOnFinal)
@@ -766,10 +768,10 @@ namespace Any2GSX.GSX
                     await ServiceJetway.Remove();
                     await ServiceStairs.Remove();
                     JetwayStairRemoved = true;
-                    await Task.Delay(Config.StateMachineInterval * 2, Token);
+                    await Task.Delay(Config.StateMachineInterval * 2, RequestToken);
                 }
 
-                await TaskTools.RunLogged(() => OnFinalReceived?.Invoke(), GsxController.Token);
+                await TaskTools.RunLogged(() => OnFinalReceived?.Invoke(), RequestToken);
 
                 IsFinalReceived = true;
                 Logger.Debug($"Final LS handled");
@@ -825,7 +827,7 @@ namespace Any2GSX.GSX
                 {
                     Logger.Information($"Automation: Call Pushback (Beacon / Prepared for Push)");
                     await ServicePushBack.Call();
-                    await Task.Delay(Config.StateMachineInterval * 2, Token);
+                    await Task.Delay(Config.StateMachineInterval * 2, RequestToken);
                 }
                 else if (IsGateConnected && Profile.ClearGroundEquipOnBeacon)
                 {
@@ -833,7 +835,7 @@ namespace Any2GSX.GSX
                     await ServiceJetway.Remove();
                     await ServiceStairs.Remove();
                     JetwayStairRemoved = true;
-                    await Task.Delay(Config.StateMachineInterval * 2, Token);
+                    await Task.Delay(Config.StateMachineInterval * 2, RequestToken);
                 }
             }
 
@@ -843,13 +845,13 @@ namespace Any2GSX.GSX
                 {
                     Logger.Information($"Automation: Call Pushback after Departure Services (Tug already attached)");
                     await ServicePushBack.Call();
-                    await Task.Delay(Config.StateMachineInterval, Token);
+                    await Task.Delay(Config.StateMachineInterval, RequestToken);
                 }
                 else if (Profile.CallPushbackWhenTugAttached == 2 && IsFinalReceived)
                 {
                     Logger.Information($"Automation: Call Pushback after Final LS (Tug already attached)");
                     await ServicePushBack.Call();
-                    await Task.Delay(Config.StateMachineInterval, Token);
+                    await Task.Delay(Config.StateMachineInterval, RequestToken);
                 }
             }
 
@@ -857,7 +859,7 @@ namespace Any2GSX.GSX
             {
                 Logger.Information($"Automation: Close Doors on Pushback");
                 await Aircraft.DoorsAllClose();
-                await Task.Delay(Config.StateMachineInterval, Token);
+                await Task.Delay(Config.StateMachineInterval, RequestToken);
             }
 
             if (GroundEquipmentPlaced && ((ServicePushBack.PushStatus > 1 && ServicePushBack.IsRunning) || ServiceDeice.IsActive || ServicePushBack.IsRunning))
@@ -865,7 +867,7 @@ namespace Any2GSX.GSX
                 Logger.Information($"Automation: Remove Ground Equipment on Pushback");
                 SetGroundEquip(false);
                 GroundEquipmentPlaced = false;
-                await Task.Delay(Config.StateMachineInterval, Token);
+                await Task.Delay(Config.StateMachineInterval, RequestToken);
             }
 
             bool clearBeacon = Profile.ClearGroundEquipOnBeacon && !Aircraft.IsExternalPowerConnected && Aircraft.IsBrakeSet && Aircraft.LightBeacon;
@@ -952,10 +954,10 @@ namespace Any2GSX.GSX
             {
                 ChockDelay = new Random().Next(Profile.ChockDelayMin, Profile.ChockDelayMax);
                 Logger.Information($"Automation: Placing Chocks on Arrival (ETA {ChockDelay}s)");
-                _ = Task.Delay(ChockDelay * 1000, GsxController.Token).ContinueWith((_) => Aircraft.SetEquipmentChocks(true));
+                _ = Task.Delay(ChockDelay * 1000, RequestToken).ContinueWith((_) => Aircraft.SetEquipmentChocks(true));
                 if (Aircraft.HasGpuInternal)
                 {
-                    _ = Task.Delay(60000, Token).ContinueWith(async (_) =>
+                    _ = Task.Delay(60000, RequestToken).ContinueWith(async (_) =>
                     {
                         if (!Aircraft.EquipmentPower && !ServiceJetway.IsRunning && !ServiceStairs.IsRunning)
                         {
@@ -970,14 +972,14 @@ namespace Any2GSX.GSX
             {
                 Logger.Information($"Automation: Placing Cones on Arrival");
                 await Aircraft.SetEquipmentCones(true);
-                await Task.Delay(500, GsxController.Token);
+                await Task.Delay(500, RequestToken);
             }
 
             if (Aircraft.HasGpuInternal && !Aircraft.EquipmentPower && IsGateConnected)
             {
                 Logger.Information($"Automation: Placing GPU on Arrival");
                 await Aircraft.SetEquipmentPower(true);
-                await Task.Delay(500, GsxController.Token);
+                await Task.Delay(500, RequestToken);
             }
 
             if (Aircraft.HasPca && !Aircraft.EquipmentPca && Profile.ConnectPca > 0 && IsGateConnected)
@@ -986,7 +988,7 @@ namespace Any2GSX.GSX
                 {
                     Logger.Information($"Automation: Placing PCA on Arrival");
                     await Aircraft.SetEquipmentPca(true);
-                    await Task.Delay(500, GsxController.Token);
+                    await Task.Delay(500, RequestToken);
                 }
             }
 
@@ -994,7 +996,7 @@ namespace Any2GSX.GSX
             {
                 Logger.Information($"Automation: Calling GSX GPU on Arrival");
                 await GsxServices[GsxServiceType.GPU].Call();
-                await Task.Delay(500, GsxController.Token);
+                await Task.Delay(500, RequestToken);
             }
 
             GroundEquipmentPlaced = Aircraft.EquipmentPower && ((Aircraft.HasChocks && Aircraft.EquipmentChocks) || !Aircraft.HasChocks);
