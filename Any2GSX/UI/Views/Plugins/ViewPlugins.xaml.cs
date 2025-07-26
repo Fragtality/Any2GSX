@@ -26,14 +26,16 @@ namespace Any2GSX.UI.Views.Plugins
         protected virtual CommandWrapper CommandImportProfileFromRepo { get; }
         protected virtual CommandWrapper CommandDeletePlugin { get; }
         protected virtual CommandWrapper CommandDeleteChannel { get; }
+        protected virtual AppWindow AppWindow { get; }
 
         protected virtual ModelPlugins ViewModel { get; }
 
-        public ViewPlugins()
+        public ViewPlugins(AppWindow appWindow)
         {
             InitializeComponent();
             ViewModel = new(AppService.Instance);
             this.DataContext = ViewModel;
+            AppWindow = appWindow;
 
             ViewModelInstalledPlugins = new(GridInstalledPlugin, ViewModel.ModelInstalledPlugins, AppWindow.IconLoader);
             ViewModelInstalledChannels = new(GridInstalledChannels, ViewModel.ModelInstalledChannels, AppWindow.IconLoader);
@@ -71,6 +73,9 @@ namespace Any2GSX.UI.Views.Plugins
             }, () => GridInstalledChannels?.SelectedItem is AircraftChannels);
             CommandDeleteChannel.Subscribe(GridInstalledChannels);
             ButtonRemoveChannel.Command = CommandDeleteChannel;
+
+            ButtonUpdateAll.Click += async (_, _) => await UpdateAll();
+            _ = Refresh();
         }
 
         public virtual async void Start()
@@ -85,13 +90,33 @@ namespace Any2GSX.UI.Views.Plugins
 
         protected virtual async Task Refresh()
         {
-            await ViewModel.PluginRepo.Refresh();
-            ViewModel.ModelRepoPlugins.NotifyCollectionChanged();
-            ViewModel.ModelRepoChannels.NotifyCollectionChanged();
-            ViewModel.ModelRepoProfiles.NotifyCollectionChanged();
-            AppService.Instance.PluginController.RefreshVersions(ViewModel.PluginRepo);
-            ViewModel.ModelInstalledPlugins.NotifyCollectionChanged();
-            ViewModel.ModelInstalledChannels.NotifyCollectionChanged();
+            try
+            {
+                await ViewModel.PluginRepo.Refresh();
+                ViewModel.ModelRepoPlugins.NotifyCollectionChanged();
+                ViewModel.ModelRepoChannels.NotifyCollectionChanged();
+                ViewModel.ModelRepoProfiles.NotifyCollectionChanged();
+                AppService.Instance.PluginController.RefreshVersions(ViewModel.PluginRepo);
+                ViewModel.ModelInstalledPlugins.NotifyCollectionChanged();
+                ViewModel.ModelInstalledChannels.NotifyCollectionChanged();
+                if (ViewModel.PluginRepo.HasUpdates())
+                {
+                    Any2GSX.Instance.NotifyIcon.SetIconUpdate();
+                    AppWindow.SetPluginUpdateNotice();
+                    ButtonUpdateAll.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    Any2GSX.Instance.NotifyIcon.SetIconNormal();
+                    AppWindow.RemovePluginUpdateNotice();
+                    ButtonUpdateAll.Visibility = Visibility.Collapsed;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (ex is not TaskCanceledException)
+                    Logger.LogException(ex);
+            }
         }
 
         protected virtual async void ButtonInstallPluginFromFile_Click(object sender, RoutedEventArgs e)
@@ -265,6 +290,43 @@ namespace Any2GSX.UI.Views.Plugins
             {
                 ViewModel.AppService.PluginController.RefreshChannels();
                 ViewModel.ModelInstalledChannels.NotifyCollectionChanged();
+            }
+        }
+
+        protected virtual async Task UpdateAll()
+        {
+            try
+            {
+                var PluginController = AppService.Instance.PluginController;
+                var updatedPlugins = PluginController.Plugins?.Values?.Where(p => p.HasUpdateAvail);
+                foreach (var plugin in updatedPlugins)
+                {
+                    if (ViewModel.AppService.PluginController.LoadedPluginsBinary.Contains(plugin.Id))
+                    {
+                        MessageBox.Show($"The Plugin DLL is already loaded!\r\nPlease close Any2GSX and install/update the Plugin before it was loaded.", "Already loaded", MessageBoxButton.OK, MessageBoxImage.Error);
+                        continue;
+                    }
+
+                    if (await ViewModel.PluginRepo.InstallPluginFromRepo(ViewModel.PluginRepo.Plugins.Where((kv) => kv.Value.Id == plugin.Id).FirstOrDefault().Key) == false)
+                        MessageBox.Show($"Failed to install Plugin", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+
+                var updatedChannels = PluginController.Channels?.Values?.Where(p => p.HasUpdateAvail);
+                foreach (var channel in updatedChannels)
+                {
+                    if (await ViewModel.PluginRepo.InstallChannelFromRepo(ViewModel.PluginRepo.Channels.Where((kv) => kv.Value.Id == channel.Id).FirstOrDefault().Key) == false)
+                        MessageBox.Show($"Failed to install Channel Definition", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+
+                ViewModel.AppService.PluginController.RefreshPlugins();
+                ViewModel.AppService.PluginController.RefreshChannels();
+                ViewModel.ModelInstalledPlugins.NotifyCollectionChanged();
+                ViewModel.ModelInstalledChannels.NotifyCollectionChanged();
+                await Refresh();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
             }
         }
     }

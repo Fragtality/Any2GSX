@@ -18,6 +18,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="8">
@@ -63,7 +64,11 @@
             <TextBlock Name="LabelVersionCheck" FontWeight="DemiBold" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </StackPanel>
 
-        <ContentControl Grid.Row="2" Name="ViewControl">
+        <StackPanel Grid.Row="2" Name="PanelPluginUpdate" Visibility="Collapsed" Orientation="Horizontal" HorizontalAlignment="Center" Margin="8">
+            <TextBlock Name="LabelPluginUpdate" FontWeight="DemiBold" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <ContentControl Grid.Row="3" Name="ViewControl">
 
         </ContentControl>
     </Grid>

@@ -36,7 +36,7 @@ namespace Any2GSX.UI
         protected virtual IView ViewAutomation { get; } = new ViewAutomation();
         protected virtual IView ViewAudio { get; } = new ViewAudio();
         protected virtual IView ViewProfiles { get; } = new ViewProfiles();
-        protected virtual IView ViewPlugins { get; } = new ViewPlugins();
+        protected virtual IView ViewPlugins { get; }
         protected virtual IView ViewSettings { get; } = new ViewSettings();
 
         protected virtual Config Config => AppService.Instance?.Config;
@@ -46,6 +46,7 @@ namespace Any2GSX.UI
             InitializeComponent();
             this.Loaded += OnWindowLoaded;
             this.IsVisibleChanged += OnVisibleChanged;
+            ViewPlugins = new ViewPlugins(this);
 
             ButtonMonitor.Click += (_, _) => SetView(ButtonMonitor, ViewMonitor);
             ButtonAutomation.Click += (_, _) => SetView(ButtonAutomation, ViewAutomation);
@@ -84,6 +85,19 @@ namespace Any2GSX.UI
                 SetView(ButtonSettings, ViewSettings);
                 Config.ForceOpen = true;
             }
+        }
+
+        public virtual void SetPluginUpdateNotice()
+        {
+            LabelPluginUpdate.Inlines.Clear();
+            LabelPluginUpdate.Inlines.Add("Plugin/Channel Updates available!");
+            PanelPluginUpdate.Visibility = Visibility.Visible;
+        }
+
+        public virtual void RemovePluginUpdateNotice()
+        {
+            LabelPluginUpdate.Inlines.Clear();
+            PanelPluginUpdate.Visibility = Visibility.Collapsed;
         }
 
         protected virtual void OnWindowLoaded(object sender, RoutedEventArgs e)

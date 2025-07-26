@@ -196,6 +196,13 @@ namespace Any2GSX
                 Logger.Debug($"Refresh Token");
                 RefreshToken();
 
+                if (Config.SessionInitDelayMs > 0)
+                {
+                    Logger.Information($"Delaying Session Init by {Config.SessionInitDelayMs}ms ...");
+                    await Task.Delay(Config.SessionInitDelayMs, RequestToken);
+                }
+                Logger.Information("Initializing Sim Session");
+
                 Logger.Debug($"Reset CommBus");
                 await CommBus.Reset();
                 await Task.Delay(750, Token);
@@ -257,8 +264,8 @@ namespace Any2GSX
                     Logger.LogException(ex);
             }
 
-            IsSessionInitializing = false;
             IsSessionInitialized = true;
+            IsSessionInitializing = false;
             Logger.Debug($"Init done");
         }
 

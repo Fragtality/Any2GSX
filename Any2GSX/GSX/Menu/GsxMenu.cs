@@ -232,7 +232,10 @@ namespace Any2GSX.GSX.Menu
                 Logger.Debug($"Received Menu Event: {MenuState}");
 
                 if (!FirstReadyReceived && MenuState == GsxMenuState.READY)
+                {
+                    Logger.Debug($"First Menu Ready received");
                     FirstReadyReceived = true;
+                }
 
                 if (MenuState == GsxMenuState.READY || MenuState == GsxMenuState.HIDE)
                 {

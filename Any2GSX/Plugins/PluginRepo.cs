@@ -30,6 +30,11 @@ namespace Any2GSX.Plugins
             await RefreshProfiles();
         }
 
+        public virtual bool HasUpdates()
+        {
+            return PluginController.Plugins?.Values?.Where(p => p.HasUpdateAvail)?.Any() == true || PluginController?.Channels?.Values?.Where(c => c.HasUpdateAvail)?.Any() == true;
+        }
+
         public virtual async Task RefreshPlugins()
         {
             var result = await GetPlugins();

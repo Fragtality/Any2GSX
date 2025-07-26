@@ -29,12 +29,20 @@
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TabControl Grid.Column="0" Grid.Row="0" BorderThickness="0" BorderBrush="Transparent" Margin="0,4,0,0">
+                <Button Grid.Column="0" Grid.Row="0" Name="ButtonUpdateAll" Style="{StaticResource BtnDefault}" Visibility="Collapsed" HorizontalAlignment="Left" Padding="4,0,4,0" Margin="2,8,8,8">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="../../Icons/install-repo.png" Style="{StaticResource ImgSquareSmall}"/>
+                        <Label FontWeight="DemiBold">Update All</Label>
+                    </StackPanel>
+                </Button>
+
+                <TabControl Grid.Column="0" Grid.Row="1" BorderThickness="0" BorderBrush="Transparent" Margin="0,4,0,0">
                     <TabItem>
                         <TabItem.Header>
                             <TextBlock Style="{StaticResource HeaderStyleBlock}">
@@ -61,7 +69,8 @@
                                                             CommandParameter="{Binding .}">
                                                         <Image Source="../../Icons/info.png" Width="16" Height="16" Margin="0"/>
                                                     </Button>
-                                                    <TextBlock Text="{Binding Id}" HorizontalAlignment="Left" Style="{StaticResource TextBlockDefault}"/>
+                                                    <TextBlock Text="{Binding Id}" HorizontalAlignment="Left" Style="{StaticResource TextBlockDefault}"
+                                                               Foreground="{Binding HasUpdateAvail, Converter={StaticResource BoolColorConverter}}"/>
                                                 </StackPanel>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
@@ -70,7 +79,8 @@
                                     <DataGridTemplateColumn Header="Aircraft" MinWidth="224">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Aircraft}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                                <TextBlock Text="{Binding Aircraft}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"
+                                                           Foreground="{Binding HasUpdateAvail, Converter={StaticResource BoolColorConverter}}"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
@@ -78,7 +88,8 @@
                                     <DataGridTemplateColumn Header="Author" MinWidth="142">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Author}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                                <TextBlock Text="{Binding Author}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"
+                                                           Foreground="{Binding HasUpdateAvail, Converter={StaticResource BoolColorConverter}}"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
@@ -137,7 +148,8 @@
                                             CommandParameter="{Binding .}">
                                                         <Image Source="../../Icons/info.png" Width="16" Height="16" Margin="0"/>
                                                     </Button>
-                                                    <TextBlock Text="{Binding Id}" HorizontalAlignment="Left" Style="{StaticResource TextBlockDefault}"/>
+                                                    <TextBlock Text="{Binding Id}" HorizontalAlignment="Left" Style="{StaticResource TextBlockDefault}"
+                                                               Foreground="{Binding HasUpdateAvail, Converter={StaticResource BoolColorConverter}}"/>
                                                 </StackPanel>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
@@ -146,7 +158,8 @@
                                     <DataGridTemplateColumn Header="Aircraft" MinWidth="224">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Aircraft}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                                <TextBlock Text="{Binding Aircraft}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"
+                                                           Foreground="{Binding HasUpdateAvail, Converter={StaticResource BoolColorConverter}}"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
@@ -154,7 +167,8 @@
                                     <DataGridTemplateColumn Header="Author" MinWidth="142">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Author}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                                <TextBlock Text="{Binding Author}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"
+                                                           Foreground="{Binding HasUpdateAvail, Converter={StaticResource BoolColorConverter}}"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
