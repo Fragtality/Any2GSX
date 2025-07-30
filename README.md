@@ -5,7 +5,7 @@ Generalized Version of [Any2GSX](https://github.com/Fragtality/Any2GSX) bringing
 - **GSX Automation** (ie. calling Services, skipping Questions) can be enabled for all Aircrafts
 - **App Volume Control** available to all Aircrafts to control the Volume of Apps via Knobs in the Cockpit
 - **Aircraft Plugin System** to enable Fuel-, Payload- and Equipment Sync for specific Aircrafts
-- **SmartButton** Control for every Aircraft to call the next Service / trigger the next Call (the INT/RAD Thingy known from Any2GSX)
+- **SmartButton** Control for every Aircraft to call the next Service / trigger the next Call (the INT/RAD Thingy known from Fenix2GSX)
 - **EFB App** for MSFS2024 to check on the App Status, SmartButton Trigger and GSX Menu
 - **PilotsDeck** Integration bringing the GSX Menu to your StreamDeck (replacing the GSX Script known from my PilotsDeck Profiles)
 
