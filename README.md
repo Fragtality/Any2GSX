@@ -8,7 +8,7 @@ Generalized Version of [Any2GSX](https://github.com/Fragtality/Any2GSX) bringing
 - **SmartButton** Control for every Aircraft to call the next Service / trigger the next Call (the INT/RAD Thingy known from Fenix2GSX)
 - **EFB App** for MSFS2024 to check on the App Status, SmartButton Trigger and GSX Menu
 - **PilotsDeck** Integration bringing the GSX Menu to your StreamDeck (replacing the GSX Script known from my PilotsDeck Profiles)
-- Can be used together with **Fenix2GSX**, Any2GSX is *not* meant as a Replacement (check the (Addon NOTAMs)[#44---fenix2gsx])
+- Can be used together with **Fenix2GSX**, Any2GSX is *not* meant as a Replacement (check the (Addon NOTAMs)[#44---fenix2gsx] )
 
 <br/><br/>
 
