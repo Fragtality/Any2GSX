@@ -1,6 +1,6 @@
 # Any2GSX
 <img src="img/icon.png" width="128"><br/>
-Generalized Version of [Any2GSX](https://github.com/Fragtality/Any2GSX) bringing GSX Automation and App Volume Control to all Aircrafts! <br/>
+Generalized Version of [Fenix2GSX](https://github.com/Fragtality/Fenix2GSX) bringing GSX Automation and App Volume Control to all Aircrafts! <br/>
 
 - **GSX Automation** (ie. calling Services, skipping Questions) can be enabled for all Aircrafts
 - **App Volume Control** available to all Aircrafts to control the Volume of Apps via Knobs in the Cockpit
@@ -515,22 +515,22 @@ To summarize:
 
 **Fenix2GSX for Automation and Volume Control**
 
-- Do not enable GSX Automation or Volume Control in the default Profile. -OR-
-- Create a dedicated Profile (with a SimObject contains Match for 'FNX_3') for the Fenix with GSX Automation and Volume Control disabled.
-- You can use/install the 'Fenix - PilotsDeck only' Profile in the Plugins View as a Template and then just disable PilotsDeck Integration.
+- Do not enable GSX Automation or Volume Control in the default Profile -OR-
+- Create a dedicated Profile (with a SimObject contains Match for 'FNX_3') for the Fenix with GSX Automation and Volume Control disabled
+- You can use/install the 'Fenix - PilotsDeck only' Profile in the Plugins View as a Template and then just disable PilotsDeck Integration
 
 <br/>
 
 **Fenix2GSX for Automation and Volume Control & Any2GSX for PilotsDeck Integration**
 
-- Install the 'Fenix - PilotsDeck only' Profile in the Plugins View from the Plugin-Repo
+- Install the 'Fenix - PilotsDeck only' Profile in the Plugins View from the [Plugin-Repository](https://github.com/Fragtality/Any2GSX-Plugins)
 
 <br/>
 
 **Fenix native Automation (and Volume Control)**
 
 - Remove Fenix2GSX from your System (via the Installer)
-- Install the 'Fenix - Native' Profile in the Plugins View from the Plugin-Repo
+- Install the 'Fenix - Native' Profile in the Plugins View from the [Plugin-Repository](https://github.com/Fragtality/Any2GSX-Plugins)
 - If you want to use Fenix' native Volume Control, disable the Volume Control in this Any2GSX Profile
 - Check/Restore the Fenix EFB GSX Settings to your Preference
 - Only start loading the Aircraft in the EFB when being in the Departure Phase (Avionic Powered + External Power connected + Nav Lights on)
