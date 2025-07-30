@@ -8,6 +8,7 @@ Generalized Version of [Any2GSX](https://github.com/Fragtality/Any2GSX) bringing
 - **SmartButton** Control for every Aircraft to call the next Service / trigger the next Call (the INT/RAD Thingy known from Fenix2GSX)
 - **EFB App** for MSFS2024 to check on the App Status, SmartButton Trigger and GSX Menu
 - **PilotsDeck** Integration bringing the GSX Menu to your StreamDeck (replacing the GSX Script known from my PilotsDeck Profiles)
+- Can be used together with **Fenix2GSX**, Any2GSX is *not* meant as a Replacement (check the (Addon NOTAMs)[#44---fenix2gsx])
 
 <br/><br/>
 
@@ -500,6 +501,39 @@ NOTE: Please **uninstall** the Plugin **[Flow GSX Launcher](https://de.flightsim
 **FS2Crew (Fenix Edition)**: You basically don't need any Ground- or Door-Handling Features of Fs2Crew. This is what another User recommends as Settings to let Any2GSX and FS2Crew work together (thanks for sharing):<br/>
 <img src="img/Fs2Crew.png" width="1006"><br/><br/>
 If you deviate from that, that is fine, but don't bother me with Any2GSX is not working properly then - Generally you only want one Application to control the Service-Flow and Ground-Equipment 😜
+
+<br/><br/>
+
+### 4.4 - Fenix2GSX
+
+Both Any2GSX and Fenix2GSX can be used together and also can run at the same Time. *BUT* do not let both do the same Stuff at the same Time! 😉<br/>
+For Example, if you use Fenix2GSX for the GSX Automation and Volume Control, do not configure Any2GSX to handle Automation and/or Volume Control. With Any2GSX' default Settings, respectively how the default Aircraft Profile is configured out-of-the-box, there is no Issue of both being active at the same Time!<br/>
+So it all comes down how Any2GSX' Aircraft Profiles are set up. If for Example the GSX Automation should be enabled per Default on all Aircraft and thus is enabled in the default Profile, a dedicated Profile for the Fenix needs to be created with Automation disabled.<br/>
+If Fenix2GSX was only used in a 'hybrid' Scenario before, so only assisting/enhancing Fenix' native Automation/Integration, Any2GSX is indeed the Replacement for Fenix2GSX in these Use-Cases! In these Use-Cases Fenix2GSX can be removed and Any2GSX needs to be configured with an appropiate Aircraft Profile.<br/>
+To summarize:
+<br/>
+
+**Fenix2GSX for Automation and Volume Control**
+
+- Do not enable GSX Automation or Volume Control in the default Profile. -OR-
+- Create a dedicated Profile (with a SimObject contains Match for 'FNX_3') for the Fenix with GSX Automation and Volume Control disabled.
+- You can use/install the 'Fenix - PilotsDeck only' Profile in the Plugins View as a Template and then just disable PilotsDeck Integration.
+
+<br/>
+
+**Fenix2GSX for Automation and Volume Control & Any2GSX for PilotsDeck Integration**
+
+- Install the 'Fenix - PilotsDeck only' Profile in the Plugins View from the Plugin-Repo
+
+<br/>
+
+**Fenix native Automation (and Volume Control)**
+
+- Remove Fenix2GSX from your System (via the Installer)
+- Install the 'Fenix - Native' Profile in the Plugins View from the Plugin-Repo
+- If you want to use Fenix' native Volume Control, disable the Volume Control in this Any2GSX Profile
+- Check/Restore the Fenix EFB GSX Settings to your Preference
+- Only start loading the Aircraft in the EFB when being in the Departure Phase (Avionic Powered + External Power connected + Nav Lights on)
 
 <br/><br/><br/>
 
