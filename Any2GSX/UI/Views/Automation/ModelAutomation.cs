@@ -122,10 +122,42 @@ namespace Any2GSX.UI.Views.Automation
         public virtual bool ClearGroundEquipOnBeacon { get => Source.ClearGroundEquipOnBeacon; set => SetModelValue<bool>(value); }
         public virtual bool GradualGroundEquipRemoval { get => Source.GradualGroundEquipRemoval; set => SetModelValue<bool>(value); }
         public virtual int ConnectPca { get => Source.ConnectPca; set => SetModelValue<int>(value); }
-        public virtual int ChockDelayMin { get => Source.ChockDelayMin; set => SetModelValue<int>(value); }
-        public virtual int ChockDelayMax { get => Source.ChockDelayMax; set => SetModelValue<int>(value); }
-        public virtual int FinalDelayMin { get => Source.FinalDelayMin; set => SetModelValue<int>(value); }
-        public virtual int FinalDelayMax { get => Source.FinalDelayMax; set => SetModelValue<int>(value); }
+        public virtual int ChockDelayMin { get => Source.ChockDelayMin;
+            set
+            {
+                if (value < ChockDelayMax)
+                    SetModelValue<int>(value);
+                else
+                    OnPropertyChanged(nameof(ChockDelayMin));
+            }
+        }
+        public virtual int ChockDelayMax { get => Source.ChockDelayMax;
+            set
+            {
+                if (value > ChockDelayMin)
+                    SetModelValue<int>(value);
+                else
+                    OnPropertyChanged(nameof(ChockDelayMax));
+            }
+        }
+        public virtual int FinalDelayMin { get => Source.FinalDelayMin;
+            set
+            {
+                if (value < FinalDelayMax)
+                    SetModelValue<int>(value);
+                else
+                    OnPropertyChanged(nameof(FinalDelayMin));
+            }
+        }
+        public virtual int FinalDelayMax { get => Source.FinalDelayMax;
+            set
+            {
+                if (value > FinalDelayMin)
+                    SetModelValue<int>(value);
+                else
+                    OnPropertyChanged(nameof(FinalDelayMax));
+            }
+        }
 
         //OFP Import
         public virtual bool FuelRoundUp100 { get => Source.FuelRoundUp100; set => SetModelValue<bool>(value); }
