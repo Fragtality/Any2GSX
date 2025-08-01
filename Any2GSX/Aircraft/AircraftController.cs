@@ -333,11 +333,12 @@ namespace Any2GSX.Aircraft
             }
             else if (service.State == GsxServiceState.Completed && AutomationController.State <= AutomationState.Pushback)
             {
-                if (Aircraft.HasFuelSynch && !GsxController.ServicePushBack.IsRunning && Aircraft.FuelOnBoardKg <= Flightplan.FuelRampKg - Config.FuelCompareVariance)
+                if (Aircraft.HasFuelSynch && RefuelTimer.IsEnabled && SettingProfile.RefuelFinishOnHose
+                    && Aircraft.FuelOnBoardKg <= Flightplan.FuelRampKg - Config.FuelCompareVariance && !GsxController.ServicePushBack.IsRunning)
                 {
                     Logger.Warning($"Instant load Fuel - FOB did not match planned after GSX Refuel");
                     Logger.Debug($"FOB: {Aircraft.FuelOnBoardKg} | PlanRamp: {Flightplan.FuelRampKg}");
-                    await Aircraft.SetFuelOnBoardKg(Flightplan.FuelRampKg);
+                    await RefuelStopEarly();
                 }
                 await Aircraft.RefuelCompleted();
             }
@@ -372,7 +373,7 @@ namespace Any2GSX.Aircraft
                     Logger.Information($"Aircraft Refueling started. Refuel Rate: {Math.Round(Config.ConvertKgToDisplayUnit(FuelRate), 1)}{Config.DisplayUnitCurrentString}/s");
                 }
             }
-            else if (RefuelTimer.IsEnabled && SettingProfile.RefuelFinishOnHose)
+            else if (!connected && RefuelTimer.IsEnabled && SettingProfile.RefuelFinishOnHose)
             {
                 await RefuelStopEarly();
                 Logger.Information($"Aircraft Refueling finished early (Hose disconnected). FOB: {Math.Round(Config.ConvertKgToDisplayUnit(Aircraft.FuelOnBoardKg), 2)}{Config.DisplayUnitCurrentString}");
@@ -406,7 +407,7 @@ namespace Any2GSX.Aircraft
             if (Aircraft.FuelOnBoardKg >= Flightplan.FuelRampKg - Config.FuelCompareVariance)
             {
                 FuelCounter = Flightplan.FuelRampKg;
-                Logger.Verbose($"Last-Tick: {FuelCounter} / {Flightplan.FuelRampKg} @ {FuelRate} - FOB {Aircraft.FuelOnBoardKg}");
+                Logger.Debug($"Last-Tick: {FuelCounter} / {Flightplan.FuelRampKg} @ {FuelRate} - FOB {Aircraft.FuelOnBoardKg}");
                 Aircraft.RefuelTick(FuelRate, FuelCounter);
                 RefuelTimer.Stop();
                 Logger.Debug($"Aircraft Refuel Timer ended");

@@ -357,6 +357,7 @@ namespace Any2GSX
             await Task.Delay(Config.DelayGsxBinaryStart, Token);
         }
 
+        //private bool flag = false;
         protected override async Task MainLoop()
         {
             await Task.Delay(App.Config.TimerGsxCheck, Token);
@@ -376,6 +377,13 @@ namespace Any2GSX
                 OnSessionReady(null);
                 ResetRequested = AppResetRequest.None;
             }
+
+            //if (!flag && AircraftController?.Aircraft?.IsConnected == true)
+            //{
+            //    await CommBus.RegisterCommBus("TabletToPlane", BroadcastFlag.WASM, (evt, data) => Logger.Debug("TabletToPlane -- " + data));
+            //    await CommBus.RegisterCommBus("PlaneToTablet", BroadcastFlag.JS, (evt, data) => Logger.Debug("PlaneToTablet -- " + data));
+            //    flag = true;
+            //}
         }
 
         protected override Task FreeResources()
