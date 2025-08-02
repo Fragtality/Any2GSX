@@ -56,7 +56,24 @@ If you use Addon Linker to start your Addons/Tools, you can also add it there:<b
 The Rest can be left at Default.<br/>
 <br/><br/>
 
-### 1.4 - Core Concepts & Features
+### 1.4 - Release & Dev/Beta Versions
+
+There are two Version Channel for Updates to be released:
+
+1) The "**Dev**" or "Beta" Version is located in the Source Files as [Any2GSX-Installer-latest](https://github.com/Fragtality/Any2GSX/blob/master/Any2GSX-Installer-latest.exe)
+2) The "**Release**" or "Stable" Version is located under [Releases](https://github.com/Fragtality/Any2GSX/releases) (Under Assests, the Any2GSX-Installer-vXYZ.exe File)
+
+Whenever there is a new Commit to Code, the -latest Installer will contain these Changes. For example Fixes to open Issues, Changes for GSX Updates or new Features added. So that these Changes & Fixes can be tested publicly.<br/>
+After some Time and positive/good Feedback, all these Changes will be published as the Release Version.<br/>
+So some general Rule-of-Thumbs:
+
+- Most Users should use the Release Version
+- If experiencing an Issue, then try if the Dev Versions works better
+- When eager to test new Stuff as soon as possible, you're welcome to use the Dev Version, as long as you understand it as something that is being worked on 😉
+
+<br/><br/>
+
+### 1.5 - Core Concepts & Features
 
 #### Aircraft Profiles
 
@@ -135,14 +152,14 @@ As the Name suggests it provides the App Access to Simulator's CommBus API provi
 
 ### 2.3 - Any2GSX
 
-The Configuration is done through the **GUI**, open it by **clicking on the System-Tray/Notification-Icon**. All Settings have **Tooltips** explaining them further. It is recommended to familiarize yourself with the Settings and the general Usage (see [Section 3](#3---usage)) first before starting the first 'serious' Flight with the App!<br/><br/>
+The Configuration is done through the **GUI**, open it by **clicking on the System-Tray/Notification-Icon**. All Settings have **Tooltips** explaining them further. It is recommended to familiarize yourself with the Settings and the general Usage (see [Section 3]3---usage)) first before starting the first 'serious' Flight with the App!<br/><br/>
 
 The first Time you start the App (or the Config was Reset) it will automatically open the GUI and the '**App Settings**' View - please enter your **SimBrief User** (Name and ID both accepted) for the App to work properly!<br/>
 <img src="img/ui-first.png" width="66%"><br/><br/>
 
-After this intial Step you might want to check out the 'Plugins' View to check-out which Aircraft Plugins, Channel Definitions or Aircraft Profiles are available to download (see [Section 2.3.4](#234---plugins-view) for Details).<br/><br/>
+After this intial Step you might want to check out the 'Plugins' View to check-out which Aircraft Plugins, Channel Definitions or Aircraft Profiles are available to download (see [Section 2.3.4]234---plugins-view) for Details).<br/><br/>
 
-Since Any2GSX can be used with all Aircrafts, I'd recommend to check out the '**Aircraft Profiles**' View next to configure if and how it should be active for a specific Aircraft. Check [Section 2.3.3](#233---aircraft-profiles-view) for Details.<br/><br/>
+Since Any2GSX can be used with all Aircrafts, I'd recommend to check out the '**Aircraft Profiles**' View next to configure if and how it should be active for a specific Aircraft. Check [Section 2.3.3]233---aircraft-profiles-view) for Details.<br/><br/>
 
 #### 2.3.1 - Automation View
 
@@ -354,7 +371,7 @@ This Section describes the general Flow of the App and Flight Phases it will go 
 #### 3.1.3 - Departure Phase
 
 - If Jetway/Stairs are not connected, the App will try to connect them now (if configured, default enabled).
-- The Departure Services are called as configured in [GSX Services](#gsx-services).
+- The Departure Services are called as configured in [GSX Services]gsx-services).
   - Use the SmartButton to manually call the next Service in the Queue (for Example to start Boarding while Refuel is still active).
   - Per Default the App will answer all relevant Pop-Ups/Questions in this Phase (Operator, Crew Boarding, Tug Attachment).
   - If the App is configured to allow manual Answers to these Questions, ensure that they are answered!
@@ -591,7 +608,7 @@ If the GSX Menu is working, there might be a Problem with the reported Aircraft 
 
 ### 6.4 - Any2GSX in Flight/Taxi-In when starting on the Ground
 
-- Can be caused by FlowPro - check the recommended [Settings](#42---FlowPro).
+- Can be caused by FlowPro - check the recommended [Settings]42---FlowPro).
 
 <br/><br/>
 
