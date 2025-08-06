@@ -53,7 +53,6 @@ namespace Any2GSX.Aircraft
             PluginId = pluginId;
             Logger.Debug($"Run Init for Plugin '{pluginId}'");
             await Aircraft.Init();
-            await Task.Delay(1000, Token);
 
             ReceiverStore.Get<MsgGsxCouatlStarted>().OnMessage += OnCouatlStarted;
             AutomationController.OnStateChange += OnAutomationStateChange;

@@ -18,10 +18,11 @@ namespace Any2GSX.UI.Views.Settings
 
             ViewModel.BindElement(nameof(ViewModel.SimbriefUser), InputSimBriefUser, null, new ValidationRuleString());
             ViewModel.BindStringNumber(nameof(ViewModel.FuelResetPercent), InputFuelPercent, "2", new ValidationRuleRange<double>(0,50));
-            ViewModel.BindStringNumber(nameof(ViewModel.FuelCompareVariance), InputFuelVariance);
+            ViewModel.BindStringNumber(nameof(ViewModel.FuelCompareVariance), InputFuelVariance, "50", new ValidationRuleRange<double>(10, 100));
             ViewModel.BindStringInteger(nameof(ViewModel.PortBase), InputPortBase, "60060");
             ViewModel.BindStringInteger(nameof(ViewModel.PortRange), InputPortRange, "10");
             ViewModel.BindElement(nameof(ViewModel.DeckUrlBase), InputDeckUrl, null, new ValidationRuleString());
+            ViewModel.BindStringInteger(nameof(ViewModel.GsxMenuStartupMaxFail), InputGsxMaxFail, "4", new ValidationRuleRange<int>(1, 16));
 
             InputSimBriefUser.KeyUp += OnSimbriefKeyUp;
 

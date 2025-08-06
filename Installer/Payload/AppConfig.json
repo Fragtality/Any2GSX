@@ -167,7 +167,7 @@
   ],
   "FuelFobSaved": {},
   "FuelResetPercent": 0.02,
-  "ConfigVersion": 5,
+  "ConfigVersion": 6,
   "LogInterval": 3,
   "SizeLimit": 10485760,
   "LogCount": 3,

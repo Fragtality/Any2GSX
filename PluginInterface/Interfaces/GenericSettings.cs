@@ -45,6 +45,7 @@ namespace Any2GSX.PluginInterface.Interfaces
 
         public const string OptionAircraftIsCargo = "Generic.Option.Aircraft.IsCargo";
         public const string OptionAircraftRefuelStair = "Generic.Option.Aircraft.RefuelStair";
+        public const string OptionAircraftInitDelay = "Generic.Option.Aircraft.InitDelay";
 
         public static List<PluginSetting> GetGenericSettings()
         {
@@ -149,6 +150,16 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Type = PluginSettingType.Bool,
                 DefaultValue = false,
                 Description = "The Aircraft is refueled on the Left/Stair Side"
+            };
+            list.Add(setting);
+
+            //InitDelay
+            setting = new PluginSetting()
+            {
+                Key = OptionAircraftInitDelay,
+                Type = PluginSettingType.Integer,
+                DefaultValue = 1000,
+                Description = "Delay in ms to wait for the Aircraft Systems to initialize"
             };
             list.Add(setting);
 

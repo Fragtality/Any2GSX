@@ -75,6 +75,7 @@ namespace Any2GSX.UI.Views.Settings
         public virtual double FuelCompareVariance { get => Config.ConvertKgToDisplayUnit(Source.FuelCompareVariance); set => SetModelValue<double>(Config.ConvertFromDisplayUnitKg(value)); }
         public virtual bool RestartGsxOnTaxiIn { get => Source.RestartGsxOnTaxiIn; set => SetModelValue<bool>(value); }
         public virtual bool RestartGsxStartupFail { get => Source.RestartGsxStartupFail; set => SetModelValue<bool>(value); }
+        public virtual int GsxMenuStartupMaxFail { get => Source.GsxMenuStartupMaxFail; set => SetModelValue<int>(value); }
         public virtual int PortBase { get => Source.PortBase; set => SetModelValue<int>(value); }
         public virtual int PortRange { get => Source.PortRange; set => SetModelValue<int>(value); }
         public virtual string DeckUrlBase { get => Source.DeckUrlBase; set => SetModelValue<string>(value); }

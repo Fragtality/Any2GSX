@@ -101,6 +101,11 @@ namespace Any2GSX.PluginInterface
                 RegisterVariables();
 
                 await DoInit();
+                if (ISettingProfile.HasSetting<int>(GenericSettings.OptionAircraftInitDelay, out int delay))
+                {
+                    Logger.Debug($"Waiting {delay}ms for Aircraft to intialize");
+                    await Task.Delay(delay, AppResources.RequestToken);
+                }
 
                 SubMsfsParkingBrakeSet ??= SimStore.AddEvent("PARKING_BRAKE_SET");
             }

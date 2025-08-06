@@ -131,6 +131,11 @@ namespace Any2GSX.AppConfig
                     profile.MatchString = null;
                 }
             }
+
+            if (ConfigVersion < 6 && buildConfigVersion >= 6)
+            {
+                GsxMenuStartupMaxFail = 4;
+            }
         }
 
         public virtual bool ImportProfile(string json)
