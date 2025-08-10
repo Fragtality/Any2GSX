@@ -177,6 +177,7 @@ namespace Any2GSX.UI.Views.Automation
         public virtual int RefuelTimeTargetSeconds { get => Source.RefuelTimeTargetSeconds; set => SetModelValue<int>(value); }
         public virtual bool FuelSaveLoadFob { get => Source.FuelSaveLoadFob; set => SetModelValue<bool>(value); }        
         public virtual int DefaultPilotTarget { get => Source.DefaultPilotTarget; set => SetModelValue<int>(value); }
+        public virtual int DefaultCrewTarget { get => Source.DefaultCrewTarget; set => SetModelValue<int>(value); }
         public virtual bool CanSetPilotTarget => (AnswerCrewBoardQuestion != 1 && !SkipCrewBoardQuestion) || (AnswerCrewDeboardQuestion != 1 && !SkipCrewDeboardQuestion);
         public virtual bool ResetPayloadOnPrep { get => Source.ResetPayloadOnPrep; set => SetModelValue<bool>(value); }
         public virtual bool ResetPayloadOnTurn { get => Source.ResetPayloadOnTurn; set => SetModelValue<bool>(value); }

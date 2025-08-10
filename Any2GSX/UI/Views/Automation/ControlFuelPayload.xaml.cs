@@ -19,6 +19,7 @@ namespace Any2GSX.UI.Views.Automation
             ViewModel.BindStringNumber(nameof(ViewModel.FuelResetBaseKg), InputFuelReset, "2500");
             ViewModel.BindStringInteger(nameof(ViewModel.RefuelTimeTargetSeconds), InputTimeTarget, "150");
             ViewModel.BindElement(nameof(ViewModel.DefaultPilotTarget), InputPilotsDefault, new RealInvariantConverter("2"), new ValidationRuleRange<int>(0, 10));
+            ViewModel.BindElement(nameof(ViewModel.DefaultCrewTarget), InputCrewDefault, new RealInvariantConverter("4"), new ValidationRuleRange<int>(0, 20));
         }
     }
 }

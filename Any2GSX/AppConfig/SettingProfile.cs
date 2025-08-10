@@ -169,6 +169,7 @@ namespace Any2GSX.AppConfig
         public virtual bool SkipCrewBoardQuestion { get; set; } = true;
         public virtual bool SkipCrewDeboardQuestion { get; set; } = true;
         public virtual int DefaultPilotTarget { get; set; } = 2;
+        public virtual int DefaultCrewTarget { get; set; } = 4;
         public virtual int AnswerCrewBoardQuestion { get; set; } = 1; // 0 => not answer | 1 => nobody | 2 => crew | 3 => pilots | 4 => both | (num - 1 for menu)
         public virtual int AnswerCrewDeboardQuestion { get; set; } = 1; // 0 => not answer | 1 => nobody | 2 => crew | 3 => pilots | 4 => both | (num - 1 for menu)
         public virtual bool SkipFollowMe { get; set; } = true;

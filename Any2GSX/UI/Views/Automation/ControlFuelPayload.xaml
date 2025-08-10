@@ -80,27 +80,36 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Column="0" Grid.Row="0" Style="{StaticResource SettingItemPanel}" Margin="6,4,6,4" IsEnabled="{Binding CanSetPilotTarget}" ToolTip="The Number of Pilots to set on the GSX Variables for Crew Boarding - only available if Crew Boarding or Deboarding is not skipped.">
                     <TextBlock Style="{StaticResource TextBlockDefault}" ToolTip="The Number of Pilots to set on the GSX Variables for Crew Boarding - only available if Crew Boarding or Deboarding is not skipped.">
                         Number of <Underline>Pilots</Underline> to set for GSX Crew De/Boarding: 
                     </TextBlock>
-                    <TextBox Name="InputPilotsDefault" Margin="8,0,0,0" Style="{StaticResource TextBoxCentered}" 
+                    <TextBox Name="InputPilotsDefault" Margin="41.5,0,0,0" Style="{StaticResource TextBoxCentered}" 
                              ToolTip="The Number of Pilots to set on the GSX Variables for Crew Boarding - only available if Crew Boarding or Deboarding is not skipped."/>
                 </StackPanel>
 
-                <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding ResetPayloadOnPrep}" Style="{StaticResource CheckBoxSettingItem}"
+                <StackPanel Grid.Column="0" Grid.Row="1" Style="{StaticResource SettingItemPanel}" Margin="6,4,6,4" IsEnabled="{Binding CanSetPilotTarget}" ToolTip="The Number of Cabin Crew to set on the GSX Variables for Crew Boarding - only available if Crew Boarding or Deboarding is not skipped.">
+                    <TextBlock Style="{StaticResource TextBlockDefault}" ToolTip="The Number of Cabin Crew to set on the GSX Variables for Crew Boarding - only available if Crew Boarding or Deboarding is not skipped.">
+                        Number of <Underline>Cabin Crew</Underline> to set for GSX Crew De/Boarding:
+                    </TextBlock>
+                    <TextBox Name="InputCrewDefault" Margin="10,0,0,0" Style="{StaticResource TextBoxCentered}" 
+                             ToolTip="The Number of Crew to set on the GSX Variables for Crew Boarding - only available if Crew Boarding or Deboarding is not skipped."/>
+                </StackPanel>
+
+                <CheckBox Grid.Column="0" Grid.Row="2" IsChecked="{Binding ResetPayloadOnPrep}" Style="{StaticResource CheckBoxSettingItem}"
                       ToolTip="The Payload of the Aircraft will be set to zero in the Preparation Phase (Reposition, set Ground Equipment) - if the configured Plugin supports that.&#x0a;If not checked (or not supported by the Plugin), make sure that the Gross/Total Weight of the Aircraft is below the planned Value before switchting to the Departure Phase.">
                     <TextBlock>Set the Aircraft Payload to empty/zero on <Underline>Session Start</Underline></TextBlock>
                 </CheckBox>
 
-                <CheckBox Grid.Column="0" Grid.Row="2" IsChecked="{Binding ResetPayloadOnTurn}" Style="{StaticResource CheckBoxSettingItem}"
+                <CheckBox Grid.Column="0" Grid.Row="3" IsChecked="{Binding ResetPayloadOnTurn}" Style="{StaticResource CheckBoxSettingItem}"
                       ToolTip="The Payload of the Aircraft will be set to zero in the Turn Around Phase - if the configured Plugin supports that.&#x0a;If not checked (or not supported by the Plugin), make sure that the Gross/Total Weight of the Aircraft is below the planned Value before switchting to the Departure Phase.">
                     <TextBlock>Set the Aircraft Payload to empty/zero in the <Underline>Turn Around</Underline> Phase</TextBlock>
                 </CheckBox>
 
-                <TextBlock Grid.Column="0" Grid.Row="3" Margin="6,4,0,6" MaxWidth="620" TextWrapping="WrapWithOverflow">
+                <TextBlock Grid.Column="0" Grid.Row="4" Margin="6,4,0,6" MaxWidth="620" TextWrapping="WrapWithOverflow">
                     <Italic>
                         <Bold>Note:</Bold> The set Payload Settings only apply to Aircraft Plugins implementing Payload-Sync.
                         <LineBreak/>

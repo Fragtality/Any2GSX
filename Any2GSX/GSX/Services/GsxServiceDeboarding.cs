@@ -115,8 +115,13 @@ namespace Any2GSX.GSX.Services
 
             if (!Profile.SkipCrewDeboardQuestion && Profile.AnswerCrewDeboardQuestion != 1)
             {
+                Logger.Debug($"Resetting Crew Skip Variables");
+                await SimStore[GsxConstants.VarNoCrewBoard].WriteValue(0);
+                await SimStore[GsxConstants.VarNoPilotsBoard].WriteValue(0);
                 Logger.Debug($"Setting Pilot Target to {Controller.Profile.DefaultPilotTarget}");
-                Controller?.SubPilotTarget?.WriteValue(Controller.Profile.DefaultPilotTarget);
+                await Controller?.SubPilotTarget?.WriteValue(Controller.Profile.DefaultPilotTarget);
+                Logger.Debug($"Setting Crew Target to {Controller.Profile.DefaultCrewTarget}");
+                await Controller?.SubCrewTarget?.WriteValue(Controller.Profile.DefaultCrewTarget);
             }
 
             if (Controller?.AircraftController?.Aircraft?.IsCargo == false && Profile?.PluginId != SettingProfile.GenericId)
@@ -128,7 +133,7 @@ namespace Any2GSX.GSX.Services
             else if (!Profile.SkipCrewDeboardQuestion && Profile.AnswerCrewDeboardQuestion != 1)
             {
                 WasTargetSet = true;
-                Logger.Debug($"Setting Crew Target to {num} (Cargo Aircraft)");
+                Logger.Debug($"Setting PaxTarget as Crew Target to {num} (Cargo Aircraft)");
                 await Controller?.SubCrewTarget?.WriteValue(num);
             }
         }
