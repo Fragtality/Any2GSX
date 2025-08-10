@@ -7,6 +7,7 @@ namespace Any2GSX.GSX.Services
     public class GsxServiceWater(GsxController controller) : GsxService(controller)
     {
         public override GsxServiceType Type => GsxServiceType.Water;
+        protected override double NumStateCompleted { get; } = 1;
         public virtual ISimResourceSubscription SubWaterService { get; protected set; }
         protected override ISimResourceSubscription SubStateVar => SubWaterService;
 

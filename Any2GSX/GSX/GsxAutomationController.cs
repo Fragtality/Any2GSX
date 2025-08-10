@@ -909,7 +909,7 @@ namespace Any2GSX.GSX
             if (SmartButtonRequest)
             {
                 Logger.Debug($"SmartButton on Push ({ServicePushBack.PushStatus})");
-                if (!ServicePushBack.IsCalled || (ServicePushBack.State == GsxServiceState.Callable && ServicePushBack.IsTugConnected && GsxController.Menu.MenuState == GsxMenuState.TIMEOUT))
+                if ((!ServicePushBack.IsCalled && ServicePushBack.PushStatus < 5) || (ServicePushBack.State == GsxServiceState.Callable && ServicePushBack.IsTugConnected && GsxController.Menu.MenuState == GsxMenuState.TIMEOUT))
                 {
                     Logger.Information($"Automation: Call Pushback on SmartButton");
                     await ServicePushBack.Call();
