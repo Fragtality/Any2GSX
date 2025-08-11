@@ -190,7 +190,10 @@ namespace Any2GSX.Plugins
             if (File.Exists(file))
                 File.Delete(file);
 
-            var httpClient = new HttpClient();
+            var httpClient = new HttpClient()
+            {
+                Timeout = TimeSpan.FromMilliseconds(Config.HttpRequestTimeoutMs)
+            };
             httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0");
 
             Logger.Debug($"Starting Download of {PluginUrl} to byte array ...");

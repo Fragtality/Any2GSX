@@ -29,6 +29,7 @@ namespace Any2GSX.AppConfig
         public virtual string SimbriefUrlPathName { get; set; } = "/api/xml.fetcher.php?username={0}&json=v2";
         public virtual string SimbriefUrlPathId { get; set; } = "/api/xml.fetcher.php?userid={0}&json=v2";
         public virtual string SimbriefUser { get; set; } = "";
+        public virtual int HttpRequestTimeoutMs { get; set; } = 5000;
         public virtual int SessionInitDelayMs { get; set; } = 0;
         public virtual int DeckRefreshSelectionDelay { get; set; } = 3000;
         public virtual int DeckRegisterDelay { get; set; } = 2000;

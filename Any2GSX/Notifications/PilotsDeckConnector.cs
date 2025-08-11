@@ -46,7 +46,8 @@ namespace Any2GSX.Notifications
         {
             HttpClient = new()
             {
-                BaseAddress = new(Config.DeckUrlBase)
+                BaseAddress = new(Config.DeckUrlBase),
+                Timeout = TimeSpan.FromMilliseconds(Config.HttpRequestTimeoutMs)
             };
             HttpClient.DefaultRequestHeaders.Accept.Clear();
         }

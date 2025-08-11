@@ -63,7 +63,7 @@ namespace Any2GSX.Plugins
         {
             HttpClient client = new()
             {
-                Timeout = TimeSpan.FromMilliseconds(1500)
+                Timeout = TimeSpan.FromMilliseconds(Config.HttpRequestTimeoutMs)
             };
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Add("User-Agent", ".NET Foundation Repository Reporter");
@@ -78,7 +78,7 @@ namespace Any2GSX.Plugins
         {
             HttpClient client = new()
             {
-                Timeout = TimeSpan.FromMilliseconds(1500)
+                Timeout = TimeSpan.FromMilliseconds(Config.HttpRequestTimeoutMs)
             };
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Add("User-Agent", ".NET Foundation Repository Reporter");

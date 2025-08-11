@@ -821,8 +821,9 @@ namespace Any2GSX.GSX
                 {
                     Logger.Information($"Automation: Remove Ground Equipment on Beacon");
                     SetGroundEquip(false);
+                    GroundEquipmentPlaced = false;
                 }
-                GroundEquipmentPlaced = false;
+                
                 if (Profile.CallPushbackOnBeacon && !ServicePushBack.IsCalled && ServicePushBack.State < GsxServiceState.Requested)
                 {
                     Logger.Information($"Automation: Call Pushback (Beacon / Prepared for Push)");
@@ -855,16 +856,26 @@ namespace Any2GSX.GSX
                 }
             }
 
-            if (Aircraft.HasOpenDoors && ((ServicePushBack.PushStatus > 0 && ServicePushBack.IsRunning) || ServiceDeice.IsActive || ServicePushBack.IsRunning))
+            if (Aircraft.HasOpenDoors && ((ServicePushBack.PushStatus > 0 && ServicePushBack.IsRunning) || ServiceDeice.IsActive || ServicePushBack.IsRunning || Aircraft.IsEngineRunning))
             {
-                Logger.Information($"Automation: Close Doors on Pushback");
+                if ((ServicePushBack.PushStatus > 0 && ServicePushBack.IsRunning))
+                    Logger.Information($"Automation: Close Doors on Pushback");
+                else if (ServiceDeice.IsActive)
+                    Logger.Information($"Automation: Close Doors on Deice");
+                else
+                    Logger.Information($"Automation: Close Doors on Engine running");
+
                 await Aircraft.DoorsAllClose();
                 await Task.Delay(Config.StateMachineInterval, RequestToken);
             }
 
             if (GroundEquipmentPlaced && ((ServicePushBack.PushStatus > 1 && ServicePushBack.IsRunning) || ServiceDeice.IsActive || ServicePushBack.IsRunning))
             {
-                Logger.Information($"Automation: Remove Ground Equipment on Pushback");
+                if (!ServiceDeice.IsActive)
+                    Logger.Information($"Automation: Remove Ground Equipment on Pushback");
+                else
+                    Logger.Information($"Automation: Remove Ground Equipment on Deice");
+
                 SetGroundEquip(false);
                 GroundEquipmentPlaced = false;
                 await Task.Delay(Config.StateMachineInterval, RequestToken);
