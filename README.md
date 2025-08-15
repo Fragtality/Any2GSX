@@ -152,14 +152,14 @@ As the Name suggests it provides the App Access to Simulator's CommBus API provi
 
 ### 2.3 - Any2GSX
 
-The Configuration is done through the **GUI**, open it by **clicking on the System-Tray/Notification-Icon**. All Settings have **Tooltips** explaining them further. It is recommended to familiarize yourself with the Settings and the general Usage (see [Section 3]3---usage)) first before starting the first 'serious' Flight with the App!<br/><br/>
+The Configuration is done through the **GUI**, open it by **clicking on the System-Tray/Notification-Icon**. All Settings have **Tooltips** explaining them further. It is recommended to familiarize yourself with the Settings and the general Usage (see [Section 3](#3---usage)) first before starting the first 'serious' Flight with the App!<br/><br/>
 
 The first Time you start the App (or the Config was Reset) it will automatically open the GUI and the '**App Settings**' View - please enter your **SimBrief User** (Name and ID both accepted) for the App to work properly!<br/>
 <img src="img/ui-first.png" width="66%"><br/><br/>
 
-After this intial Step you might want to check out the 'Plugins' View to check-out which Aircraft Plugins, Channel Definitions or Aircraft Profiles are available to download (see [Section 2.3.4]234---plugins-view) for Details).<br/><br/>
+After this intial Step you might want to check out the 'Plugins' View to check-out which Aircraft Plugins, Channel Definitions or Aircraft Profiles are available to download (see [Section 2.3.4](#234---plugins-view) for Details).<br/><br/>
 
-Since Any2GSX can be used with all Aircrafts, I'd recommend to check out the '**Aircraft Profiles**' View next to configure if and how it should be active for a specific Aircraft. Check [Section 2.3.3]233---aircraft-profiles-view) for Details.<br/><br/>
+Since Any2GSX can be used with all Aircrafts, I'd recommend to check out the '**Aircraft Profiles**' View next to configure if and how it should be active for a specific Aircraft. Check [Section 2.3.3](#233---aircraft-profiles-view) for Details.<br/><br/>
 
 #### 2.3.1 - Automation View
 
