@@ -34,5 +34,10 @@ namespace Installer
         {
             PageBehaviors.Add(InstallerPages.CONFIG, new ConfigPage());
         }
+
+        protected override void CreatePageSummary()
+        {
+            PageBehaviors.Add(InstallerPages.SUMMARY, new SummaryPage());
+        }
     }
 }

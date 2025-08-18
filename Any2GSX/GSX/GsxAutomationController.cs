@@ -271,7 +271,8 @@ namespace Any2GSX.GSX
                 {
                     Logger.Information($"Aircraft is ready for Departure Services");
                     await Flightplan.Import();
-                    await RefreshGsxSimbrief();
+                    if (Profile.RunAutomationService && Profile.RefreshGsxOnDeparture)
+                        await RefreshGsxSimbrief();
                     await ServiceBoard.SetPaxTarget(Flightplan.CountPax);
 
                     StateChange(AutomationState.Departure);
@@ -348,7 +349,8 @@ namespace Any2GSX.GSX
                 if (Aircraft.ReadyForDepartureServices && IsGateConnected && TimeNextTurnCheck <= DateTime.Now && await Flightplan.CheckNewOfp())
                 {
                     await Flightplan.Import();
-                    await RefreshGsxSimbrief();
+                    if (Profile.RunAutomationService && Profile.RefreshGsxOnTurn)
+                        await RefreshGsxSimbrief();
                     await ServiceBoard.SetPaxTarget(Flightplan.CountPax);
                     StateChange(AutomationState.Departure);
                 }
@@ -405,7 +407,8 @@ namespace Any2GSX.GSX
             await Flightplan.Import();
             if (state == AutomationState.Departure && !ServiceBoard.IsRunning)
             {
-                await RefreshGsxSimbrief();
+                if (Profile.RunAutomationService && Profile.RefreshGsxOnTurn)
+                    await RefreshGsxSimbrief();
                 await ServiceBoard.SetPaxTarget(Flightplan.CountPax);
             }
             StateChange(state);

@@ -165,6 +165,8 @@ namespace Any2GSX.UI.Views.Automation
         public virtual int RandomizePaxMaxDiff { get => Source.RandomizePaxMaxDiff; set => SetModelValue<int>(value); }
         public virtual int DelayTurnAroundSeconds { get => Source.DelayTurnAroundSeconds; set => SetModelValue<int>(value); }
         public virtual int DelayTurnRecheckSeconds { get => Source.DelayTurnRecheckSeconds; set => SetModelValue<int>(value); }
+        public virtual bool RefreshGsxOnDeparture { get => Source.RefreshGsxOnDeparture; set => SetModelValue<bool>(value); }
+        public virtual bool RefreshGsxOnTurn { get => Source.RefreshGsxOnTurn; set => SetModelValue<bool>(value); }
 
 
         //Fuel & Payload

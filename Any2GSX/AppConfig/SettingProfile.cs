@@ -120,6 +120,8 @@ namespace Any2GSX.AppConfig
         public virtual int RandomizePaxMaxDiff { get; set; } = 5;
         public virtual int DelayTurnAroundSeconds { get; set; } = 90;
         public virtual int DelayTurnRecheckSeconds { get; set; } = 30;
+        public virtual bool RefreshGsxOnDeparture { get; set; } = true;
+        public virtual bool RefreshGsxOnTurn { get; set; } = true;
 
         //Plugin
         public virtual Dictionary<string, object> PluginSettings { get; set; } = [];
