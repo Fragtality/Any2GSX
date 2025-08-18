@@ -549,7 +549,7 @@ To summarize:
 - Remove Fenix2GSX from your System (via the Installer)
 - Install the 'Fenix - Native' Profile in the Plugins View from the [Plugin-Repository](https://github.com/Fragtality/Any2GSX-Plugins)
 - If you want to use Fenix' native Volume Control, disable the Volume Control in this Any2GSX Profile
-- Check/Restore the Fenix EFB GSX Settings to your Preference
+- Check/Restore the Fenix EFB GSX Settings to your Preference - but do *not* enable Auto Jetway Simulation.
 - Only start loading the Aircraft in the EFB when being in the Departure Phase (Avionic Powered + External Power connected + Nav Lights on)
 
 <br/><br/><br/>
