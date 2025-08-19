@@ -57,7 +57,7 @@
                     <TextBlock>Reload SimBrief in GSX <Underline>on Departure</Underline></TextBlock>
                 </CheckBox>
 
-                <CheckBox Grid.Column="0" Grid.Row="3" IsChecked="{Binding RefreshGsxOnDeparture}" Style="{StaticResource CheckBoxSettingItem}"
+                <CheckBox Grid.Column="0" Grid.Row="3" IsChecked="{Binding RefreshGsxOnTurn}" Style="{StaticResource CheckBoxSettingItem}"
                     ToolTip="When Any2GSX switches to the Departure Phase (from Turnaround!), GSX will be commanded to reload the SimBrief OFP so that the VDGS is refreshed.&#x0a;NOTE: GSX will do a 'soft reset' where it won't react to Commands, possibly confusing other Apps/Integrations.">
                     <TextBlock>Reload SimBrief in GSX <Underline>on Turnaround</Underline></TextBlock>
                 </CheckBox>
