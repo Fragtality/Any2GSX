@@ -11,7 +11,8 @@ namespace Any2GSX.UI
         public ShowInfoDialog(string info, bool fixedLength = false)
         {
             InitializeComponent();
-            Info = info;
+            Info = info ?? "";
+            Info = Info.Replace("\\r\\n", "\r\n");
             this.DataContext = Info;
 
             this.MouseLeftButtonDown += (_, _) => this.Close();
