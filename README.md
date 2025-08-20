@@ -12,7 +12,7 @@ Generalized Version of [Fenix2GSX](https://github.com/Fragtality/Fenix2GSX) brin
 
 <br/>
 
-Available Plugins, Channel and Profiles can be found in the Addon Repository:
+Check the Addonn Repository which Aircrafts are supported directly out-of-the-box:<br/>
 [Aircraft Plugins](https://github.com/Fragtality/Any2GSX-Plugins?tab=readme-ov-file#21---plugins)<br/>
 [Audio Channels](https://github.com/Fragtality/Any2GSX-Plugins?tab=readme-ov-file#3---available-channel-definitions)<br/>
 [Aircraft Profiles](https://github.com/Fragtality/Any2GSX-Plugins?tab=readme-ov-file#4---available-aircraft-profiles)<br/>
