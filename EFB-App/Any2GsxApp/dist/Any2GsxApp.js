@@ -2219,7 +2219,7 @@
     }
     return null;
   };
-  var MapShim = function() {
+  var MapShim = (function() {
     if (typeof Map !== "undefined") {
       return Map;
     }
@@ -2237,7 +2237,7 @@
     __name(getIndex, "getIndex");
     return (
       /** @class */
-      function() {
+      (function() {
         function class_1() {
           this.__entries__ = [];
         }
@@ -2288,11 +2288,11 @@
           }
         };
         return class_1;
-      }()
+      })()
     );
-  }();
+  })();
   var isBrowser = typeof window !== "undefined" && typeof document !== "undefined" && window.document === document;
-  var global$1 = function() {
+  var global$1 = (function() {
     if (typeof global !== "undefined" && global.Math === Math) {
       return global;
     }
@@ -2303,8 +2303,8 @@
       return window;
     }
     return Function("return this")();
-  }();
-  var requestAnimationFrame$1 = function() {
+  })();
+  var requestAnimationFrame$1 = (function() {
     if (typeof requestAnimationFrame === "function") {
       return requestAnimationFrame.bind(global$1);
     }
@@ -2313,7 +2313,7 @@
         return callback(Date.now());
       }, 1e3 / 60);
     };
-  }();
+  })();
   var trailingTimeout = 2;
   function throttle(callback, delay) {
     var leadingCall = false, trailingCall = false, lastCallTime = 0;
@@ -2354,7 +2354,7 @@
   var mutationObserverSupported = typeof MutationObserver !== "undefined";
   var ResizeObserverController = (
     /** @class */
-    function() {
+    (function() {
       function ResizeObserverController2() {
         this.connected_ = false;
         this.mutationEventsAdded_ = false;
@@ -2450,7 +2450,7 @@
       };
       ResizeObserverController2.instance_ = null;
       return ResizeObserverController2;
-    }()
+    })()
   );
   var defineConfigurable = /* @__PURE__ */ __name(function(target, props) {
     for (var _i = 0, _a10 = Object.keys(props); _i < _a10.length; _i++) {
@@ -2531,7 +2531,7 @@
     return createRectInit(paddings.left, paddings.top, width, height);
   }
   __name(getHTMLElementContentRect, "getHTMLElementContentRect");
-  var isSVGGraphicsElement = function() {
+  var isSVGGraphicsElement = (function() {
     if (typeof SVGGraphicsElement !== "undefined") {
       return function(target) {
         return target instanceof getWindowOf(target).SVGGraphicsElement;
@@ -2540,7 +2540,7 @@
     return function(target) {
       return target instanceof getWindowOf(target).SVGElement && typeof target.getBBox === "function";
     };
-  }();
+  })();
   function isDocumentElement(target) {
     return target === getWindowOf(target).document.documentElement;
   }
@@ -2578,7 +2578,7 @@
   __name(createRectInit, "createRectInit");
   var ResizeObservation = (
     /** @class */
-    function() {
+    (function() {
       function ResizeObservation2(target) {
         this.broadcastWidth = 0;
         this.broadcastHeight = 0;
@@ -2598,22 +2598,22 @@
         return rect;
       };
       return ResizeObservation2;
-    }()
+    })()
   );
   var ResizeObserverEntry = (
     /** @class */
-    /* @__PURE__ */ function() {
+    /* @__PURE__ */ (function() {
       function ResizeObserverEntry2(target, rectInit) {
         var contentRect = createReadOnlyRect(rectInit);
         defineConfigurable(this, { target, contentRect });
       }
       __name(ResizeObserverEntry2, "ResizeObserverEntry2");
       return ResizeObserverEntry2;
-    }()
+    })()
   );
   var ResizeObserverSPI = (
     /** @class */
-    function() {
+    (function() {
       function ResizeObserverSPI2(callback, controller, callbackCtx) {
         this.activeObservations_ = [];
         this.observations_ = new MapShim();
@@ -2694,12 +2694,12 @@
         return this.activeObservations_.length > 0;
       };
       return ResizeObserverSPI2;
-    }()
+    })()
   );
   var observers = typeof WeakMap !== "undefined" ? /* @__PURE__ */ new WeakMap() : new MapShim();
   var ResizeObserver = (
     /** @class */
-    /* @__PURE__ */ function() {
+    /* @__PURE__ */ (function() {
       function ResizeObserver2(callback) {
         if (!(this instanceof ResizeObserver2)) {
           throw new TypeError("Cannot call a class as a function.");
@@ -2713,7 +2713,7 @@
       }
       __name(ResizeObserver2, "ResizeObserver2");
       return ResizeObserver2;
-    }()
+    })()
   );
   [
     "observe",
@@ -2725,12 +2725,12 @@
       return (_a10 = observers.get(this))[method].apply(_a10, arguments);
     };
   });
-  var index = function() {
+  var index = (function() {
     if (typeof global$1.ResizeObserver !== "undefined") {
       return global$1.ResizeObserver;
     }
     return ResizeObserver;
-  }();
+  })();
   var _a5;
   var _NumberUnitDisplay = (_a5 = class extends import_msfs_sdk.AbstractNumberUnitDisplay {
     constructor() {

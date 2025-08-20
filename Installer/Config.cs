@@ -28,7 +28,7 @@ namespace Installer
         //CommBus Module
         public static readonly string OptionCommModuleInstallation = "CommModuleInstallation";
         public static readonly string OptionForceCommModuleUpdate = "ForceCommModuleUpdate";
-        public virtual string ModuleVersion { get; set; } = "0.1.0";
+        public virtual string ModuleVersion { get; set; } = "0.1.1";
 
         //Worker: .NET
         public virtual bool NetRuntimeDesktop { get; set; } = true;
