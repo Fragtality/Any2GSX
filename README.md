@@ -10,6 +10,13 @@ Generalized Version of [Fenix2GSX](https://github.com/Fragtality/Fenix2GSX) brin
 - **PilotsDeck** Integration bringing the GSX Menu to your StreamDeck (replacing the GSX Script known from my PilotsDeck Profiles)
 - Can be used together with **Fenix2GSX**, Any2GSX is *not* meant as a Replacement (check the [Addon NOTAMs](#44---fenix2gsx))
 
+<br/>
+
+Available Plugins, Channel and Profiles can be found in the Addon Repository:
+[Aircraft Plugins](https://github.com/Fragtality/Any2GSX-Plugins?tab=readme-ov-file#21---plugins)<br/>
+[Audio Channels](https://github.com/Fragtality/Any2GSX-Plugins?tab=readme-ov-file#3---available-channel-definitions)<br/>
+[Aircraft Profiles](https://github.com/Fragtality/Any2GSX-Plugins?tab=readme-ov-file#4---available-aircraft-profiles)<br/>
+
 <br/><br/>
 
 ## 1 - Introduction
