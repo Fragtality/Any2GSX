@@ -171,7 +171,7 @@ namespace Any2GSX.UI.Views.Monitor
         protected virtual void UpdateGsx()
         {
             UpdateBoolState(nameof(GsxRunning), nameof(GsxRunningColor), GsxController.CheckBinaries());
-            UpdateState<string>(nameof(GsxStarted), $"{GsxController?.CouatlLastStarted ?? 0} | {GsxController?.CouatlLastProgress ?? 0}");
+            UpdateState<string>(nameof(GsxStarted), $"{GsxController?.CouatlLastStarted ?? 0} | {GsxController?.CouatlLastProgress ?? 100}");
             UpdateColor(nameof(GsxStartedColor), GsxController.CouatlVarsValid);
             UpdateState<GsxMenuState>(nameof(GsxMenu), GsxController.Menu.MenuState);
             UpdateState<string>(nameof(GsxPaxTarget), $"{GsxServiceBoard?.SubPaxTarget?.GetValue<int>() ?? 0}  ({GsxController?.SubPilotTarget?.GetValue<int>() ?? 0} | {GsxController?.SubCrewTarget?.GetValue<int>() ?? 0})");

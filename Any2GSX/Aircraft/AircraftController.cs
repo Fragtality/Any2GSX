@@ -196,6 +196,9 @@ namespace Any2GSX.Aircraft
 
         protected virtual async Task OnWalkaroundWasSkipped()
         {
+            if (!IsConnected)
+                return;
+
             if (Aircraft.HasFobSaveRestore && SettingProfile.FuelSaveLoadFob && !Aircraft.ReadyForDepartureServices)
             {
                 double value = Config.GetFuelFob(Title, FuelCapacityKg, SettingProfile.FuelResetBaseKg, out bool saved);

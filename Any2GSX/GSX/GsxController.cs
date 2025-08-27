@@ -136,6 +136,8 @@ namespace Any2GSX.GSX
         protected override Task InitReceivers()
         {
             SimStore.AddVariable(GsxConstants.VarCouatlStarted).OnReceived += OnCouatlVariable;
+            SimStore.AddVariable(GsxConstants.VarCouatlStartProg5).OnReceived += OnCouatlVariable;
+            SimStore.AddVariable(GsxConstants.VarCouatlStartProg6).OnReceived += OnCouatlVariable;
             SimStore.AddVariable(GsxConstants.VarCouatlStartProg7).OnReceived += OnCouatlVariable;
 
             SimStore.AddVariable("SIM ON GROUND", SimUnitType.Bool);
@@ -180,8 +182,11 @@ namespace Any2GSX.GSX
             try
             {                
                 CouatlLastStarted = (int)(SimStore[GsxConstants.VarCouatlStarted]?.GetNumber() ?? 0);
-                CouatlLastProgress = (int)(SimStore[GsxConstants.VarCouatlStartProg7]?.GetNumber() ?? 0);
-                if (CouatlLastStarted == 1 && CouatlLastProgress == 100)
+                CouatlLastProgress = (int)Math.Max(
+                    Math.Max(SimStore[GsxConstants.VarCouatlStartProg5]?.GetNumber() ?? 100, SimStore[GsxConstants.VarCouatlStartProg6]?.GetNumber() ?? 100),
+                    SimStore[GsxConstants.VarCouatlStartProg7]?.GetNumber() ?? 100
+                    );
+                if (CouatlLastStarted == 1 && CouatlLastProgress == 0)
                 {
                     if (!CouatlVarsValid)
                     {
@@ -333,8 +338,19 @@ namespace Any2GSX.GSX
                         if (SkippedWalkAround && !WalkaroundNotified && AutomationController.IsStarted)
                         {
                             if (IsOnGround && AutomationController.State < AutomationState.Departure)
-                                await TaskTools.RunLogged(async () => await WalkaroundWasSkipped?.Invoke());
-                            WalkaroundNotified = true;
+                            {
+                                try
+                                {
+                                    await TaskTools.RunLogged(async () => await WalkaroundWasSkipped?.Invoke());
+                                    WalkaroundNotified = true;
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.LogException(ex);
+                                }
+                            }
+                            else
+                                WalkaroundNotified = true;
                         }
 
                         if (!AutomationController.IsStarted && CanAutomationRun)
@@ -518,8 +534,12 @@ namespace Any2GSX.GSX
             SimStore.Remove(GsxConstants.VarDoorToggleCargo2);
             SimStore.Remove(GsxConstants.VarDoorToggleCargo3);
             SimStore[GsxConstants.VarCouatlStarted].OnReceived -= OnCouatlVariable;
+            SimStore[GsxConstants.VarCouatlStartProg5].OnReceived -= OnCouatlVariable;
+            SimStore[GsxConstants.VarCouatlStartProg6].OnReceived -= OnCouatlVariable;
             SimStore[GsxConstants.VarCouatlStartProg7].OnReceived -= OnCouatlVariable;
             SimStore.Remove(GsxConstants.VarCouatlStarted);
+            SimStore.Remove(GsxConstants.VarCouatlStartProg5);
+            SimStore.Remove(GsxConstants.VarCouatlStartProg6);
             SimStore.Remove(GsxConstants.VarCouatlStartProg7);
 
             SimStore.Remove("SIM ON GROUND");
