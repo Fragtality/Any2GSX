@@ -465,6 +465,12 @@ This Section describes the general Flow of the App and Flight Phases it will go 
   - For Aircrafts not having a Payload-Sync, the Payload has to be manually removed through EFB/FMS.
   - If the Aircraft has custom Doors and no native Door-Sync, the Doors need to be opened/closed manually for Deboarding.
 - Once the Deboard Service is reported as completed, the App will advance to the Turn-Around Phase.
+- If the Option is checked to Run Departure Services in this Phase:
+  - Wait for the Deboard Service to be really active (deboarding Pax, unloading Cargo) before publishing a new SimBrief OFP
+  - The App will use the same Timings as in the Turn-Around Phase to check for new OFP (see below) and it import it automatically
+  - A new OFP will only be imported if the Gate is connected (Jetway/Stairs) and the Plane signals Ready for Departure (depends on Profile/Plugin - default is Avionics powered & external Power connected & Nav Lights On)
+  - Once a new OFP Id is loaded, the Departure Services will be called as configured (except the next Service being Boarding). If the Services get directly active depends on GSX allowing certain Services to be run in parallel.
+  - The App will switch directly to the Departure Phase after Deboarding is completed
 
 <br/><br/>
 

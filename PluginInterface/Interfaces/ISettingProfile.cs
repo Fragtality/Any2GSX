@@ -24,7 +24,8 @@ namespace Any2GSX.PluginInterface.Interfaces
         public bool SkipWalkAround { get ; }
         public bool RunAutomationService { get ; }
         public int ConnectPca { get ; }
-        public bool CallReposition { get ; }
+        public bool CallReposition { get; }
+        public bool PcaOverride { get ; }
         public bool CallJetwayStairsOnPrep { get ; }
         public bool CallJetwayStairsDuringDeparture { get ; }
         public bool CallJetwayStairsOnArrival { get ; }
@@ -36,6 +37,7 @@ namespace Any2GSX.PluginInterface.Interfaces
         public int CallPushbackWhenTugAttached { get ; }
         public bool ClearGroundEquipOnBeacon { get ; }
         public bool CallDeboardOnArrival { get ; }
+        public bool RunDepartureOnArrival { get; }
         public int ChockDelayMin { get ; }
         public int ChockDelayMax { get ; }
         public int FinalDelayMin { get ; }

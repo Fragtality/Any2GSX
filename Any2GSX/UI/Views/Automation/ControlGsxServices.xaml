@@ -34,6 +34,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <CheckBox Grid.Column="0" Grid.Row="0" IsChecked="{Binding CallReposition}" Margin="6,8,6,6" Style="{StaticResource CheckBoxSettingItem}"
@@ -51,7 +52,12 @@
                     <TextBlock>Call Deboard on <Underline>Arrival</Underline> (after Engines &amp; Beacon off)</TextBlock>
                 </CheckBox>
 
-                <Grid Grid.Column="0" Grid.Row="3">
+                <CheckBox Grid.Column="0" Grid.Row="3" IsChecked="{Binding RunDepartureOnArrival}" Style="{StaticResource CheckBoxSettingItem}"
+                          ToolTip="Already start the Departure Services while Deboarding is active.&#x0a;Publish a new SimBrief OFP and ensure the Aircraft is in the Ready for Departure State (depends on Profile/Plugin) and Jetway or Stairs being reported as connected.&#x0a;When a new OFP ID is detected in this State, it will be imported and Departure Services are triggered&#x0a;The Departure Services will be called as configured - as long as the next Service is not Boarding!&#x0a;The Deboard Service will not be considered as previous Service.&#x0a;Note that GSX does not allow certain Services to active at the same Time.">
+                    <TextBlock>Start <Underline>Departure</Underline> Services while <Underline>Deboarding</Underline> is active</TextBlock>
+                </CheckBox>
+
+                <Grid Grid.Column="0" Grid.Row="4">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>

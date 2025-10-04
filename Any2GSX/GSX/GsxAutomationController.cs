@@ -75,6 +75,8 @@ namespace Any2GSX.GSX
         public virtual bool IsFinalReceived { get; protected set; } = false;
         public virtual int FinalDelay { get; protected set; } = 0;
         public virtual int ChockDelay { get; protected set; } = 0;
+        public virtual int OfpArrivalId { get; protected set; } = 0;
+        public virtual bool RunDepartureOnArrival { get; protected set; } = false;
 
         public event Func<AutomationState, Task> OnStateChange;
         public event Func<Task> OnFinalReceived;
@@ -109,6 +111,8 @@ namespace Any2GSX.GSX
             IsFinalReceived = false;
             ChockDelay = 0;
             FinalDelay = 0;
+            OfpArrivalId = 0;
+            RunDepartureOnArrival = false;
 
             DepartureServicesCompleted = false;
             DepartureServicesCalled?.Clear();
@@ -135,6 +139,8 @@ namespace Any2GSX.GSX
             IsFinalReceived = false;
             ChockDelay = 0;
             FinalDelay = 0;
+            OfpArrivalId = 0;
+            RunDepartureOnArrival = false;
 
             DepartureServicesCompleted = false;
             DepartureServicesCalled.Clear();
@@ -329,19 +335,67 @@ namespace Any2GSX.GSX
                 {
                     await GsxController.Menu.OpenHide();
                     await ServiceDeboard.SetPaxTarget(Flightplan.CountPax);
-                    StateChange(AutomationState.Arrival);                    
+                    OfpArrivalId = Flightplan.LastId;
+                    
+                    if (Profile.RunDepartureOnArrival)
+                    {
+                        Logger.Debug($"Setting inital Delay ({Profile.DelayTurnAroundSeconds}s)");
+                        TimeNextTurnCheck = DateTime.Now + TimeSpan.FromSeconds(Profile.DelayTurnAroundSeconds);
+                        InitialTurnDelay = true;
+                        Flightplan.Unload();
+                    }
+
+                    StateChange(AutomationState.Arrival);
                 }
                 else if (ServiceDeboard.IsRunning)
                 {
                     Logger.Information($"Deboard Service already running - skipping TaxiIn");
+                    OfpArrivalId = Flightplan.LastId;
+
+                    if (Profile.RunDepartureOnArrival)
+                    {
+                        Logger.Debug($"Setting inital Delay ({Profile.DelayTurnAroundSeconds}s)");
+                        TimeNextTurnCheck = DateTime.Now + TimeSpan.FromSeconds(Profile.DelayTurnAroundSeconds);
+                        InitialTurnDelay = true;
+                        Flightplan.Unload();
+                    }
+
                     StateChange(AutomationState.Arrival);
                 }
             }
-            //Arrival => Turnaround
+            //Arrival => Turnaround (or Departure)
             else if (State == AutomationState.Arrival)
             {
+                if (Profile.RunDepartureOnArrival && !RunDepartureOnArrival)
+                {
+                    if (ServiceDeboard.State >= GsxServiceState.Active && Aircraft.ReadyForDepartureServices && IsGateConnected && TimeNextTurnCheck <= DateTime.Now && await Flightplan.CheckNewOfp())
+                    {
+                        await Flightplan.Import();
+                    }
+                    else if (TimeNextTurnCheck <= DateTime.Now)
+                    {
+                        Logger.Debug($"Setting check Delay ({Profile.DelayTurnRecheckSeconds}s)");
+                        TimeNextTurnCheck = DateTime.Now + TimeSpan.FromSeconds(Profile.DelayTurnRecheckSeconds);
+                        InitialTurnDelay = false;
+                    }
+                }
+
                 if (ServiceDeboard.IsCompleted)
-                    SetTurnaround();
+                {
+                    if (!Profile.RunDepartureOnArrival && !RunDepartureOnArrival)
+                        SetTurnaround();
+                    else if (RunDepartureOnArrival)
+                    {
+                        GsxController.Menu.SuppressMenuRefresh = false;
+                        if (!ServiceBoard.IsRunning)
+                        {
+                            if (Profile.RunAutomationService && Profile.RefreshGsxOnTurn)
+                                await RefreshGsxSimbrief();
+                            await ServiceBoard.SetPaxTarget(Flightplan.CountPax);
+                        }
+                        StateChange(AutomationState.Departure);
+                    }
+                }
             }
             //Turnaround => Departure
             else if (State == AutomationState.TurnAround)
@@ -543,12 +597,21 @@ namespace Any2GSX.GSX
                     await Task.Delay(500, RequestToken);
                 }
 
-                if (Aircraft.HasPca && !Aircraft.EquipmentPca && Profile.ConnectPca > 0)
+                if (Aircraft.HasPca)
                 {
                     if (Profile.ConnectPca == 1 || (Profile.ConnectPca == 2 && HasGateJetway))
                     {
-                        Logger.Information($"Automation: Placing PCA on Preparation");
-                        await Aircraft.SetEquipmentPca(true);
+                        if (!Aircraft.EquipmentPca)
+                        {
+                            Logger.Information($"Automation: Placing PCA on Preparation");
+                            await Aircraft.SetEquipmentPca(true);
+                            await Task.Delay(500, RequestToken);
+                        }
+                    }
+                    else if (Aircraft.EquipmentPca && Profile.PcaOverride)
+                    {
+                        Logger.Information($"Automation: Disconnecting PCA (not configured)");
+                        await Aircraft.SetEquipmentPca(false);
                         await Task.Delay(500, RequestToken);
                     }
                 }
@@ -583,7 +646,7 @@ namespace Any2GSX.GSX
 
         protected virtual async Task RunDeparture()
         {
-            if (Aircraft.HasPca && Aircraft.IsApuRunning && Aircraft.IsApuBleedOn && Aircraft.EquipmentPca)
+            if (Aircraft.HasPca && Aircraft.IsApuRunning && Aircraft.IsApuBleedOn && Aircraft.EquipmentPca && State == AutomationState.Departure)
             {
                 Logger.Information($"Automation: Disconnecting PCA");
                 await Aircraft.SetEquipmentPca(false);
@@ -604,7 +667,7 @@ namespace Any2GSX.GSX
                         }
                     }
                 }
-                else if (Aircraft.IsBoardingCompleted && !ServiceBoard.IsCalled)
+                else if (Aircraft.IsBoardingCompleted && !ServiceBoard.IsCalled && State == AutomationState.Departure)
                 {
                     Logger.Information($"Plane already boarded - skipping all Departure Services");
                     DepartureServicesCompleted = true;
@@ -715,7 +778,7 @@ namespace Any2GSX.GSX
                     {
                         Logger.Information($"Automation: Departure Service {DepartureServicesCurrent.ServiceType} called externally");
                         if (Aircraft.HasFuelSynch && current.Type == GsxServiceType.Refuel
-                            && !AircraftController.RefuelTimer.IsEnabled  && current.IsActive && GsxController.ServiceRefuel.IsHoseConnected)
+                            && !AircraftController.RefuelTimer.IsEnabled && current.IsActive && GsxController.ServiceRefuel.IsHoseConnected)
                         {
                             Logger.Debug($"Starting Refuel Sync for already running GSX Service");
                             await AircraftController.OnRefuelHoseChanged(true);
@@ -728,6 +791,13 @@ namespace Any2GSX.GSX
                     }
 
                     MoveDepartureQueue(current, skipped);
+                }
+
+                if (State == AutomationState.Departure && ServiceRefuel.State == GsxServiceState.Requested 
+                    && Aircraft.IsFuelOnStairSide && RunDepartureOnArrival  && ServiceStairs.IsConnected)
+                {
+                    Logger.Information($"Automation: Disconnecting Stairs for Refuel Truck to arrive");
+                    await ServiceStairs.Remove();
                 }
             }
         }
@@ -996,12 +1066,21 @@ namespace Any2GSX.GSX
                 await Task.Delay(500, RequestToken);
             }
 
-            if (Aircraft.HasPca && !Aircraft.EquipmentPca && Profile.ConnectPca > 0 && IsGateConnected)
+            if (Aircraft.HasPca && IsGateConnected)
             {
                 if (Profile.ConnectPca == 1 || (Profile.ConnectPca == 2 && HasGateJetway))
                 {
-                    Logger.Information($"Automation: Placing PCA on Arrival");
-                    await Aircraft.SetEquipmentPca(true);
+                    if (!Aircraft.EquipmentPca)
+                    {
+                        Logger.Information($"Automation: Placing PCA on Arrival");
+                        await Aircraft.SetEquipmentPca(true);
+                        await Task.Delay(500, RequestToken);
+                    }
+                }
+                else if (Aircraft.EquipmentPca && Profile.PcaOverride)
+                {
+                    Logger.Information($"Automation: Disconnecting PCA (not configured)");
+                    await Aircraft.SetEquipmentPca(false);
                     await Task.Delay(500, RequestToken);
                 }
             }
@@ -1035,6 +1114,17 @@ namespace Any2GSX.GSX
                     Logger.Information("Automation: Call Stairs on Arrival");
                     await ServiceStairs.Call();
                 }
+            }
+
+            if (Profile.RunDepartureOnArrival && !RunDepartureOnArrival && ServiceDeboard.IsActive && Aircraft.ReadyForDepartureServices && Flightplan.IsLoaded && OfpArrivalId != Flightplan.LastId)
+            {
+                Logger.Information("Automation: Run Departure Services during Arrival");
+                RunDepartureOnArrival = true;
+            }
+
+            if (RunDepartureOnArrival && DepartureServicesCurrent.ServiceType != GsxServiceType.Boarding)
+            {
+                await RunDeparture();
             }
         }
     }

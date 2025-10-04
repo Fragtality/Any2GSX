@@ -130,6 +130,7 @@ namespace Any2GSX.AppConfig
         public virtual bool SkipWalkAround { get; set; } = true;
         public virtual bool RunAutomationService { get; set; } = false;
         public virtual int ConnectPca { get; set; } = 2; // 0 => false | 1 => true | 2 => only on jetway stand
+        public virtual bool PcaOverride { get; set; } = true;
         public virtual bool CallReposition { get; set; } = true;
         public virtual bool CallJetwayStairsOnPrep { get; set; } = true;
         public virtual bool CallJetwayStairsDuringDeparture { get; set; } = true;
@@ -143,6 +144,7 @@ namespace Any2GSX.AppConfig
         public virtual bool ClearGroundEquipOnBeacon { get; set; } = true;
         public virtual bool GradualGroundEquipRemoval { get; set; } = false;
         public virtual bool CallDeboardOnArrival { get; set; } = true;
+        public virtual bool RunDepartureOnArrival { get; set; } = false;
         public virtual int ChockDelayMin { get; set; } = 10;
         public virtual int ChockDelayMax { get; set; } = 20;
         public virtual int FinalDelayMin { get; set; } = 90;

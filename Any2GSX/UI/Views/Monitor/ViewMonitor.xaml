@@ -348,17 +348,22 @@
                     <Label Content="{Binding PluginCargo}"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Grid.Row="3" Style="{StaticResource LabelMonitorPanel}" ToolTip="Fuel currently on Board?">
+                <StackPanel Grid.Column="1" Grid.Row="3" Style="{StaticResource LabelMonitorPanel}" ToolTip="Does the Aircraft Plugin signal Ready for Departure?">
+                    <Label>ReadyDeparture</Label>
+                    <Label Content="{Binding PluginReadyDeparture}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Grid.Row="3" Style="{StaticResource LabelMonitorPanel}" ToolTip="Fuel currently on Board?">
                     <Label>FOB</Label>
                     <Label Content="{Binding PluginFuelOnBoard}"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" Grid.Row="3" Style="{StaticResource LabelMonitorPanel}" ToolTip="Total Weight of the Aircraft?">
+                <StackPanel Grid.Column="3" Grid.Row="3" Style="{StaticResource LabelMonitorPanel}" ToolTip="Total Weight of the Aircraft?">
                     <Label>GW</Label>
                     <Label Content="{Binding PluginTotalWeight}"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="3" Grid.Row="3" Style="{StaticResource LabelMonitorPanel}" ToolTip="Maximum Fuel Capacity of the Aircraft?">
+                <StackPanel Grid.Column="4" Grid.Row="3" Style="{StaticResource LabelMonitorPanel}" ToolTip="Maximum Fuel Capacity of the Aircraft?">
                     <Label>Fuel Capacity</Label>
                     <Label Content="{Binding PluginFuelCapacity}"/>
                 </StackPanel>

@@ -135,7 +135,10 @@ namespace Any2GSX.Aircraft
                 var json = await GetJsonNode();
 
                 if (GetJsonInt(json["params"]!["request_id"], out int id) && id == LastId)
+                {
+                    Logger.Information("No Import - same OFP ID.");
                     return false;
+                }
 
                 if (GetJsonString(json["params"]!["units"], out string units))
                 {

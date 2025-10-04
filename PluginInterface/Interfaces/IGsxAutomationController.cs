@@ -19,6 +19,8 @@ namespace Any2GSX.PluginInterface.Interfaces
         public int ChockDelay { get; }
         public DateTime TimeNextTurnCheck { get; }
         public bool InitialTurnDelay { get; }
+        public int OfpArrivalId { get; }
+        public bool RunDepartureOnArrival { get; }
 
         public AutomationState State { get; }
 

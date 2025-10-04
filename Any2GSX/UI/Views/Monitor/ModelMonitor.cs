@@ -335,6 +335,7 @@ namespace Any2GSX.UI.Views.Monitor
                 UpdateState<bool>(nameof(PluginSmartButton), AircraftController?.Aircraft?.SmartButtonRequest ?? false);
                 UpdateState<int>(nameof(PluginSpeed), AircraftController?.Aircraft?.GroundSpeed ?? 0);
                 UpdateState<bool>(nameof(PluginCargo), AircraftController?.Aircraft?.IsCargo ?? false);
+                UpdateState<bool>(nameof(PluginReadyDeparture), AircraftController?.Aircraft?.ReadyForDepartureServices ?? false);
 
                 UpdateState<string>(nameof(PluginFuelCapacity), $"{Math.Round(Config.ConvertKgToDisplayUnit(AircraftController?.FuelCapacityKg ?? 0), 1)} {Config.DisplayUnitCurrentString}");
                 UpdateState<string>(nameof(PluginFuelOnBoard), $"{Math.Round(Config.ConvertKgToDisplayUnit(AircraftController?.Aircraft?.FuelOnBoardKg ?? 0), 1)} {Config.DisplayUnitCurrentString}");
@@ -390,6 +391,9 @@ namespace Any2GSX.UI.Views.Monitor
 
         [ObservableProperty]
         protected bool _PluginCargo = false;
+
+        [ObservableProperty]
+        protected bool _PluginReadyDeparture = false;
 
         [ObservableProperty]
         protected string _PluginFuelCapacity = "0.0";

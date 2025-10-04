@@ -122,6 +122,7 @@ namespace Any2GSX.UI.Views.Automation
         public virtual bool ClearGroundEquipOnBeacon { get => Source.ClearGroundEquipOnBeacon; set => SetModelValue<bool>(value); }
         public virtual bool GradualGroundEquipRemoval { get => Source.GradualGroundEquipRemoval; set => SetModelValue<bool>(value); }
         public virtual int ConnectPca { get => Source.ConnectPca; set => SetModelValue<int>(value); }
+        public virtual bool PcaOverride { get => Source.PcaOverride; set => SetModelValue<bool>(value); }
         public virtual int ChockDelayMin { get => Source.ChockDelayMin;
             set
             {
@@ -188,6 +189,7 @@ namespace Any2GSX.UI.Views.Automation
         public virtual bool CallReposition { get => Source.CallReposition; set => SetModelValue<bool>(value); }
         public virtual bool SkipFuelOnTankering { get => Source.SkipFuelOnTankering; set => SetModelValue<bool>(value); }
         public virtual bool CallDeboardOnArrival { get => Source.CallDeboardOnArrival; set => SetModelValue<bool>(value); }
+        public virtual bool RunDepartureOnArrival { get => Source.RunDepartureOnArrival; set => SetModelValue<bool>(value); }
         public virtual ModelDepartureServices DepartureServices { get; }
         public virtual Dictionary<GsxServiceActivation, string> TextServiceActivations => ServiceConfig.TextServiceActivations;
         public virtual Dictionary<GsxServiceConstraint, string> TextServiceConstraints => ServiceConfig.TextServiceConstraints;
