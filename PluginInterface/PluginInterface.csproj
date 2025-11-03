@@ -30,7 +30,7 @@
   </Target>
 
   <ItemGroup>
-    <PackageReference Include="CFIT.AppFramework" Version="2025.291.21.2433" />
+    <PackageReference Include="CFIT.AppFramework" Version="2025.307.17.2091" />
     <PackageReference Include="CFIT.AppLogger" Version="2025.291.21.2380" />
     <PackageReference Include="CFIT.AppTools" Version="2025.291.21.2396" />
     <PackageReference Include="CFIT.SimConnectLib" Version="2025.291.21.2420" />

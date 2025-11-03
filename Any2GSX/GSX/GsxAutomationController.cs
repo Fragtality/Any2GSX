@@ -888,16 +888,16 @@ namespace Any2GSX.GSX
                 }
             }
 
-            if (GroundEquipmentPlaced && !Aircraft.IsExternalPowerConnected && Aircraft.IsBrakeSet && Aircraft.LightBeacon)
+            if (!Aircraft.IsExternalPowerConnected && Aircraft.IsBrakeSet && Aircraft.LightBeacon && !Aircraft.IsEngineRunning)
             {
-                if (Profile.ClearGroundEquipOnBeacon)
+                if (Profile.ClearGroundEquipOnBeacon && GroundEquipmentPlaced)
                 {
                     Logger.Information($"Automation: Remove Ground Equipment on Beacon");
                     SetGroundEquip(false);
                     GroundEquipmentPlaced = false;
                 }
                 
-                if (Profile.CallPushbackOnBeacon && !ServicePushBack.IsCalled && ServicePushBack.State < GsxServiceState.Requested)
+                if (Profile.CallPushbackOnBeacon && !ServicePushBack.IsCalled && ServicePushBack.State < GsxServiceState.Requested && !ServicePushBack.WasActive)
                 {
                     Logger.Information($"Automation: Call Pushback (Beacon / Prepared for Push)");
                     await ServicePushBack.Call();
