@@ -129,6 +129,7 @@ namespace Any2GSX.AppConfig
         //GSX Automation
         public virtual bool SkipWalkAround { get; set; } = true;
         public virtual bool RunAutomationService { get; set; } = false;
+        public virtual bool ConnectGpuWithApuRunning { get; set; } = true;
         public virtual int ConnectPca { get; set; } = 2; // 0 => false | 1 => true | 2 => only on jetway stand
         public virtual bool PcaOverride { get; set; } = true;
         public virtual bool CallReposition { get; set; } = true;

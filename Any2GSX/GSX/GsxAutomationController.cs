@@ -590,7 +590,8 @@ namespace Any2GSX.GSX
                     await Task.Delay(500, RequestToken);
                 }
 
-                if (Aircraft.HasGpuInternal && !Aircraft.EquipmentPower)
+                if (Aircraft.HasGpuInternal && !Aircraft.EquipmentPower &&
+                    (Profile.ConnectGpuWithApuRunning || (!Profile.ConnectGpuWithApuRunning && !Aircraft.IsApuRunning)))
                 {
                     Logger.Information($"Automation: Placing GPU on Preparation");
                     await Aircraft.SetEquipmentPower(true);
