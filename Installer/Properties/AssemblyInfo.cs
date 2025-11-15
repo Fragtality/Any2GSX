@@ -5,7 +5,7 @@ using System.Windows;
 // Allgemeine Informationen über eine Assembly werden über die folgenden
 // Attribute gesteuert. Ändern Sie diese Attributwerte, um die Informationen zu ändern,
 // die einer Assembly zugeordnet sind.
-[assembly: AssemblyTitle("Any2GSX Installer v0.1.23.0 (2025.11.07.1641)")]
+[assembly: AssemblyTitle("Any2GSX Installer v0.1.24.0 (2025.11.15.1342)")]
 [assembly: AssemblyDescription("Installer Application for Any2GSX")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Fragtality")]
@@ -46,5 +46,5 @@ using System.Windows;
 //      Buildnummer
 //      Revision
 //
-[assembly: AssemblyVersion("0.1.23.0")]
-[assembly: AssemblyFileVersion("0.1.23.0")]
+[assembly: AssemblyVersion("0.1.24.0")]
+[assembly: AssemblyFileVersion("0.1.24.0")]
