@@ -67,10 +67,12 @@ The Rest can be left at Default.<br/>
 
 There are two Version Channel for Updates to be released:
 
-1) The "**Dev**" or "Beta" Version is located in the Source Files as [Any2GSX-Installer-latest](https://github.com/Fragtality/Any2GSX/blob/master/Any2GSX-Installer-latest.exe)
-2) The "**Release**" or "Stable" Version is located under [Releases](https://github.com/Fragtality/Any2GSX/releases) (Under Assests, the Any2GSX-Installer-vXYZ.exe File)
+1) The "**Dev**" or "Beta" Version is located in the Source Files as [Any2GSX-Installer-latest](https://github.com/Fragtality/Any2GSX/blob/master/Any2GSX-Installer-latest.exe)<br/>
+(Click 'View Raw' or the Download Icon to the Right to download)
+2) The "**Release**" or "Stable" Version is located under [Releases](https://github.com/Fragtality/Any2GSX/releases)
+<br/>(Under Assests, the Any2GSX-Installer-vXYZ.exe File)
 
-Whenever there is a new Commit to Code, the -latest Installer will contain these Changes. For example Fixes to open Issues, Changes for GSX Updates or new Features added. So that these Changes & Fixes can be tested publicly.<br/>
+Whenever there is a new Commit to Code, the -latest Installer will contain these Changes (the Description of the Commit(s) summarizes what has changed). For example Fixes to open Issues, Changes for GSX Updates or new Features added. So that these Changes & Fixes can be tested publicly.<br/>
 After some Time and positive/good Feedback, all these Changes will be published as the Release Version.<br/>
 So some general Rule-of-Thumbs:
 
