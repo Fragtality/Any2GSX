@@ -156,7 +156,7 @@ namespace Any2GSX
             profile ??= Config.SettingProfiles.Where(p => p.IsDefault).First() ?? new SettingProfile() { IsReadOnly = true };
 
             Logger.Information($"Matched Setting Profile: {profile}");
-            return profile;
+            return Config.CheckServices(profile);
         }
 
         protected virtual SettingProfile SearchSettingProfile(IEnumerable<SettingProfile> settingProfiles)

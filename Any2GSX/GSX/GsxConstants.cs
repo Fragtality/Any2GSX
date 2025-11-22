@@ -47,6 +47,7 @@ namespace Any2GSX.GSX
         public static string VarDeiceAvail { get; } = "L:FSDT_Deice_Available";
         public static string VarServiceLavatory { get; } = "L:FSDT_GSX_LAVATORY_STATE";
         public static string VarServiceWater { get; } = "L:FSDT_GSX_WATER_STATE";
+        public static string VarServiceCleaning { get; } = "L:FSDT_GSX_CLEANING_STATE";
         public static string VarPaxTarget { get; } = "L:FSDT_GSX_NUMPASSENGERS";
         public static string VarPaxTotalBoard { get; } = "L:FSDT_GSX_NUMPASSENGERS_BOARDING_TOTAL";
         public static string VarPaxTotalDeboard { get; } = "L:FSDT_GSX_NUMPASSENGERS_DEBOARDING_TOTAL";
@@ -77,7 +78,7 @@ namespace Any2GSX.GSX
         //Menu
         public static string GsxChoice { get; } = "[GSX choice]";
         public static string MenuGate { get; } = "Activate Services at";
-        public static string MenuParkingSelect { get; } = "Select Parking at";
+        public static string MenuParkingSelect { get; } = "Select Position at";
         public static string MenuParkingChange { get; } = "Change parking or service";
         public static Regex MenuRegexFacility { get; } = new(@"^Change Facility \[(.+)\]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         public static Regex MenuRegexGate { get; } = new(@"\s{0,1}([A-Z]{1,2}[0-9]{1,3}[A-Z]{0,2})\s{0,1}|\s{0,1}([A-Z]{0,2}[0-9]{1,3}[A-Z]{1,2})\s{0,1}", RegexOptions.Compiled | RegexOptions.RightToLeft);

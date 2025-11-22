@@ -111,6 +111,7 @@ namespace Any2GSX.GSX
             _ = new GsxServiceDeice(this);
             _ = new GsxServiceLavatory(this);
             _ = new GsxServiceWater(this);
+            _ = new GsxServiceCleaning(this);
         }
 
         public virtual IGsxService GetService(GsxServiceType type)

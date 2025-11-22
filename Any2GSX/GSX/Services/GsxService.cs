@@ -75,7 +75,8 @@ namespace Any2GSX.GSX.Services
 
         protected virtual void RunStateActive()
         {
-
+            WasActive = true;
+            NotifyActive();
         }
 
         protected virtual void RunStateCompleted()
@@ -99,9 +100,7 @@ namespace Any2GSX.GSX.Services
             else if (sub.GetNumber() == 5)
             {
                 Logger.Information($"{Type} Service active");
-                WasActive = true;
                 RunStateActive();
-                NotifyActive();
             }
             else if (EvaluateComplete(sub))
             {

@@ -131,39 +131,46 @@
       "ClearGateMenuOption": 4,
       "DepartureServices": {
         "0": {
+          "ServiceType": 13,
+          "ServiceActivation": 2,
+          "ServiceConstraint": 2,
+          "MinimumFlightDuration": "00:00:00",
+          "CallOnCargo": false
+        },
+        "1": {
+          "ServiceType": 10,
+          "ServiceActivation": 2,
+          "ServiceConstraint": 2,
+          "MinimumFlightDuration": "00:00:00",
+          "CallOnCargo": false
+        },
+        "2": {
           "ServiceType": 2,
           "ServiceActivation": 2,
           "ServiceConstraint": 0,
           "MinimumFlightDuration": "00:00:00",
-          "CallOnCargo": true
+          "CallOnCargo": false
         },
-        "1": {
+        "3": {
           "ServiceType": 3,
           "ServiceActivation": 2,
           "ServiceConstraint": 0,
           "MinimumFlightDuration": "00:00:00",
           "CallOnCargo": false
         },
-        "2": {
-          "ServiceType": 10,
-          "ServiceActivation": 0,
-          "ServiceConstraint": 0,
-          "MinimumFlightDuration": "00:00:00",
-          "CallOnCargo": false
-        },
-        "3": {
-          "ServiceType": 9,
-          "ServiceActivation": 0,
-          "ServiceConstraint": 0,
-          "MinimumFlightDuration": "00:00:00",
-          "CallOnCargo": false
-        },
         "4": {
+          "ServiceType": 9,
+          "ServiceActivation": 3,
+          "ServiceConstraint": 0,
+          "MinimumFlightDuration": "00:00:00",
+          "CallOnCargo": false
+        },
+        "5": {
           "ServiceType": 4,
           "ServiceActivation": 6,
           "ServiceConstraint": 0,
           "MinimumFlightDuration": "00:00:00",
-          "CallOnCargo": true
+          "CallOnCargo": false
         }
       },
       "RunAudioService": false,
@@ -174,7 +181,7 @@
   ],
   "FuelFobSaved": {},
   "FuelResetPercent": 0.02,
-  "ConfigVersion": 11,
+  "ConfigVersion": 12,
   "LogInterval": 3,
   "SizeLimit": 10485760,
   "LogCount": 3,

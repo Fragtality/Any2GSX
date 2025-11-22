@@ -1,4 +1,5 @@
-﻿using Any2GSX.PluginInterface.Interfaces;
+﻿using Any2GSX.GSX;
+using Any2GSX.PluginInterface.Interfaces;
 using CFIT.AppFramework.AppConfig;
 using CFIT.AppLogger;
 using CFIT.AppTools;
@@ -112,6 +113,25 @@ namespace Any2GSX.AppConfig
                 SettingProfiles.Add(new SettingProfile() { IsReadOnly = true });
         }
 
+        public virtual SettingProfile CheckServices(SettingProfile profile)
+        {
+            if (!profile.DepartureServices.Any(s => s.Value.ServiceType == GsxServiceType.Cleaning))
+            {
+                var old = profile.DepartureServices.ToDictionary();
+                profile.DepartureServices.Clear();
+                int index = 0;
+                profile.DepartureServices.Add(index, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.AfterCalled, TimeSpan.Zero, GsxServiceConstraint.TurnAround));
+                index++;
+                foreach (var service in old)
+                {
+                    profile.DepartureServices.Add(index, service.Value);
+                    index++;
+                }
+            }
+
+            return profile;
+        }
+
         protected override void UpdateConfiguration(int buildConfigVersion)
         {
             if (ConfigVersion < 2 && buildConfigVersion >= 2)
@@ -136,6 +156,26 @@ namespace Any2GSX.AppConfig
             if (ConfigVersion < 6 && buildConfigVersion >= 6)
             {
                 GsxMenuStartupMaxFail = 4;
+            }
+
+            if (ConfigVersion < 12 && buildConfigVersion >= 12)
+            {
+                foreach (var profile in SettingProfiles)
+                {
+                    if (!profile.DepartureServices.Any(s => s.Value.ServiceType == GsxServiceType.Cleaning))
+                    {
+                        var old = profile.DepartureServices.ToDictionary();
+                        profile.DepartureServices.Clear();
+                        int index = 0;
+                        profile.DepartureServices.Add(index, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.AfterCalled, TimeSpan.Zero, GsxServiceConstraint.TurnAround));
+                        index++;
+                        foreach (var service in old)
+                        {
+                            profile.DepartureServices.Add(index, service.Value);
+                            index++;
+                        }
+                    }
+                }
             }
         }
 
@@ -169,6 +209,7 @@ namespace Any2GSX.AppConfig
                 Logger.Warning($"SettingProfile is NULL");
                 return result;
             }
+            profile = CheckServices(profile);
 
             var query = SettingProfiles.Where(p => p.Name.Equals(profile.Name, StringComparison.InvariantCultureIgnoreCase));
             if (query.Any())
