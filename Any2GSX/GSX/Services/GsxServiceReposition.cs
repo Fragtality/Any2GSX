@@ -48,5 +48,10 @@ namespace Any2GSX.GSX.Services
         {
             return SequenceResult;
         }
+
+        protected override void SetStateVariable(GsxServiceState state)
+        {
+
+        }
     }
 }

@@ -55,6 +55,7 @@ namespace Any2GSX.AppConfig
         public virtual int GsxMenuStartupMaxFail { get; set; } = 3;
         public virtual bool RestartGsxStartupFail { get; set; } = false;
         public virtual int WaitGsxRestart { get; set; } = 15;
+        public virtual bool ResetGsxStateVarsFlight { get; set; } = true;
         public virtual bool RestartGsxOnTaxiIn { get; set; } = false;
         public virtual int DelayGsxBinaryStart { get; set; } = 2000;
         public virtual string AudioDebugFile { get; set; } = "log\\AudioDebug.txt";

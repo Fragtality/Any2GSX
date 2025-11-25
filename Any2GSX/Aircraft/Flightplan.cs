@@ -37,6 +37,7 @@ namespace Any2GSX.Aircraft
         public virtual TimeSpan Duration { get; set; }
         public virtual double FuelRampKg { get; set; }
         public virtual int CountPax { get; set; }
+        public virtual int MaxPax { get; set; }
         public virtual int DiffPax { get; set; }
         public virtual double DiffPayloadKg { get; set; }
         public virtual int CountBags { get; set; }
@@ -227,6 +228,14 @@ namespace Any2GSX.Aircraft
                 else
                     return false;
 
+                if (GetJsonInt(json["aircraft"]!["max_passengers"], out int maxPax) && maxPax > 0)
+                    MaxPax = maxPax;
+                else
+                {
+                    MaxPax = -1;
+                    Logger.Warning("Maximum Passengers could not be parsed from SimBrief");
+                }
+
                 Id = id;
                 LastId = id;
 
@@ -234,6 +243,9 @@ namespace Any2GSX.Aircraft
                 if (SettingProfile.RandomizePax && AppService.Instance?.AircraftController?.Aircraft?.IsCargo == false)
                 {
                     DiffPax = Random.Shared.Next(SettingProfile.RandomizePaxMaxDiff * -1, SettingProfile.RandomizePaxMaxDiff);
+                    if (MaxPax > 0 && CountPax + DiffPax > MaxPax)
+                        DiffPax = MaxPax - CountPax;
+
                     if (CountPax + DiffPax > 0)
                     {
                         CountPax += DiffPax;

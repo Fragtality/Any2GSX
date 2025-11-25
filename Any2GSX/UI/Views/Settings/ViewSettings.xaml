@@ -43,6 +43,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 
                 <TextBlock Grid.Column="0" Grid.Row="0" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Which Source is used to get the Unit used in the UI.">
@@ -85,46 +86,51 @@
                     <TextBlock Text="{Binding DisplayUnitCurrentString}" Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}"/>
                 </StackPanel>
 
-                <TextBlock Grid.Column="0" Grid.Row="6" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Restart the GSX Binary on Taxi-In (~after Touchdown) to ensure a 'clean' State.&#x0a;The Binary will be killed and started (if GSX' Watchdog has not restarted it already).">
+                <TextBlock Grid.Column="0" Grid.Row="6" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Reset (write) the GSX Service State Variables to 1 (callable) when switching to the Flight Phase.&#x0a;This can prevent Situations where a Service is already considered Completed when GSX never reset its State Variables.">
+                    Reset GSX Vars in Flight:
+                </TextBlock>
+                <CheckBox Grid.Column="1" Grid.Row="6" IsChecked="{Binding ResetGsxStateVarsFlight}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="Reset (write) the GSX Service State Variables to 1 (callable) when switching to the Flight Phase.&#x0a;This can prevent Situations where a Service is already considered Completed when GSX never reset its State Variables."/>
+
+                <TextBlock Grid.Column="0" Grid.Row="7" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Restart the GSX Binary on Taxi-In (~after Touchdown) to ensure a 'clean' State.&#x0a;The Binary will be killed and started (if GSX' Watchdog has not restarted it already).">
                     Restart GSX on Taxi-In:
                 </TextBlock>
-                <CheckBox Grid.Column="1" Grid.Row="6" IsChecked="{Binding RestartGsxOnTaxiIn}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="Restart the GSX Binary on Taxi-In (~after Touchdown) to ensure a 'clean' State.&#x0a;The Binary will be killed and started (if GSX' Watchdog has not restarted it already)."/>
+                <CheckBox Grid.Column="1" Grid.Row="7" IsChecked="{Binding RestartGsxOnTaxiIn}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="Restart the GSX Binary on Taxi-In (~after Touchdown) to ensure a 'clean' State.&#x0a;The Binary will be killed and started (if GSX' Watchdog has not restarted it already)."/>
 
-                <TextBlock Grid.Column="0" Grid.Row="7" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Restart the GSX Binary on Startup when the Menu doesn't open / become ready.">
+                <TextBlock Grid.Column="0" Grid.Row="8" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Restart the GSX Binary on Startup when the Menu doesn't open / become ready.">
                     Restart GSX on Startup:
                 </TextBlock>
-                <StackPanel Grid.Column="1" Grid.Row="7" Orientation="Horizontal" Margin="6,0,0,0">
+                <StackPanel Grid.Column="1" Grid.Row="8" Orientation="Horizontal" Margin="6,0,0,0">
                     <CheckBox IsChecked="{Binding RestartGsxStartupFail}" Style="{StaticResource CheckBoxDefault}" ToolTip="Restart the GSX Binary on Startup when the Menu doesn't open / become ready after a certain Amount of failed Attempts to open the Menu."/>
                     <TextBlock Margin="12,-1,6,0" Style="{StaticResource TextBlockDefault}">Max Failures:</TextBlock>
                     <TextBox Name="InputGsxMaxFail" Style="{StaticResource TextBoxCentered}"/>
                 </StackPanel>
 
-                <TextBlock Grid.Column="0" Grid.Row="8" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The base Port to listen for CommBus Module Messages. If the Port can't be used, the next Port in the Range is tried.">
+                <TextBlock Grid.Column="0" Grid.Row="9" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The base Port to listen for CommBus Module Messages. If the Port can't be used, the next Port in the Range is tried.">
                     CommBus Port:
                 </TextBlock>
-                <StackPanel Grid.Column="1" Grid.Row="8" Style="{StaticResource SettingItemPanel}" ToolTip="The base Port to listen for CommBus Module Messages. If the Port can't be used, the next Port in the Range is tried.">
+                <StackPanel Grid.Column="1" Grid.Row="9" Style="{StaticResource SettingItemPanel}" ToolTip="The base Port to listen for CommBus Module Messages. If the Port can't be used, the next Port in the Range is tried.">
                     <TextBlock Margin="0,0,4,0" Style="{StaticResource TextBlockDefault}">Base Port:</TextBlock>
                     <TextBox Name="InputPortBase" Style="{StaticResource TextBoxCentered}" MinWidth="72"/>
                     <TextBlock Margin="11,0,4,0" Style="{StaticResource TextBlockDefault}">Range:</TextBlock>
                     <TextBox Name="InputPortRange" Style="{StaticResource TextBoxCentered}"/>
                 </StackPanel>
 
-                <TextBlock Grid.Column="0" Grid.Row="9" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The Base URL used for connecting to the PilotsDeck API.">
+                <TextBlock Grid.Column="0" Grid.Row="10" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The Base URL used for connecting to the PilotsDeck API.">
                     PilotsDeck URL:
                 </TextBlock>
-                <StackPanel Grid.Column="1" Grid.Row="9" Style="{StaticResource SettingItemPanel}" ToolTip="The Base URL used for connecting to the PilotsDeck API.">
+                <StackPanel Grid.Column="1" Grid.Row="10" Style="{StaticResource SettingItemPanel}" ToolTip="The Base URL used for connecting to the PilotsDeck API.">
                     <TextBox Name="InputDeckUrl" Style="{StaticResource TextBoxLeft}" MinWidth="228"/>
                 </StackPanel>
 
-                <TextBlock Grid.Column="0" Grid.Row="10" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="For MSFS2024 and the EFB App, Any2GSX will constantly reopen the GSX Menu when it times out.&#x0a;So every time you open the EFB App, the GSX Menu will directly be open.">
+                <TextBlock Grid.Column="0" Grid.Row="11" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="For MSFS2024 and the EFB App, Any2GSX will constantly reopen the GSX Menu when it times out.&#x0a;So every time you open the EFB App, the GSX Menu will directly be open.">
                     Refresh Gate Menu for EFB:
                 </TextBlock>
-                <CheckBox Grid.Column="1" Grid.Row="10" IsChecked="{Binding RefreshMenuForEfb}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="For MSFS2024 and the EFB App, Any2GSX will constantly reopen the GSX Menu when it times out.&#x0a;So every time you open the EFB App, the GSX Menu will directly be open."/>
+                <CheckBox Grid.Column="1" Grid.Row="11" IsChecked="{Binding RefreshMenuForEfb}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="For MSFS2024 and the EFB App, Any2GSX will constantly reopen the GSX Menu when it times out.&#x0a;So every time you open the EFB App, the GSX Menu will directly be open."/>
 
-                <TextBlock Grid.Column="0" Grid.Row="11" Margin="6" Style="{StaticResource TextBlockDefault}" VerticalAlignment="Top" ToolTip="The Fuel-on-Board Values currently stored by Any2GSX for the various Aircrafts.">
+                <TextBlock Grid.Column="0" Grid.Row="12" Margin="6" Style="{StaticResource TextBlockDefault}" VerticalAlignment="Top" ToolTip="The Fuel-on-Board Values currently stored by Any2GSX for the various Aircrafts.">
                     Saved Fuel Values:
                 </TextBlock>
-                <StackPanel Grid.Column="1" Grid.Row="11" Margin="6" Orientation="Horizontal">
+                <StackPanel Grid.Column="1" Grid.Row="12" Margin="6" Orientation="Horizontal">
                     <ListView MinWidth="228" MaxWidth="384" Height="96" MaxHeight="142" ScrollViewer.CanContentScroll="True" ScrollViewer.VerticalScrollBarVisibility="Auto"
                               HorizontalAlignment="Left" HorizontalContentAlignment="Left" VerticalAlignment="Top" VerticalContentAlignment="Center"
                               Name="ListSavedFuel">

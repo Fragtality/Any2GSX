@@ -1,7 +1,6 @@
-﻿using CFIT.AppLogger;
-using CFIT.SimConnectLib.SimResources;
-using Any2GSX.GSX.Menu;
+﻿using Any2GSX.GSX.Menu;
 using Any2GSX.PluginInterface.Interfaces;
+using CFIT.SimConnectLib.SimResources;
 
 namespace Any2GSX.GSX.Services
 {

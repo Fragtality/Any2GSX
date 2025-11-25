@@ -83,6 +83,7 @@
         FirstLeg = 1,
         TurnAround = 2,
         CompanyHub = 3,
+        NonCompanyHub = 4,
     }
 
     public enum GsxServiceState

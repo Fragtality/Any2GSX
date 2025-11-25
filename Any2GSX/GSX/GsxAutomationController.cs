@@ -130,7 +130,7 @@ namespace Any2GSX.GSX
         {
             GsxController.Menu.ResetFlight();
             foreach (var service in GsxServices)
-                service.Value.ResetState();
+                service.Value.ResetState(Config.ResetGsxStateVarsFlight);
 
             TimeNextTurnCheck = DateTime.MinValue;
             InitialTurnDelay = true;
@@ -732,6 +732,11 @@ namespace Any2GSX.GSX
                         MoveDepartureQueue(current, true);
                     }
                     else if (DepartureServicesCurrent.ServiceConstraint == GsxServiceConstraint.CompanyHub && !Profile.IsCompanyHub(Flightplan.Origin))
+                    {
+                        Logger.Information($"Automation: Departure Service {DepartureServicesCurrent.ServiceType} skipped due to Constraint '{DepartureServicesCurrent.ServiceConstraintName}'");
+                        MoveDepartureQueue(current, true);
+                    }
+                    else if (DepartureServicesCurrent.ServiceConstraint == GsxServiceConstraint.NonCompanyHub && Profile.IsCompanyHub(Flightplan.Origin))
                     {
                         Logger.Information($"Automation: Departure Service {DepartureServicesCurrent.ServiceType} skipped due to Constraint '{DepartureServicesCurrent.ServiceConstraintName}'");
                         MoveDepartureQueue(current, true);

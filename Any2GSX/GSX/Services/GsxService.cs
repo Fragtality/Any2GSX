@@ -112,7 +112,7 @@ namespace Any2GSX.GSX.Services
             NotifyStateChange();
         }
 
-        public virtual void ResetState()
+        public virtual void ResetState(bool resetVariable = false)
         {
             IsCalled = false;
             IsSkipped = false;
@@ -120,6 +120,8 @@ namespace Any2GSX.GSX.Services
             WasCompleted = false;
             StateOverride = GsxServiceState.Unknown;
             CallSequence.Reset();
+            if (resetVariable)
+                SetStateVariable(GsxServiceState.Callable);
             DoReset();
         }
 
@@ -156,6 +158,12 @@ namespace Any2GSX.GSX.Services
                 else
                     return state;
             }
+        }
+
+        protected virtual void SetStateVariable(GsxServiceState state)
+        {
+            Logger.Debug($"Resetting State L-Var for Service {Type} to '{state}'");
+            SubStateVar.WriteValue((int)state);
         }
 
         protected virtual bool CheckCalled()
@@ -207,8 +215,11 @@ namespace Any2GSX.GSX.Services
 
         public virtual void ForceComplete()
         {
-            Logger.Debug($"Force Complete for {Type}");
-            WasCompleted = true;
+            if (!WasCompleted)
+            {
+                Logger.Debug($"Force Complete for {Type}");
+                WasCompleted = true;
+            }
         }
     }
 }

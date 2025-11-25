@@ -73,6 +73,7 @@ namespace Any2GSX.UI.Views.Settings
         public virtual string SimbriefUser { get => Source.SimbriefUser; set { SetModelValue<string>(value); NotifyPropertyChanged(nameof(BrushSimbrief)); } }
         public virtual double FuelResetPercent { get => Source.FuelResetPercent * 100.0; set => SetModelValue<double>(value / 100.0); }
         public virtual double FuelCompareVariance { get => Config.ConvertKgToDisplayUnit(Source.FuelCompareVariance); set => SetModelValue<double>(Config.ConvertFromDisplayUnitKg(value)); }
+        public virtual bool ResetGsxStateVarsFlight { get => Source.ResetGsxStateVarsFlight; set => SetModelValue<bool>(value); }
         public virtual bool RestartGsxOnTaxiIn { get => Source.RestartGsxOnTaxiIn; set => SetModelValue<bool>(value); }
         public virtual bool RestartGsxStartupFail { get => Source.RestartGsxStartupFail; set => SetModelValue<bool>(value); }
         public virtual int GsxMenuStartupMaxFail { get => Source.GsxMenuStartupMaxFail; set => SetModelValue<int>(value); }

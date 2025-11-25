@@ -211,9 +211,10 @@ Configure if and when GSX Services are called:
   - *Only Departure*: Only call the Service in the first Departure Phase (the first Leg). Resetting the App in between will also reset that Constraint!
   - *Only Turn*: Only call the Service after the first Turnaround (so the second and following Departure Phases). Resetting the App in between will also reset that Constraint!
   - *Only on Hub*: Only call the Service on Airports defined as Company Hubs (see below)
+  - *Only on Non-Hub*: Only call the Service on Airports *not* defined as Company Hubs (see below)
 - *Call on Cargo*: When enabled, the Service is called when the Aircraft is reported as Cargo Plane (by generic Plugin Setting or by the Aircraft Plugin). Else only on Passenger Aircrafts.
 
-Note that for the first Service, Activation Rules considering preceding Services don't have an Effect. Or put differently: Unless it is configured as Skip or Manual, the first Service is always called (if there no further Constraints added).
+Note that for the first Service, Activation Rules considering preceding Services don't have an Effect. Or put differently: Unless it is configured as Skip or Manual, the first Service is always called (if no further Constraints were added).
 <br/>
 
 ##### Operator Selection
@@ -227,7 +228,8 @@ The Strings you add to the Preferred Operator List will be used in a (case insen
 
 Manage a List of *Airport* ICAO Codes which define "Company Hubs" for this Aircraft Profile. 1 to 4 Letters per Code.<br/>
 The Codes are matched in the Order of the List, from Top to Bottom. For each Code, the Departure ICAO is matched if it starts (!) with the Code - so whole Regions can be matched.<br/>
-If the current Departure Airport is matched, Departure Services with the "Only on Hub" Constraint can be called (otherwise they are skipped). So these Hubs have nothing to do with the Operator Selection!<br/>
+If the current Departure Airport is matched, Departure Services with the "Only on Hub" Constraint can be called (otherwise they are skipped). Consequently, Services with the "Only on Non-Hub" Constraint, will only be called if the Airport is *not* matched.<br/>
+Not that these Hubs have nothing to do with the Operator Selection!<br/>
 <br/>
 
 ##### Skip Questions
