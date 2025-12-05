@@ -40,11 +40,6 @@ namespace Any2GSX.GSX.Services
             SimStore.Remove(GsxConstants.VarServiceCleaning);
         }
 
-        protected override bool CheckCalled()
-        {
-            return SequenceResult;
-        }
-
         protected override void RunStateRequested()
         {
             base.RunStateRequested();

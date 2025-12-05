@@ -153,7 +153,7 @@ namespace Any2GSX.GSX.Services
                 return ReadState();
             else
             {
-                if (state == (GsxServiceState)NumStateCompleted && WasActive)
+                if ((state == GsxServiceState.Bypassed || state == (GsxServiceState)NumStateCompleted) && WasActive)
                     return GsxServiceState.Completed;
                 else
                     return state;
