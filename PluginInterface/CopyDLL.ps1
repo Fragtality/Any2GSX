@@ -15,7 +15,7 @@ try {
 	$pathProject = $args[2]
 	$appFolderName = $args[3]
 
-	$dllPath = Join-Path $pathProject (Join-Path (Join-Path "bin" $buildConfiguration) "\net8.0-windows10.0.17763.0\PluginInterface.dll")
+	$dllPath = Join-Path $pathProject (Join-Path (Join-Path "bin" $buildConfiguration) "\net10.0-windows10.0.17763.0\win-x64\PluginInterface.dll")
 	$pathBase = (Resolve-Path (Join-Path $pathSolution "..")).Path
 	
 	$destPathPlugins = Join-Path $pathBase "Any2GSX\Any2GSX"

@@ -27,6 +27,8 @@ $zipPath = "Packages\fragtality-commbus-module.zip"
 Remove-Item $zipPath -ErrorAction SilentlyContinue | Out-Null
 & "C:\Program Files\7-Zip\7z.exe" a -tzip $zipPath ($pathPublish + "\*") | Out-Null
 Copy-Item -Path $zipPath -Destination (Join-Path $pathBase "Installer\Payload\fragtality-commbus-module-2024.zip") -Force | Out-Null
+$zipFile = Get-Item (Join-Path $pathBase "Installer\Payload\fragtality-commbus-module-2024.zip")
+$zipFile.CreationTime = (Get-Date)
 
 Write-Host "FINISHED!"
 exit 0
