@@ -195,6 +195,7 @@ namespace Any2GSX.Aircraft
             _env.GetSettingProfile = new Func<ISettingProfile>(() => AppService.Instance?.ISettingProfile);
             _env.GetAircraftPlugin = new Func<AircraftBase>(() => AppService.Instance?.AircraftController?.Aircraft);
             _env.GetGsxController = new Func<IGsxController>(() => AppService.Instance?.GsxController);
+            _env.FuelWeightKgPerGallon = new Func<double>(() => AppService.Instance?.AircraftController?.FuelWeightKgPerGallon ?? 3.03907);
             _env.UseVar = new Action<string, string>(RegisterVariable);
             _env.UseEvent = new Action<string>(RegisterEvent);
             _env.SubVar = new Action<string, string, string>(CallbackVariable);
