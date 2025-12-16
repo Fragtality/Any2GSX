@@ -80,7 +80,7 @@ namespace Any2GSX.GSX.Services
 
         public override async Task Call()
         {
-            if (PushStatus == 0 || !IsCalled)
+            if (PushStatus == 0 || !CheckCalled())
                 await base.Call();
             else if (PushStatus > 0 && PushStatus < 5)
             {

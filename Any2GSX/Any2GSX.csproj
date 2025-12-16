@@ -13,8 +13,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <SourceRevisionId>build$([System.DateTime]::UtcNow.ToString("yyyy.MM.dd.HHmm"))</SourceRevisionId>
-    <Version>0.3.4</Version>
+    <Version>0.3.5</Version>
     <Title>$(AssemblyName)</Title>
     <Authors>Fragtality</Authors>
     <Company>Fragtality</Company>
@@ -79,10 +78,10 @@
   </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="CFIT.AppFramework" Version="2025.344.18.3124" />
-    <PackageReference Include="CFIT.AppLogger" Version="2025.344.18.3079" />
-    <PackageReference Include="CFIT.AppTools" Version="2025.344.18.3088" />
-    <PackageReference Include="CFIT.SimConnectLib" Version="2025.344.18.3110" />
+    <PackageReference Include="CFIT.AppFramework" Version="2025.350.17.2708" />
+    <PackageReference Include="CFIT.AppLogger" Version="2025.350.17.2666" />
+    <PackageReference Include="CFIT.AppTools" Version="2025.350.17.2675" />
+    <PackageReference Include="CFIT.SimConnectLib" Version="2025.350.17.2695" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="CoreAudio" Version="1.40.0" />
   </ItemGroup>
@@ -123,7 +122,7 @@
   </ItemGroup>
   
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="pwsh -ExecutionPolicy Unrestricted -file &quot;$(ProjectDir)..\NuPreBuild.ps1&quot; $(SolutionDir) $(ProjectDir) &quot;Any2GSX&quot; &quot;CFIT.AppLogger&quot; &quot;CFIT.AppTools&quot; &quot;CFIT.SimConnectLib&quot; &quot;CFIT.AppFramework&quot;" />
+    <Exec Command="pwsh -ExecutionPolicy Unrestricted -file &quot;$(ProjectDir)..\NuPreBuild.ps1&quot; $(SolutionDir) $(ProjectDir) &quot;Any2GSX&quot; &quot;CFIT.AppLogger&quot; &quot;CFIT.AppTools&quot; &quot;CFIT.SimConnectLib&quot; &quot;CFIT.AppFramework&quot;&#xD;&#xA;pwsh -ExecutionPolicy Unrestricted -file &quot;$(ProjectDir)CreateTimestamp.ps1&quot; $(SolutionDir) $(ProjectDir) &quot;Any2GSX&quot; &quot;Installer\Payload&quot;" />
   </Target>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
