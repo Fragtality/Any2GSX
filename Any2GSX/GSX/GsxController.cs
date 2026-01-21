@@ -63,6 +63,8 @@ namespace Any2GSX.GSX
         public virtual bool CouatlVarsValid { get; protected set; } = false;
         public virtual int CouatlLastProgress {  get; protected set; } = 0;
         public virtual int CouatlLastStarted { get; protected set; } = 0;
+        public virtual int CouatlLastSimbrief { get; protected set; } = 0;
+        public virtual DateTime CouatlInhibitStateChanges { get; protected set; } = DateTime.MinValue;
         public virtual int CouatlInvalidCount { get; protected set; } = 0;
         public virtual bool CouatlVarsReceived { get; protected set; } = false;
         public virtual bool IsProcessRunning { get; protected set; } = false;
@@ -92,6 +94,9 @@ namespace Any2GSX.GSX
         public virtual ISimResourceSubscription SubDoorToggleCargo1 { get; protected set; }
         public virtual ISimResourceSubscription SubDoorToggleCargo2 { get; protected set; }
         public virtual ISimResourceSubscription SubDoorToggleCargo3 { get; protected set; }
+        public virtual ISimResourceSubscription SubLoaderAttachCargo1 { get; protected set; }
+        public virtual ISimResourceSubscription SubLoaderAttachCargo2 { get; protected set; }
+        public virtual ISimResourceSubscription SubLoaderAttachCargo3 { get; protected set; }
         public virtual ISimResourceSubscription SubDefaultSmartButton { get; protected set; }
         public virtual ISimResourceSubscription SubPilotTarget { get; protected set; }
         public virtual ISimResourceSubscription SubCrewTarget { get; protected set; }
@@ -137,6 +142,7 @@ namespace Any2GSX.GSX
         protected override Task InitReceivers()
         {
             SimStore.AddVariable(GsxConstants.VarCouatlStarted).OnReceived += OnCouatlVariable;
+            SimStore.AddVariable(GsxConstants.VarCouatlSimbrief).OnReceived += OnCouatlSimbrief;
             SimStore.AddVariable(GsxConstants.VarCouatlStartProg5).OnReceived += OnCouatlVariable;
             SimStore.AddVariable(GsxConstants.VarCouatlStartProg6).OnReceived += OnCouatlVariable;
             SimStore.AddVariable(GsxConstants.VarCouatlStartProg7).OnReceived += OnCouatlVariable;
@@ -159,6 +165,9 @@ namespace Any2GSX.GSX
             SubDoorToggleCargo1 = SimStore.AddVariable(GsxConstants.VarDoorToggleCargo1);
             SubDoorToggleCargo2 = SimStore.AddVariable(GsxConstants.VarDoorToggleCargo2);
             SubDoorToggleCargo3 = SimStore.AddVariable(GsxConstants.VarDoorToggleCargo3);
+            SubLoaderAttachCargo1 = SimStore.AddVariable(GsxConstants.VarCargoLoader1);
+            SubLoaderAttachCargo2 = SimStore.AddVariable(GsxConstants.VarCargoLoader2);
+            SubLoaderAttachCargo3 = SimStore.AddVariable(GsxConstants.VarCargoLoader3);
 
             SubPilotTarget = SimStore.AddVariable(GsxConstants.VarPilotTarget);
             SubCrewTarget = SimStore.AddVariable(GsxConstants.VarCrewTarget);
@@ -173,6 +182,27 @@ namespace Any2GSX.GSX
             AutomationController.Init();
 
             return Task.CompletedTask;
+        }
+
+        protected virtual void OnCouatlSimbrief(ISimResourceSubscription sub, object data)
+        {
+            try
+            {
+                int state = (int)sub.GetNumber();
+                if (CouatlLastSimbrief == 1 && state == 0 && CouatlVarsValid && CouatlInhibitStateChanges < DateTime.Now)
+                {
+                    Logger.Debug("Simbrief Refresh detected - inhibiting Couatl State Changes for 5s");
+                    CouatlInhibitStateChanges = DateTime.Now + TimeSpan.FromSeconds(5);
+                }
+
+                CouatlLastSimbrief = state;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+                CouatlInhibitStateChanges = DateTime.MinValue;
+                CouatlLastSimbrief = 0;
+            }
         }
 
         protected virtual void OnCouatlVariable(ISimResourceSubscription sub, object data)
@@ -193,21 +223,24 @@ namespace Any2GSX.GSX
                     {
                         Logger.Debug($"Couatl Variables valid!");
                         CouatlVarsValid = true;
+                        CouatlInhibitStateChanges = DateTime.MinValue;
                         CouatlInvalidCount = 0;
                         SetCouatlConf();
                         MessageService.Send(MessageGsx.Create<MsgGsxCouatlStarted>(this, true));
                         AutomationController.OnCouatlStarted();
                     }
                 }
-                else
+                else if (CouatlVarsValid)
                 {
-                    if (CouatlVarsValid)
+                    if (CouatlInhibitStateChanges < DateTime.Now)
                     {
                         Logger.Debug($"Couatl Variables NOT valid! (started: {CouatlLastStarted} / progress: {CouatlLastProgress})");
                         MessageService.Send(MessageGsx.Create<MsgGsxCouatlStopped>(this, true));
                         CouatlVarsValid = false;
                         AutomationController.OnCouatlStopped();
                     }
+                    else
+                        Logger.Debug("Couatl Variables invalid-Change ignored");
                 }
 
                 CouatlVarsReceived = true;
@@ -426,6 +459,8 @@ namespace Any2GSX.GSX
         public virtual async Task ReloadSimbrief()
         {
             Logger.Information($"Refreshing GSX SimBrief/VDGS Data");
+            Logger.Debug("Simbrief Refresh - inhibiting Couatl State Changes for 7.5s");
+            CouatlInhibitStateChanges = DateTime.Now + TimeSpan.FromSeconds(7.5);
             var sequence = new GsxMenuSequence();
             sequence.Commands.Add(new(15, "", true));
             sequence.Commands.Add(GsxMenuCommand.CreateDummy());
@@ -535,6 +570,7 @@ namespace Any2GSX.GSX
             SimStore.Remove(GsxConstants.VarDoorToggleCargo2);
             SimStore.Remove(GsxConstants.VarDoorToggleCargo3);
             SimStore[GsxConstants.VarCouatlStarted].OnReceived -= OnCouatlVariable;
+            SimStore[GsxConstants.VarCouatlSimbrief].OnReceived -= OnCouatlSimbrief;
             SimStore[GsxConstants.VarCouatlStartProg5].OnReceived -= OnCouatlVariable;
             SimStore[GsxConstants.VarCouatlStartProg6].OnReceived -= OnCouatlVariable;
             SimStore[GsxConstants.VarCouatlStartProg7].OnReceived -= OnCouatlVariable;

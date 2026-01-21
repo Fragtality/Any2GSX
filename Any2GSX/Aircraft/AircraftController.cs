@@ -84,6 +84,9 @@ namespace Any2GSX.Aircraft
             GsxController.SubDoorToggleCargo1.OnReceived += (sub, data) => OnDoorTrigger(GsxDoor.CargoDoor1, sub.GetNumber());
             GsxController.SubDoorToggleCargo2.OnReceived += (sub, data) => OnDoorTrigger(GsxDoor.CargoDoor2, sub.GetNumber());
             GsxController.SubDoorToggleCargo3.OnReceived += (sub, data) => OnDoorTrigger(GsxDoor.CargoDoor3Main, sub.GetNumber());
+            GsxController.SubLoaderAttachCargo1.OnReceived += (sub, data) => OnLoaderAttached(GsxDoor.CargoDoor1, sub.GetNumber());
+            GsxController.SubLoaderAttachCargo2.OnReceived += (sub, data) => OnLoaderAttached(GsxDoor.CargoDoor2, sub.GetNumber());
+            GsxController.SubLoaderAttachCargo3.OnReceived += (sub, data) => OnLoaderAttached(GsxDoor.CargoDoor3Main, sub.GetNumber());
         }
 
         protected override async Task DoRun()
@@ -144,6 +147,9 @@ namespace Any2GSX.Aircraft
                     GsxController.SubDoorToggleCargo1.OnReceived -= (sub, data) => OnDoorTrigger(GsxDoor.CargoDoor1, sub.GetNumber());
                     GsxController.SubDoorToggleCargo2.OnReceived -= (sub, data) => OnDoorTrigger(GsxDoor.CargoDoor2, sub.GetNumber());
                     GsxController.SubDoorToggleCargo3.OnReceived -= (sub, data) => OnDoorTrigger(GsxDoor.CargoDoor3Main, sub.GetNumber());
+                    GsxController.SubLoaderAttachCargo1.OnReceived -= (sub, data) => OnLoaderAttached(GsxDoor.CargoDoor1, sub.GetNumber());
+                    GsxController.SubLoaderAttachCargo2.OnReceived -= (sub, data) => OnLoaderAttached(GsxDoor.CargoDoor2, sub.GetNumber());
+                    GsxController.SubLoaderAttachCargo3.OnReceived -= (sub, data) => OnLoaderAttached(GsxDoor.CargoDoor3Main, sub.GetNumber());
 
                     GsxController.ServiceRefuel.OnStateChanged -= OnRefuelStateChanged;
                     GsxController.ServiceRefuel.OnHoseConnection -= OnRefuelHoseChanged;
@@ -271,6 +277,15 @@ namespace Any2GSX.Aircraft
             Logger.Debug($"Received Trigger for Door {door}: {value}");
             if (GsxController.IsActive && AutomationController.State != AutomationState.Flight && AutomationController.State > AutomationState.SessionStart)
                 return Aircraft.OnDoorTrigger(door, value > 0);
+            else
+                return Task.CompletedTask;
+        }
+
+        protected virtual Task OnLoaderAttached(GsxDoor door, double value)
+        {
+            Logger.Debug($"Received Loader attached for Door {door}: {value}");
+            if (GsxController.IsActive && AutomationController.State != AutomationState.Flight && AutomationController.State > AutomationState.SessionStart)
+                return Aircraft.OnLoaderAttached(door, value > 0);
             else
                 return Task.CompletedTask;
         }

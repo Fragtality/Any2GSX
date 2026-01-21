@@ -897,6 +897,17 @@ namespace Any2GSX.Aircraft
                 return base.OnDoorTrigger(door, trigger);
         }
 
+        public override Task OnLoaderAttached(GsxDoor door, bool trigger)
+        {
+            if (HasLuaFunction("OnLoaderAttached", out LuaFunction func))
+            {
+                CallLua<object>(func, (int)door, trigger);
+                return Task.CompletedTask;
+            }
+            else
+                return base.OnLoaderAttached(door, trigger);
+        }
+
         public override Task OnJetwayChange(GsxServiceState state)
         {
             if (HasLuaFunction("OnJetwayChange", out LuaFunction func))

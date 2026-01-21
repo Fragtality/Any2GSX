@@ -668,7 +668,7 @@ namespace Any2GSX.GSX
                         }
                     }
                 }
-                else if (Aircraft.IsBoardingCompleted && !ServiceBoard.IsCalled && State == AutomationState.Departure)
+                else if (Aircraft.IsBoardingCompleted && ServiceBoard.State != GsxServiceState.Completed && State == AutomationState.Departure)
                 {
                     Logger.Information($"Plane already boarded - skipping all Departure Services");
                     DepartureServicesCompleted = true;
@@ -741,12 +741,12 @@ namespace Any2GSX.GSX
                         Logger.Information($"Automation: Departure Service {DepartureServicesCurrent.ServiceType} skipped due to Constraint '{DepartureServicesCurrent.ServiceConstraintName}'");
                         MoveDepartureQueue(current, true);
                     }
-                    else if (DepartureServicesCurrent.ServiceConstraint == GsxServiceConstraint.TurnOnHub && DepartureServicesCurrent.ActivationCount == 0 && !Profile.IsCompanyHub(Flightplan.Origin))
+                    else if (DepartureServicesCurrent.ServiceConstraint == GsxServiceConstraint.TurnOnHub && (DepartureServicesCurrent.ActivationCount == 0 || !Profile.IsCompanyHub(Flightplan.Origin)))
                     {
                         Logger.Information($"Automation: Departure Service {DepartureServicesCurrent.ServiceType} skipped due to Constraint '{DepartureServicesCurrent.ServiceConstraintName}'");
                         MoveDepartureQueue(current, true);
                     }
-                    else if (DepartureServicesCurrent.ServiceConstraint == GsxServiceConstraint.TurnOnNonHub && DepartureServicesCurrent.ActivationCount == 0 && Profile.IsCompanyHub(Flightplan.Origin))
+                    else if (DepartureServicesCurrent.ServiceConstraint == GsxServiceConstraint.TurnOnNonHub && (DepartureServicesCurrent.ActivationCount == 0 || Profile.IsCompanyHub(Flightplan.Origin)))
                     {
                         Logger.Information($"Automation: Departure Service {DepartureServicesCurrent.ServiceType} skipped due to Constraint '{DepartureServicesCurrent.ServiceConstraintName}'");
                         MoveDepartureQueue(current, true);

@@ -503,6 +503,11 @@ namespace Any2GSX.PluginInterface
             return Task.CompletedTask;
         }
 
+        public virtual Task OnLoaderAttached(GsxDoor door, bool trigger)
+        {
+            return Task.CompletedTask;
+        }
+
         public virtual Task OnJetwayChange(GsxServiceState state)
         {
             return Task.CompletedTask;

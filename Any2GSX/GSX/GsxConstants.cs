@@ -18,6 +18,7 @@ namespace Any2GSX.GSX
 
         //Variables
         public static string VarCouatlStarted { get; } = "L:FSDT_GSX_COUATL_STARTED";
+        public static string VarCouatlSimbrief { get; } = "L:FSDT_GSX_SIMBRIEF_SUCCESS";
         public static string VarCouatlStartProg5 { get; } = "L:FSDT_GSX_COUATL_STARTED_5_PROGRESS";
         public static string VarCouatlStartProg6 { get; } = "L:FSDT_GSX_COUATL_STARTED_6_PROGRESS";
         public static string VarCouatlStartProg7 { get; } = "L:FSDT_GSX_COUATL_STARTED_7_PROGRESS";
@@ -68,6 +69,9 @@ namespace Any2GSX.GSX
         public static string VarDoorToggleCargo1 { get; } = "L:FSDT_GSX_AIRCRAFT_CARGO_1_TOGGLE";
         public static string VarDoorToggleCargo2 { get; } = "L:FSDT_GSX_AIRCRAFT_CARGO_2_TOGGLE";
         public static string VarDoorToggleCargo3 { get; } = "L:FSDT_GSX_AIRCRAFT_CARGO_3_TOGGLE";
+        public static string VarCargoLoader1 { get; } = "L:FSDT_GSX_LOADER_EXIT_0";
+        public static string VarCargoLoader2 { get; } = "L:FSDT_GSX_LOADER_EXIT_1";
+        public static string VarCargoLoader3 { get; } = "L:FSDT_GSX_LOADER_EXIT_2";
         public static string VarCargoLoading1 { get; } = "L:FSDT_GSX_BOARDING_CARGO_EXIT_0";
         public static string VarCargoLoading2 { get; } = "L:FSDT_GSX_BOARDING_CARGO_EXIT_1";
         public static string VarCargoLoading3 { get; } = "L:FSDT_GSX_BOARDING_CARGO_EXIT_2";
