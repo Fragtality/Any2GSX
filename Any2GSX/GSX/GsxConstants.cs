@@ -99,5 +99,6 @@ namespace Any2GSX.GSX
         public static string MenuFollowMe { get; } = "Request FollowMe";
         public static string MenuCrewBoard { get; } = "Do you want to board crew";
         public static string MenuCrewDeboard { get; } = "Do you want to deboard crew";
+        public static string MenuCancelService { get; } = "Service in progress";
     }
 }

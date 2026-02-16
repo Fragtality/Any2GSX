@@ -35,6 +35,7 @@ namespace Any2GSX.Aircraft
         public virtual string Origin { get; set; }
         public virtual string Destination { get; set; }
         public virtual TimeSpan Duration { get; set; }
+        public virtual DateTime ScheduledOutTime { get; protected set; } = DateTime.MinValue;
         public virtual double FuelRampKg { get; set; }
         public virtual int CountPax { get; set; }
         public virtual int MaxPax { get; set; }
@@ -155,6 +156,11 @@ namespace Any2GSX.Aircraft
 
                 if (GetJsonString(json["times"]!["sched_block"], out string blockTime))
                     Duration = TimeSpan.Parse(blockTime);
+                else
+                    return false;
+
+                if (GetJsonString(json["times"]!["sched_out"], out string estOut))
+                    ScheduledOutTime = DateTime.Parse(estOut).ToUniversalTime();
                 else
                     return false;
 
@@ -286,6 +292,7 @@ namespace Any2GSX.Aircraft
 
             infoStrings.Add($"{"OFP ID",col0}{Id,colS}");
             infoStrings.Add($"{"Flight (Leg)",col0}{$"{Number} ({Origin} => {Destination})",colS}");
+            infoStrings.Add($"{"STD",col0}{ScheduledOutTime,colS}");
             infoStrings.Add($"{"AC Type / Reg",col0}{$"{AircraftType} / {AircraftReg}",colS}");
             if (SettingProfile.RandomizePax && AppService.Instance?.AircraftController?.Aircraft?.IsCargo == false)
             {
@@ -325,6 +332,7 @@ namespace Any2GSX.Aircraft
             DiffPax = 0;
             DiffPayloadKg = 0;
             LastOnlineCheck = false;
+            ScheduledOutTime = DateTime.MinValue;
         }
 
         public virtual void Reset()

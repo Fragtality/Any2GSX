@@ -1,6 +1,7 @@
 ﻿using Any2GSX.GSX.Menu;
 using Any2GSX.PluginInterface.Interfaces;
 using CFIT.SimConnectLib.SimResources;
+using System;
 
 namespace Any2GSX.GSX.Services
 {
@@ -18,6 +19,15 @@ namespace Any2GSX.GSX.Services
             sequence.Commands.Add(new(5, GsxConstants.MenuAdditionalServices) { WaitReady = true });
             sequence.Commands.Add(GsxMenuCommand.CreateOperator());
             sequence.Commands.Add(GsxMenuCommand.CreateReset());
+
+            return sequence;
+        }
+
+        protected override GsxMenuSequence InitCancelSequence()
+        {
+            var sequence = new GsxMenuSequence();
+            sequence.Commands.Add(new(8, GsxConstants.MenuGate, true));
+            sequence.Commands.Add(new(5, GsxConstants.MenuAdditionalServices) { WaitReady = true });
 
             return sequence;
         }
@@ -52,6 +62,7 @@ namespace Any2GSX.GSX.Services
             if (!WasActive)
             {
                 WasActive = true;
+                ActivationTime = DateTime.Now;
                 NotifyActive();
             }
         }

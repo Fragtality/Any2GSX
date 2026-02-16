@@ -22,6 +22,15 @@ namespace Any2GSX.GSX.Services
             return sequence;
         }
 
+        protected override GsxMenuSequence InitCancelSequence()
+        {
+            var sequence = new GsxMenuSequence();
+            sequence.Commands.Add(new(8, GsxConstants.MenuGate, true));
+            sequence.Commands.Add(new(4, GsxConstants.MenuAdditionalServices) { WaitReady = true });
+
+            return sequence;
+        }
+
         protected override void InitSubscriptions()
         {
             SubWaterService = SimStore.AddVariable(GsxConstants.VarServiceWater);

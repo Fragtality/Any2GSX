@@ -27,6 +27,11 @@ namespace Any2GSX.GSX.Services
 
             return sequence;
         }
+        
+        protected override GsxMenuSequence InitCancelSequence()
+        {
+            return new GsxMenuSequence();
+        }
 
         protected override void InitSubscriptions()
         {
@@ -67,6 +72,11 @@ namespace Any2GSX.GSX.Services
                 return;
 
             await DoCall();
+        }
+
+        public override async Task Cancel(int option = -1)
+        {
+            await Remove();
         }
 
         protected override void OnStateChange(ISimResourceSubscription sub, object data)

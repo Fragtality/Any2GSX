@@ -35,6 +35,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <CheckBox Grid.Column="0" Grid.Row="0" IsChecked="{Binding FuelRoundUp100}" Style="{StaticResource CheckBoxSettingItem}"
@@ -62,13 +63,18 @@
                     <TextBlock>Reload SimBrief in GSX <Underline>on Turnaround</Underline></TextBlock>
                 </CheckBox>
 
-                <StackPanel Grid.Column="0" Grid.Row="4" Style="{StaticResource SettingItemPanel}" Margin="6,6,6,4" ToolTip="The minimum Time that has to pass in the Turnaround Phase before the Departure Phase can begin again.&#x0a;Note that additional Conditions apply: Jetway/Stairs connected &amp; Aircraft ready for Departure (if not overridden by Plugin or generic Setting: Avionics powered, External Power connected, Nav Lights on.">
+                <CheckBox Grid.Column="0" Grid.Row="4" IsChecked="{Binding UseSimTime}" Style="{StaticResource CheckBoxSettingItem}"
+                          ToolTip="Use the Sim Time as current Time Source to compare against the SimBrief Departure Time (for Service Activation).&#x0a;If disabled the System (UTC) Time is used - so always 'Realtime'.">
+                    <TextBlock>Use Simulator Time as current Time Source</TextBlock>
+                </CheckBox>
+
+                <StackPanel Grid.Column="0" Grid.Row="5" Style="{StaticResource SettingItemPanel}" Margin="6,6,6,4" ToolTip="The minimum Time that has to pass in the Turnaround Phase before the Departure Phase can begin again.&#x0a;Note that additional Conditions apply: Jetway/Stairs connected &amp; Aircraft ready for Departure (if not overridden by Plugin or generic Setting: Avionics powered, External Power connected, Nav Lights on.">
                     <TextBlock Style="{StaticResource TextBlockDefault}" MinWidth="274"><Underline>Turnaround Delay</Underline> before Departure can start again:</TextBlock>
                     <TextBox Name="InputDelayTurn" Margin="8,0,0,0" Style="{StaticResource TextBoxCentered}"/>
                     <TextBlock Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
                 </StackPanel>
 
-                <StackPanel Grid.Column="0" Grid.Row="5" Style="{StaticResource SettingItemPanel}" Margin="6,6,6,4" ToolTip="After the initial Turnaround Delay, the App will regulary check for a new Simbrief OFP ID.&#x0a;A new Flightplan is required before the Departure Phase can be activated again!">
+                <StackPanel Grid.Column="0" Grid.Row="6" Style="{StaticResource SettingItemPanel}" Margin="6,6,6,4" ToolTip="After the initial Turnaround Delay, the App will regulary check for a new Simbrief OFP ID.&#x0a;A new Flightplan is required before the Departure Phase can be activated again!">
                     <TextBlock Style="{StaticResource TextBlockDefault}" MinWidth="274">Time between <Underline>Simbrief Checks</Underline> in Turnaround:</TextBlock>
                     <TextBox Name="InputDelayRecheck" Margin="8,0,0,0" Style="{StaticResource TextBoxCentered}"/>
                     <TextBlock Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>

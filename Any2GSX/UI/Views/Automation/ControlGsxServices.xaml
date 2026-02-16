@@ -35,6 +35,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <CheckBox Grid.Column="0" Grid.Row="0" IsChecked="{Binding CallReposition}" Margin="6,8,6,6" Style="{StaticResource CheckBoxSettingItem}"
@@ -57,7 +58,18 @@
                     <TextBlock>Start <Underline>Departure</Underline> Services while <Underline>Deboarding</Underline> is active</TextBlock>
                 </CheckBox>
 
-                <Grid Grid.Column="0" Grid.Row="4">
+                <StackPanel Grid.Column="0" Grid.Row="4" Style="{StaticResource SettingItemPanel}" Margin="6,4,6,6" ToolTip="When the SmartButton is used to call the next Service in the Queue, the last Service called is canceled.">
+                    <TextBlock Style="{StaticResource TextBlockDefault}">
+                        <Underline>Cancel</Underline> last Service on SmartButton Request:
+                    </TextBlock>
+                    <ComboBox SelectedValue="{Binding SmartButtonAbortService}" SelectedValuePath="Tag" Margin="8,0,0,0" Style="{StaticResource ComboBoxDefault}">
+                        <ComboBoxItem Tag="0">Never</ComboBoxItem>
+                        <ComboBoxItem Tag="1">Gracefully</ComboBoxItem>
+                        <ComboBoxItem Tag="2">Forcefully</ComboBoxItem>
+                    </ComboBox>
+                </StackPanel>
+
+                <Grid Grid.Column="0" Grid.Row="5">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -81,6 +93,17 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding ServiceActivationName}" Margin="5,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="Activate at" MinWidth="112">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="5,0,0,0">
+                                            <Label Content="{Binding MaxTimeBeforeDeparture, Converter={StaticResource TimeSpanConverter}}" HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="6,0,0,0" MinWidth="48"/>
+                                            <TextBlock Style="{StaticResource TextBlockDefault}" Margin="2,0,0,0">minutes</TextBlock>
+                                        </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -111,6 +134,17 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="Max Run Time" MinWidth="112">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="5,0,0,0">
+                                            <Label Content="{Binding MaxRunTime, Converter={StaticResource TimeSpanConverter}}" HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="6,0,0,0" MinWidth="48"/>
+                                            <TextBlock Style="{StaticResource TextBlockDefault}" Margin="2,0,0,0">minutes</TextBlock>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
                     <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Vertical" Margin="0,34,0,0" VerticalAlignment="Top">
@@ -134,15 +168,22 @@
                                   Previous completed: Service will be called as soon as the previous Service is reported as 'completed' by GSX&#x0a;
                                   All completed: Service will only be called after all previous Service are reported as 'completed' by GSX&#x0a;
                                   Note: The first Service will always be called directly (if not set to skipped or manual), as it has no previous Service!"/>
-                        <TextBox Name="InputDuration" Margin="8,0,0,0" Style="{StaticResource TextBoxCentered}" ToolTip="Only call/monitor the Service if the scheduled Flight Time is greater than the specified Value."/>
+                        <TextBox Name="InputActivateAt" Margin="7,0,0,0" Style="{StaticResource TextBoxCentered}" ToolTip="Call the Service X Minutes before Departure Time. A Value of 0 calls the Service without Delay.&#x0a;The current (Sim or System) UTC Time is compared to the SimBrief Departure Time. Note that this is full Comparison including the complete Date and Time."/>
+                        <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}" ToolTip="Call the Service X Minutes before Departure Time. A Value of 0 calls the Service without Delay.&#x0a;The current (Sim or System) UTC Time is compared to the SimBrief Departure Time. Note that this is full Comparison including the complete Date and Time.">minutes</TextBlock>
+                        <TextBox Name="InputDuration" Margin="20,0,0,0" Style="{StaticResource TextBoxCentered}" ToolTip="Only call/monitor the Service if the scheduled Flight Time is greater than the specified Value."/>
                         <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}" ToolTip="Only call/monitor the Service if the scheduled Flight Time is greater than the specified Value.">minutes</TextBlock>
                         <ComboBox Margin="10,0,0,0" Name="SelectorConstraint" ItemsSource="{Binding TextServiceConstraints}" SelectedIndex="0" SelectedValuePath="Key" DisplayMemberPath="Value" Style="{StaticResource ComboBoxDefault}"
                                   ToolTip="Select a Constraint for calling the Service:&#x0a;
-                                  None: No Constraint applied, the Service is called every time (Time Constraint still applies)&#x0a;
-                                  Only Departure: The Service is only called on the first Departure (resetted by Any2GSX Restart or new Session)&#x0a;
-                                  Only Turn: The Service is only called on Turn Arounds (resetted by Any2GSX Restart or new Session)&#x0a;
-                                  Only on Hub: The Service is only called when the Departure ICAO (as of SimBrief) has a Match in the Company Hub List&#x0a;"/>
+                                  None: No Constraint applied, the Service is called normally (according to the other Options)&#x0a;
+                                  Only Departure: The Service is only called on the first Departure (resetted by App Restart or new Session)&#x0a;
+                                  Only Turn: The Service is only called on Turn Arounds (resetted by App Restart or new Session)&#x0a;
+                                  Only on Hub: The Service is only called when the Departure ICAO (as of SimBrief) has a Match in the Company Hub List&#x0a;
+                                  Only on Non-Hub: The Service is only called when the Departure ICAO (as of SimBrief) has NO Match in the Company Hub List&#x0a;
+                                  Turn on Hub: The Service is only called on Turn Arounds when the Arrival ICAO (as of SimBrief) has a Match in the Company Hub List&#x0a;
+                                  Turn on Non-Hub: The Service is only called on Turn Arounds when the Arrival ICAO (as of SimBrief) has NO Match in the Company Hub List&#x0a;"/>
                         <CheckBox Margin="31,0,0,0" Name="CheckboxCallCargo" Style="{StaticResource CheckBoxDefault}" ToolTip="If the Service should be called also on Cargo Airplanes or on Passenger Airplanes only."/>
+                        <TextBox Name="InputRunTime" Margin="10,0,0,0" Style="{StaticResource TextBoxCentered}" ToolTip="The maximum Time the Service is allowed to run before it is canceled (gracefully). A Value of 0 means no Limitation."/>
+                        <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}" ToolTip="The maximum Time the Service is allowed to run before it is canceled (gracefully). A Value of 0 means no Limitation.">minutes</TextBlock>
                     </StackPanel>
 
                     <Button Grid.Column="1" Grid.Row="1" Name="ButtonEdit" Margin="0,6,0,0" Style="{StaticResource BtnSquareSmall}" Visibility="{Binding HasSelection, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type UserControl}}, Converter={StaticResource BoolVisibilityConverter}}"
@@ -163,7 +204,6 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Column="0" Grid.Row="0" Margin="6,8,6,6" Style="{StaticResource SettingItemPanel}" ToolTip="Automatically call Pushback after all Departure Services have finished - in Case the Tug was already attached during Boarding.">
@@ -180,6 +220,11 @@
                 <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding CallPushbackOnBeacon}" Style="{StaticResource CheckBoxSettingItem}"
                           ToolTip="Automatically call Pushback when the Beacon is turned on (AND Brake set &amp; Power disconnected).">
                     <TextBlock>Call for Pushback when <Underline>Beacon</Underline> is turned on</TextBlock>
+                </CheckBox>
+
+                <CheckBox Grid.Column="0" Grid.Row="2" IsChecked="{Binding CancelServicesOnPushPhase}" Style="{StaticResource CheckBoxSettingItem}"
+                          ToolTip="When Any2GSX is in the Pushback Phase, all running Departure Services will be canceled.&#x0a;The Option is meant to handle non-normal Situations where Services still run in this Phase (normally they are all completed).">
+                    <TextBlock><Underline>Cancel all</Underline> Departure Services in the Pushback Phase</TextBlock>
                 </CheckBox>
             </Grid>
         </GroupBox>

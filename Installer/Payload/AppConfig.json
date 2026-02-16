@@ -79,6 +79,7 @@
       "DelayTurnRecheckSeconds": 30,
       "RefreshGsxOnDeparture": true,
       "RefreshGsxOnTurn": true,
+      "UseSimTime": true,
       "PluginSettings": {},
       "SkipWalkAround": true,
       "RunAutomationService": false,
@@ -95,10 +96,12 @@
       "SkipFuelOnTankering": true,
       "CallPushbackOnBeacon": false,
       "CallPushbackWhenTugAttached": 2,
+      "CancelServicesOnPushPhase": true,
       "ClearGroundEquipOnBeacon": true,
       "GradualGroundEquipRemoval": false,
       "CallDeboardOnArrival": true,
       "RunDepartureOnArrival": false,
+      "SmartButtonAbortService": 0,
       "ChockDelayMin": 10,
       "ChockDelayMax": 20,
       "FinalDelayMin": 90,
@@ -136,6 +139,8 @@
           "ServiceActivation": 2,
           "ServiceConstraint": 2,
           "MinimumFlightDuration": "00:00:00",
+          "MaxTimeBeforeDeparture": "00:00:00",
+          "MaxRunTime": "00:00:00",
           "CallOnCargo": false
         },
         "1": {
@@ -143,6 +148,8 @@
           "ServiceActivation": 2,
           "ServiceConstraint": 2,
           "MinimumFlightDuration": "00:00:00",
+          "MaxTimeBeforeDeparture": "00:00:00",
+          "MaxRunTime": "00:00:00",
           "CallOnCargo": false
         },
         "2": {
@@ -150,6 +157,8 @@
           "ServiceActivation": 2,
           "ServiceConstraint": 0,
           "MinimumFlightDuration": "00:00:00",
+          "MaxTimeBeforeDeparture": "00:00:00",
+          "MaxRunTime": "00:00:00",
           "CallOnCargo": false
         },
         "3": {
@@ -157,6 +166,8 @@
           "ServiceActivation": 2,
           "ServiceConstraint": 0,
           "MinimumFlightDuration": "00:00:00",
+          "MaxTimeBeforeDeparture": "00:00:00",
+          "MaxRunTime": "00:00:00",
           "CallOnCargo": false
         },
         "4": {
@@ -164,6 +175,8 @@
           "ServiceActivation": 3,
           "ServiceConstraint": 0,
           "MinimumFlightDuration": "00:00:00",
+          "MaxTimeBeforeDeparture": "00:00:00",
+          "MaxRunTime": "00:00:00",
           "CallOnCargo": false
         },
         "5": {
@@ -171,6 +184,8 @@
           "ServiceActivation": 6,
           "ServiceConstraint": 0,
           "MinimumFlightDuration": "00:00:00",
+          "MaxTimeBeforeDeparture": "00:00:00",
+          "MaxRunTime": "00:00:00",
           "CallOnCargo": false
         }
       },
@@ -182,7 +197,7 @@
   ],
   "FuelFobSaved": {},
   "FuelResetPercent": 0.02,
-  "ConfigVersion": 14,
+  "ConfigVersion": 15,
   "LogInterval": 3,
   "SizeLimit": 10485760,
   "LogCount": 3,

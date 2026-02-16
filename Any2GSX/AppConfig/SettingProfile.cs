@@ -122,6 +122,7 @@ namespace Any2GSX.AppConfig
         public virtual int DelayTurnRecheckSeconds { get; set; } = 30;
         public virtual bool RefreshGsxOnDeparture { get; set; } = true;
         public virtual bool RefreshGsxOnTurn { get; set; } = true;
+        public virtual bool UseSimTime { get; set; } = true;
 
         //Plugin
         public virtual Dictionary<string, object> PluginSettings { get; set; } = [];
@@ -142,10 +143,12 @@ namespace Any2GSX.AppConfig
         public virtual bool SkipFuelOnTankering { get; set; } = true;
         public virtual bool CallPushbackOnBeacon { get; set; } = false;
         public virtual int CallPushbackWhenTugAttached { get; set; } = 2; // 0 => false | 1 => after Departure Services | 2 => after Final LS
+        public virtual bool CancelServicesOnPushPhase { get; set; } = true;
         public virtual bool ClearGroundEquipOnBeacon { get; set; } = true;
         public virtual bool GradualGroundEquipRemoval { get; set; } = false;
         public virtual bool CallDeboardOnArrival { get; set; } = true;
         public virtual bool RunDepartureOnArrival { get; set; } = false;
+        public virtual int SmartButtonAbortService { get; set; } = 0; // 0 => Never | 1 => abort current service gracefully | 2 => abort current service forcefully
         public virtual int ChockDelayMin { get; set; } = 10;
         public virtual int ChockDelayMax { get; set; } = 20;
         public virtual int FinalDelayMin { get; set; } = 90;
@@ -182,8 +185,8 @@ namespace Any2GSX.AppConfig
 
         public virtual SortedDictionary<int, ServiceConfig> DepartureServices { get; set; } = new()
         {
-            { 0, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.AfterCalled, TimeSpan.Zero, GsxServiceConstraint.TurnAround) },
-            { 1, new ServiceConfig(GsxServiceType.Lavatory, GsxServiceActivation.AfterCalled, TimeSpan.Zero, GsxServiceConstraint.TurnAround) },
+            { 0, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.AfterCalled, TimeSpan.Zero, GsxServiceConstraint.TurnAround, false, TimeSpan.Zero, TimeSpan.Zero) },
+            { 1, new ServiceConfig(GsxServiceType.Lavatory, GsxServiceActivation.AfterCalled, TimeSpan.Zero, GsxServiceConstraint.TurnAround, false, TimeSpan.Zero, TimeSpan.Zero) },
             { 2, new ServiceConfig(GsxServiceType.Refuel, GsxServiceActivation.AfterCalled) },
             { 3, new ServiceConfig(GsxServiceType.Catering, GsxServiceActivation.AfterCalled) },
             { 4, new ServiceConfig(GsxServiceType.Water, GsxServiceActivation.AfterRequested) },

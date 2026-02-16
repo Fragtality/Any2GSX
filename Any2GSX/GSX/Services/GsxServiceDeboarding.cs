@@ -44,6 +44,14 @@ namespace Any2GSX.GSX.Services
             return sequence;
         }
 
+        protected override GsxMenuSequence InitCancelSequence()
+        {
+            var sequence = new GsxMenuSequence();
+            sequence.Commands.Add(new(1, GsxConstants.MenuGate, true) { WaitReady = true });
+
+            return sequence;
+        }
+
         protected override void InitSubscriptions()
         {
             SubDeboardService = SimStore.AddVariable(GsxConstants.VarServiceDeboarding);

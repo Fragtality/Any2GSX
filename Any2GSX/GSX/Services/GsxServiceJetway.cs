@@ -27,6 +27,11 @@ namespace Any2GSX.GSX.Services
             return sequence;
         }
 
+        protected override GsxMenuSequence InitCancelSequence()
+        {
+            return new GsxMenuSequence();
+        }
+
         protected override void InitSubscriptions()
         {
             SubService = SimStore.AddVariable(GsxConstants.VarServiceJetway);
@@ -66,6 +71,11 @@ namespace Any2GSX.GSX.Services
                 return;
 
             await DoCall();
+        }
+
+        public override async Task Cancel(int option = -1)
+        {
+            await Remove();
         }
     }
 }

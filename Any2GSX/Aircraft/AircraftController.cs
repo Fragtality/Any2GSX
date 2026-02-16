@@ -348,9 +348,9 @@ namespace Any2GSX.Aircraft
                 }
                 await Aircraft.RefuelActive();
             }
-            else if (service.State == GsxServiceState.Completed && AutomationController.State <= AutomationState.Pushback)
+            else if ((service.IsCompleted || service.IsCompleting) && AutomationController.State <= AutomationState.Pushback)
             {
-                if (Aircraft.HasFuelSynch && RefuelTimer.IsEnabled && SettingProfile.RefuelFinishOnHose
+                if (Aircraft.HasFuelSynch && RefuelTimer.IsEnabled && (SettingProfile.RefuelFinishOnHose || service.IsCompleting)
                     && Aircraft.FuelOnBoardKg <= Flightplan.FuelRampKg - Config.FuelCompareVariance && !GsxController.ServicePushBack.IsRunning)
                 {
                     Logger.Warning($"Instant load Fuel - FOB did not match planned after GSX Refuel");
@@ -390,7 +390,7 @@ namespace Any2GSX.Aircraft
                     Logger.Information($"Aircraft Refueling started. Refuel Rate: {Math.Round(Config.ConvertKgToDisplayUnit(FuelRate), 1)}{Config.DisplayUnitCurrentString}/s");
                 }
             }
-            else if (!connected && RefuelTimer.IsEnabled && SettingProfile.RefuelFinishOnHose)
+            else if (!connected && RefuelTimer.IsEnabled && (SettingProfile.RefuelFinishOnHose || GsxController.ServiceRefuel.IsCompleting))
             {
                 await RefuelStopEarly();
                 Logger.Information($"Aircraft Refueling finished early (Hose disconnected). FOB: {Math.Round(Config.ConvertKgToDisplayUnit(Aircraft.FuelOnBoardKg), 2)}{Config.DisplayUnitCurrentString}");
@@ -448,14 +448,14 @@ namespace Any2GSX.Aircraft
             if (!GsxController.IsActive)
                 return Task.CompletedTask;
 
-            if (service.State == GsxServiceState.Active)
+            if (service.State == GsxServiceState.Active && !IsBoarding)
             {
                 PaxProgress = 0;
                 IsBoarding = true;
                 Aircraft.BoardActive((service as GsxServiceBoarding).PaxTarget, Flightplan.WeightCargoKg);
                 Logger.Information($"Boarding has started");
             }
-            else if (service.State == GsxServiceState.Completed && AutomationController.State <= AutomationState.Pushback)
+            else if (IsBoarding && (service.IsCompleted || service.IsCompleting) && AutomationController.State <= AutomationState.Pushback)
             {
                 IsBoarding = false;
                 Aircraft.BoardCompleted((service as GsxServiceBoarding).PaxTarget, Flightplan.WeightPerPaxKg, Flightplan.WeightCargoKg);
@@ -508,14 +508,14 @@ namespace Any2GSX.Aircraft
             if (!GsxController.IsActive || service.State < GsxServiceState.Requested)
                 return Task.CompletedTask;
 
-            if (service.State == GsxServiceState.Active)
+            if (service.State == GsxServiceState.Active && !IsDeboarding)
             {
                 PaxProgress = 0;
                 IsDeboarding = true;
                 Aircraft.DeboardActive();
                 Logger.Information($"Deboarding has started");
             }
-            else if (service.State == GsxServiceState.Completed && AutomationController.State >= AutomationState.Arrival)
+            else if (IsDeboarding && (service.IsCompleted || service.IsCompleting) && AutomationController.State >= AutomationState.Arrival)
             {
                 IsDeboarding = false;
                 Aircraft.DeboardCompleted();

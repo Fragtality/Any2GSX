@@ -31,6 +31,8 @@ namespace Any2GSX.UI.Views.Automation
                     oldItem.MinimumFlightDuration = newItem.MinimumFlightDuration;
                     oldItem.ServiceConstraint = newItem.ServiceConstraint;
                     oldItem.CallOnCargo = newItem.CallOnCargo;
+                    oldItem.MaxTimeBeforeDeparture = newItem.MaxTimeBeforeDeparture;
+                    oldItem.MaxRunTime = newItem.MaxRunTime;
                     return true;
                 }
             }

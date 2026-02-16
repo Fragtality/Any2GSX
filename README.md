@@ -188,6 +188,7 @@ The Final LS Delay applies to all Aircrafts. It's primarily a Timer which can tr
 
 Options allowing to modify the OFP Data when imported - for Example to round up Fuel or randomize the Passenger Count. Note that these are only relevant when Any2GSX is providing Fuel- & Payload-Sync through an Aircraft Plugin!<br/>
 In addtition the Delays used in the Turnaround Phase can be configured here, which control when Any2GSX will check again for a new OFP on SimBrief.<br/>
+The Time Source used to compare against the Departure Time can also be configured here.<br/>
 <br/>
 
 ##### Fuel & Payload
@@ -201,21 +202,66 @@ So they are really Integration Settings, so they still apply when GSX Automation
 Configure if and when GSX Services are called:
 - Reposition on Startup (either use Any2GSX for that or the GSX Setting - but not both!)
 - The Service Activation and Constraints (if and when) as well as Order of the Departure Services (Refuel, Catering, Boarding as well as Lavatory & Water)
+- If the Departure Services should already be called while Deboarding (in the Arrival Phase)
+- If the last called Service should be cancled when using the SmartButton (to call the next Service)
 - Calling Deboard on Arrival
 - If and when Pushback should be called automatically
+- If Departure Services should be canceled in the Pushback Phase
 
 <img src="img/ui-auto.png" width="66%"><br/>
 
-- *Minimum Flight Time*: The Service is only called when the Flight Time (scheduled Block Time) is above the configured Minimum. So zero means always.
-- *Constraint*: Further restrict the Service Call
-  - *Only Departure*: Only call the Service in the first Departure Phase (the first Leg). Resetting the App in between will also reset that Constraint!
-  - *Only Turn*: Only call the Service after the first Turnaround (so the second and following Departure Phases). Resetting the App in between will also reset that Constraint!
-  - *Only on Hub*: Only call the Service on Airports defined as Company Hubs (see below)
-  - *Only on Non-Hub*: Only call the Service on Airports *not* defined as Company Hubs (see below)
-- *Call on Cargo*: When enabled, the Service is called when the Aircraft is reported as Cargo Plane (by generic Plugin Setting or by the Aircraft Plugin). Else only on Passenger Aircrafts.
-
-Note that for the first Service, Activation Rules considering preceding Services don't have an Effect. Or put differently: Unless it is configured as Skip or Manual, the first Service is always called (if no further Constraints were added).
 <br/>
+###### **Service Activation**
+
+The Activation Column determines how the respective Service is handled and/or called by the App:
+- **Skip / Ignore**: Service will neither be called nor monitored by the App
+- **Manual by User**: Service will be called externally by the User or another App. BUT: it must be completed to end the Departure Phase
+- **Previous called**: Service will directly be called after the previous Service was called
+- **Previous requested**: Service will be called as soon as the previous Service is reported as 'requested' by GSX
+- **Previous active**: Service will be called as soon as the previous Service is reported as 'active' by GSX
+- **Previous completed**: Service will be called as soon as the previous Service is reported as 'completed' by GSX
+- **All completed**: Service will only be called after all previous Service are reported as 'completed' by GSX
+
+Note: The first Service will always be called directly (if not set to skipped or manual or having Constraints set), as it has no previous Service!
+
+<br/>
+
+###### **Service Constraints**
+
+All other Columns allow to skip Services dynamically based on additional Constraints that can be set.<br/><br/>
+
+**Activate at**
+Wait to call the Service until X Minutes (or lower) before Departure. A Value of 0 calls the Service without Delay.<br/>
+The Service Activation still applies when the configured Minutes are reached. The INT/RAD Switch will override the Departure Time Check.<br/>
+Note that the Time is only evaluated for the next Service in Queue - other Services further down will not be checked until they are next.<br/>
+The SimBrief Departure Date/Time ('sched_out') is compared against the current Simulator Date/Time by default. The System (UTC) Time can also be used (=> Aircraft Options). But in any Case the current Time Source has to align with the Departure Time for this Constraint to work! I.e. if you change the Simulator Time away from Real-Time, use your System Time and ensure the SimBrief Departure Time is ahead of that.
+<br/><br/>
+
+**Min. Flight Time**
+Skip the Service when the scheduled Block Time is equal or above the configured Minutes - i.e. only call Catering on 'longer' Flights, else skip it.<br/>
+A Value of 0 ignores the Block Time.<br/>
+<br/><br/>
+
+**Constraint**
+Skip the Service in certain Situations:
+- **None**: No Constraint applied, the Service is called normally (according to the other Options)
+- **Only Departure**: The Service is only called on the first Departure (resetted by App Restart or new Session)
+- **Only Turn**: The Service is only called on Turn Arounds (resetted by App Restart or new Session)
+- **Only on Hub**: The Service is only called when the Departure ICAO (as of SimBrief) has a Match in the Company Hub List
+- **Only on Non-Hub**: The Service is only called when the Departure ICAO (as of SimBrief) has NO Match in the Company Hub List
+- **Turn on Hub**: The Service is only called on Turn Arounds when the Arrival ICAO (as of SimBrief) has a Match in the Company Hub List
+- **Turn on Non-Hub**: The Service is only called on Turn Arounds when the Arrival ICAO (as of SimBrief) has NO Match in the Company Hub List
+
+<br/>
+
+**Call on Cargo**
+When checked, the Service will also be called on Cargo Aircrafts (as identified by Profile/Plugin), otherwise it is skipped.
+<br/><br/>
+
+**Max Run Time**
+The maximum Time the Service is allowed to run before it is canceled (gracefully). A Value of 0 means no Limitation.
+
+<br/><br/>
 
 ##### Operator Selection
 
@@ -387,6 +433,7 @@ This Section describes the general Flow of the App and Flight Phases it will go 
   - Per Default the App will answer all relevant Pop-Ups/Questions in this Phase (Operator, Crew Boarding, Tug Attachment).
   - If the App is configured to allow manual Answers to these Questions, ensure that they are answered!
   - There has to be an Answer, or else a proper Flow cannot be guaranteed.
+- You can cancel running Services in the GSX Menu if needed - the App will handle that like the normal Completion (and eventually take corrective Measures for planned Fuel/Payload)
 - If the Aircraft requires to call GSX Services on its own for its (not really) Integration to work, ensure the respective Services are set to manually.
 - If manual Interaction is required depends on the Aircraft and/or Aircraft Plugin used. For Example:
   - Starting the GSX 'Integration' of the Aircraft through EFB/FMS if it needs to call the Services by itself.
@@ -494,7 +541,7 @@ This Section describes the general Flow of the App and Flight Phases it will go 
 A short Overview of the possible SmartButton Actions:
 
 - *Preparation* => Call Jetway/Stairs (when not configured to connect automatically and only if allowed)
-- *Departure* => Call the next Service in the Queue (Service Constraints still apply!)
+- *Departure* => Call the next (valid) Service in the Queue (including Services set to 'Manual')
 - *Pushback*
   - Service not yet called => Remove Ground-Equipment and request Pushback
   - Service called, Direction not selected => Reopen Direction Menu

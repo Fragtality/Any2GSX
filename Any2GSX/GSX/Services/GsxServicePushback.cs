@@ -33,6 +33,11 @@ namespace Any2GSX.GSX.Services
             return sequence;
         }
 
+        protected override GsxMenuSequence InitCancelSequence()
+        {
+            return new GsxMenuSequence();
+        }
+
         protected override void InitSubscriptions()
         {
             SubDepartService = SimStore.AddVariable(GsxConstants.VarServiceDeparture);
@@ -88,6 +93,11 @@ namespace Any2GSX.GSX.Services
                 sequence.Commands.Add(new(5, GsxConstants.MenuGate, true) { NoHide = true });
                 await Controller.Menu.RunSequence(sequence);
             }
+        }
+
+        public override async Task Cancel(int option = -1)
+        {
+            await EndPushback();
         }
 
         public virtual async Task EndPushback(int selection = 1)

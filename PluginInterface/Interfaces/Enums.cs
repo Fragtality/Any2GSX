@@ -97,6 +97,7 @@
         Requested = 4,
         Active = 5,
         Completed = 6,
+        Completing = 7,
     }
 
     public enum GsxDoor

@@ -39,6 +39,7 @@ namespace Any2GSX.Notifications
             { GsxServiceState.Requested, "[[#FF940A" },
             { GsxServiceState.Active, "[[#FF940A" },
             { GsxServiceState.Completed, "[[#03C900" },
+            { GsxServiceState.Completing, "[[#FF940A" },
         };
         public virtual string StateColorOther { get; } = "[[#BFBFBF";
 

@@ -14,8 +14,10 @@ namespace Any2GSX.PluginInterface.Interfaces
         public bool IsRunning { get; }
         public bool IsActive { get; }
         public bool IsCompleted { get; }
+        public bool IsCompleting { get; }
         public bool IsSkipped { get; }
         public bool WasActive { get; }
+        public DateTime ActivationTime { get; }
 
         public event Func<IGsxService, Task> OnActive;
         public event Func<IGsxService, Task> OnCompleted;

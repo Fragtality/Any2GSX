@@ -41,21 +41,29 @@ namespace Any2GSX.GSX
         public virtual TimeSpan MinimumFlightDuration { get; set; } = TimeSpan.Zero;
         [JsonIgnore]
         public virtual bool HasDurationConstraint => MinimumFlightDuration > TimeSpan.Zero;
+        public virtual TimeSpan MaxTimeBeforeDeparture { get; set; } = TimeSpan.Zero;
+        [JsonIgnore]
+        public virtual bool HasTobtConstraint => MaxTimeBeforeDeparture > TimeSpan.Zero;
+        public virtual TimeSpan MaxRunTime { get; set; } = TimeSpan.Zero;
+        [JsonIgnore]
+        public virtual bool HasMaxRunTime => MaxRunTime > TimeSpan.Zero;
         public virtual bool CallOnCargo { get; set; } = false;
         [JsonIgnore]
         public virtual int ActivationCount { get; set; } = 0;
 
         public ServiceConfig(){ }
 
-        public ServiceConfig(GsxServiceType type, GsxServiceActivation activation) : this(type, activation, TimeSpan.Zero, GsxServiceConstraint.NoneAlways, false) { }
+        public ServiceConfig(GsxServiceType type, GsxServiceActivation activation) : this(type, activation, TimeSpan.Zero, GsxServiceConstraint.NoneAlways, false, TimeSpan.Zero, TimeSpan.Zero) { }
 
-        public ServiceConfig(GsxServiceType type, GsxServiceActivation activation, TimeSpan duration, GsxServiceConstraint constraint, bool callOnCargo = false)
+        public ServiceConfig(GsxServiceType type, GsxServiceActivation activation, TimeSpan duration, GsxServiceConstraint constraint, bool callOnCargo, TimeSpan maxBeforeDepart, TimeSpan maxRun)
         {
             ServiceType = type;
             ServiceActivation = activation;
             ServiceConstraint = constraint;
             MinimumFlightDuration = duration;
             CallOnCargo = callOnCargo;
+            MaxTimeBeforeDeparture = maxBeforeDepart;
+            MaxRunTime = maxRun;
         }
     }
 }

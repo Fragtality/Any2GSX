@@ -23,6 +23,7 @@ namespace Any2GSX.GSX.Services
         public virtual bool IsCalled { get; protected set; } = false;
         protected virtual bool SequenceResult => CallSequence?.IsSuccess ?? false;
         protected virtual GsxMenuSequence CallSequence { get; }
+        protected virtual GsxMenuSequence CancelSequence { get; set; }
         protected abstract ISimResourceSubscription SubStateVar { get; }
         public virtual GsxServiceState State => StateOverride != GsxServiceState.Unknown ? StateOverride : GetState();
         public virtual GsxServiceState StateOverride { get; set; } = GsxServiceState.Unknown;
@@ -31,9 +32,11 @@ namespace Any2GSX.GSX.Services
         public virtual bool IsRunning => State == GsxServiceState.Requested || State == GsxServiceState.Active;
         public virtual bool IsActive => State == GsxServiceState.Active;
         public virtual bool IsCompleted => State == GsxServiceState.Completed;
+        public virtual bool IsCompleting => State == GsxServiceState.Completing;
         protected virtual double NumStateCompleted { get; } = 6;
         public virtual bool IsSkipped { get; set; } = false;
         public virtual bool WasActive { get; protected set; } = false;
+        public virtual DateTime ActivationTime { get; protected set; } = DateTime.MaxValue;
         public virtual bool WasCompleted { get; protected set; } = false;
 
         public event Func<IGsxService, Task> OnActive;
@@ -44,11 +47,14 @@ namespace Any2GSX.GSX.Services
         {
             Controller = controller;
             CallSequence = InitCallSequence();
+            CancelSequence = InitCancelSequence();
             InitSubscriptions();
             Controller.GsxServices.Add(Type, this);
         }
 
         protected abstract GsxMenuSequence InitCallSequence();
+
+        protected abstract GsxMenuSequence InitCancelSequence();
 
         protected abstract void InitSubscriptions();
 
@@ -76,6 +82,7 @@ namespace Any2GSX.GSX.Services
         protected virtual void RunStateActive()
         {
             WasActive = true;
+            ActivationTime = DateTime.Now;
             NotifyActive();
         }
 
@@ -117,6 +124,7 @@ namespace Any2GSX.GSX.Services
             IsCalled = false;
             IsSkipped = false;
             WasActive = false;
+            ActivationTime = DateTime.MaxValue;
             WasCompleted = false;
             StateOverride = GsxServiceState.Unknown;
             CallSequence.Reset();
@@ -188,6 +196,20 @@ namespace Any2GSX.GSX.Services
             bool result = await Controller.Menu.RunSequence(CallSequence);
             Logger.Debug($"{Type} Sequence completed: Success {result}");
             return result;
+        }
+
+        public virtual async Task Cancel(int option = -1)
+        {
+            if (option == -1)
+                option = Controller.Profile.SmartButtonAbortService;
+
+            var sequence = new GsxMenuSequence();
+            sequence.Commands.AddRange(CancelSequence.Commands);
+            sequence.Commands.Add(new(option, GsxConstants.MenuCancelService) { WaitReady = true });
+            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
+
+            Logger.Debug($"Executing Cancel Sequence for Service {Type}");
+            await Controller.Menu.RunSequence(sequence);
         }
 
         protected virtual void NotifyStateChange()

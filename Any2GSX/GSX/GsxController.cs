@@ -148,6 +148,7 @@ namespace Any2GSX.GSX
             SimStore.AddVariable(GsxConstants.VarCouatlStartProg7).OnReceived += OnCouatlVariable;
 
             SimStore.AddVariable("SIM ON GROUND", SimUnitType.Bool);
+            SimStore.AddVariable("ABSOLUTE TIME", SimUnitType.Seconds);
             if (IsMsfs2024)
             {
                 SimStore.AddVariable("IS AIRCRAFT", SimUnitType.Number);
@@ -182,6 +183,28 @@ namespace Any2GSX.GSX
             AutomationController.Init();
 
             return Task.CompletedTask;
+        }
+
+        public virtual DateTime GetTime()
+        {
+            try
+            {
+                if (Profile?.UseSimTime == true)
+                {
+                    double simAbsTime = SimStore["ABSOLUTE TIME"]?.GetNumber() ?? 0;
+                    double epochOffset = (new DateTime(1970, 1, 1) - DateTime.MinValue).TotalSeconds;
+                    simAbsTime -= epochOffset;
+                    return DateTimeOffset.FromUnixTimeSeconds((long)simAbsTime).DateTime;
+                }
+                else
+                    return DateTime.UtcNow;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+
+            return DateTime.UtcNow;
         }
 
         protected virtual void OnCouatlSimbrief(ISimResourceSubscription sub, object data)
@@ -583,6 +606,7 @@ namespace Any2GSX.GSX
             SimStore.Remove(GsxConstants.VarCouatlStartProg7);
 
             SimStore.Remove("SIM ON GROUND");
+            SimStore.Remove("ABSOLUTE TIME");
             if (IsMsfs2024)
             {
                 SimStore.Remove("IS AIRCRAFT");

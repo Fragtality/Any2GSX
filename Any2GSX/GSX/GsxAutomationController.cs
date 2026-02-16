@@ -50,6 +50,7 @@ namespace Any2GSX.GSX
             }
         }
         protected virtual List<GsxService> DepartureServicesCalled { get; } = [];
+        protected virtual GsxService LastServiceCalled { get; set; } = null;
         protected virtual ConcurrentDictionary<GsxServiceType, GsxService> GsxServices => GsxController.GsxServices;
         protected virtual GsxServiceReposition ServiceReposition => GsxController.ServiceReposition;
         protected virtual GsxServiceRefuel ServiceRefuel => GsxController.ServiceRefuel;
@@ -116,6 +117,7 @@ namespace Any2GSX.GSX
 
             DepartureServicesCompleted = false;
             DepartureServicesCalled?.Clear();
+            LastServiceCalled = null;
             if (Profile?.DepartureServices != null)
             {
                 DepartureServicesEnumerator = Profile.DepartureServices.GetEnumerator();
@@ -144,6 +146,7 @@ namespace Any2GSX.GSX
 
             DepartureServicesCompleted = false;
             DepartureServicesCalled.Clear();
+            LastServiceCalled = null;
             DepartureServicesEnumerator = Profile.DepartureServices.GetEnumerator();
             DepartureServicesEnumerator.MoveNext();
         }
@@ -675,6 +678,24 @@ namespace Any2GSX.GSX
                 }
             }
 
+            if (!DepartureServicesCompleted)
+            {
+                foreach (var departService in Profile.DepartureServices)
+                {
+                    var svcCfg = departService.Value;
+                    if (!GsxServices.TryGetValue(svcCfg.ServiceType, out var service))
+                        continue;
+                    if (service == null || service.IsCompleted || service.IsCompleting || service.IsSkipped)
+                        continue;
+
+                    if (service.IsRunning && svcCfg.HasMaxRunTime && service.ActivationTime != DateTime.MaxValue && DateTime.Now - service.ActivationTime >= svcCfg.MaxRunTime)
+                    {
+                        Logger.Information($"Automation: Cancel Service {service.Type} due to Run Time Constraint");
+                        await service.Cancel(1);
+                    }
+                }
+            }
+
             if (!DepartureServicesCompleted && Aircraft.IsFuelOnStairSide
                 && ServiceStairs.IsAvailable && !ServiceStairs.IsCalled
                 && !(ServiceBoard.IsCompleted || ServiceBoard.IsSkipped)
@@ -709,7 +730,7 @@ namespace Any2GSX.GSX
             {
                 GsxService current = GsxServices[DepartureServicesCurrent.ServiceType];
                 GsxServiceActivation activation = DepartureServicesCurrent.ServiceActivation;
-                if (!current.IsCalled && !current.IsCompleted && !current.IsRunning && (!DepartureServicesCurrent.HasDurationConstraint || Flightplan.Duration >= DepartureServicesCurrent.MinimumFlightDuration))
+                if (!current.IsCalled && !current.IsCompleted && !current.IsCompleting && !current.IsRunning && (!DepartureServicesCurrent.HasDurationConstraint || Flightplan.Duration >= DepartureServicesCurrent.MinimumFlightDuration))
                 {
                     if (Profile.SkipFuelOnTankering && activation != GsxServiceActivation.Skip && current is GsxServiceRefuel && Flightplan.IsLoaded && Aircraft.FuelOnBoardKg >= Flightplan.FuelRampKg - Config.FuelCompareVariance)
                     {
@@ -756,15 +777,22 @@ namespace Any2GSX.GSX
                         Logger.Information($"Automation: Departure Service {DepartureServicesCurrent.ServiceType} skipped due to State '{current.State}'");
                         MoveDepartureQueue(current, true);
                     }
-                    else if (SmartButtonRequest
-                            || activation == GsxServiceActivation.AfterCalled
+                    else if (SmartButtonRequest ||
+                            ((activation == GsxServiceActivation.AfterCalled
                             || (activation == GsxServiceActivation.AfterRequested && (DepartureServicesCalled?.Count == 0 || DepartureServicesCalled?.SafeLast()?.State >= GsxServiceState.Requested || DepartureServicesCalled?.SafeLast()?.IsSkipped == true))
                             || (activation == GsxServiceActivation.AfterActive && (DepartureServicesCalled?.Count == 0 || DepartureServicesCalled?.SafeLast()?.State >= GsxServiceState.Active || DepartureServicesCalled?.SafeLast()?.IsSkipped == true))
                             || (activation == GsxServiceActivation.AfterPrevCompleted && (DepartureServicesCalled?.Count == 0 || DepartureServicesCalled?.SafeLast()?.IsCompleted == true || DepartureServicesCalled?.SafeLast()?.IsSkipped == true))
                             || (activation == GsxServiceActivation.AfterAllCompleted && (DepartureServicesCalled?.Count == 0 || DepartureServicesCalled.All(s => s.IsCompleted || s.IsSkipped))))
+                            && (!DepartureServicesCurrent.HasTobtConstraint || DepartureServicesCurrent.MaxTimeBeforeDeparture >= Flightplan.ScheduledOutTime - GsxController.GetTime())))
                     {
                         if (DepartureServicesCurrent.ServiceType == GsxServiceType.Boarding)
                             await ServiceBoard.SetPaxTarget(Flightplan.CountPax);
+
+                        if (SmartButtonRequest && Profile.SmartButtonAbortService > 0 && LastServiceCalled != null)
+                        {
+                            Logger.Information($"Automation: Cancel last Service {LastServiceCalled.Type} (INT/RAD)");
+                            await LastServiceCalled.Cancel();
+                        }
 
                         if (!DepartureServicesCurrent.CallOnCargo && Aircraft.IsCargo)
                         {
@@ -793,7 +821,7 @@ namespace Any2GSX.GSX
                 else
                 {
                     bool skipped = false;
-                    if (current.IsCompleted)
+                    if (current.IsCompleted || current.IsCompleting)
                         Logger.Information($"Automation: Departure Service {DepartureServicesCurrent.ServiceType} already completed");
                     else if (current.IsCalled || current.IsRunning)
                     {
@@ -829,6 +857,8 @@ namespace Any2GSX.GSX
             DepartureServicesCurrent.ActivationCount++;
             if (asSkipped)
                 service.IsSkipped = true;
+            else
+                LastServiceCalled = service;
             DepartureServicesEnumerator.MoveNext();
         }
 
@@ -885,6 +915,16 @@ namespace Any2GSX.GSX
             {
                 Logger.Information($"Automation: Disconnecting PCA on APU Bleed on");
                 await Aircraft.SetEquipmentPca(false, ServicePushBack.PushStatus >= 3 || ServicePushBack.IsActive);
+            }
+
+            if (DepartureServicesCalled.Any(s => s.IsRunning) && Profile.CancelServicesOnPushPhase)
+            {
+                Logger.Information($"Automation: Cancel all Departure Services in Pushback Phase");
+                foreach (var service in DepartureServicesCalled)
+                {
+                    if (service.IsRunning)
+                        await service.Cancel(1);
+                }
             }
 
             if (Profile.GradualGroundEquipRemoval)
@@ -1136,6 +1176,9 @@ namespace Any2GSX.GSX
                     await ServiceStairs.Call();
                 }
             }
+
+            if (LastServiceCalled == null && (ServiceDeboard.IsCalled || ServiceDeboard.IsRunning))
+                LastServiceCalled = ServiceDeboard;
 
             if (Profile.RunDepartureOnArrival && !RunDepartureOnArrival && ServiceDeboard.IsActive && Aircraft.ReadyForDepartureServices && Flightplan.IsLoaded && OfpArrivalId != Flightplan.LastId)
             {
