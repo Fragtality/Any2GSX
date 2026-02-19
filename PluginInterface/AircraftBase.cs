@@ -67,7 +67,7 @@ namespace Any2GSX.PluginInterface
         public virtual bool HasFobSaveRestore => GetHasFobSaveRestore().Result;
         public virtual bool IsFuelOnStairSide => GetIsFuelOnStairSide().Result;
         public virtual bool HasGpuInternal => GetHasGpuInternal().Result;
-        public virtual bool UseGpuGsx => GetUseGpuGsx().Result;
+        public virtual GsxGpuUsage UseGpuGsx => GetUseGpuGsx().Result; // 0 => Never | 1 => Always | 2 => Stairs only
         public virtual bool HasChocks => GetHasChocks().Result;
         public virtual bool HasCones => GetHasCones().Result;
         public virtual bool HasPca => GetHasPca().Result;
@@ -403,9 +403,12 @@ namespace Any2GSX.PluginInterface
             return Task.FromResult(false);
         }
 
-        public virtual Task<bool> GetUseGpuGsx()
+        public virtual Task<GsxGpuUsage> GetUseGpuGsx()
         {
-            return Task.FromResult(false);
+            if (ISettingProfile.HasSetting<GsxGpuUsage>(GenericSettings.OptionAircraftGsxGpu, out GsxGpuUsage value))
+                return Task.FromResult(value);
+            else
+                return Task.FromResult(GsxGpuUsage.Never);
         }
 
         public virtual Task<bool> GetHasChocks()
@@ -456,6 +459,11 @@ namespace Any2GSX.PluginInterface
         public virtual async Task SetParkingBrake(bool state)
         {
             await SubMsfsParkingBrakeSet.WriteValue(state);
+        }
+
+        public virtual Task SetExternalPowerAvailable(bool state)
+        {
+            return Task.CompletedTask;
         }
 
         public virtual Task SetEquipmentPower(bool state, bool force = false)
@@ -537,7 +545,6 @@ namespace Any2GSX.PluginInterface
         {
             return Task.CompletedTask;
         }
-
 
         public virtual async Task RefuelTick(double stepKg, double fuelOnBoardKg)
         {

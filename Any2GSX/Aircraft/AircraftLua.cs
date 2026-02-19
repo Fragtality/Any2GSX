@@ -718,10 +718,10 @@ namespace Any2GSX.Aircraft
                 return base.GetHasGpuInternal();
         }
 
-        public override Task<bool> GetUseGpuGsx()
+        public override Task<GsxGpuUsage> GetUseGpuGsx()
         {
             if (HasLuaFunction("GetUseGpuGsx", out LuaFunction func))
-                return Task.FromResult(CallLua<bool>(func));
+                return Task.FromResult(CallLua<GsxGpuUsage>(func));
             else
                 return base.GetUseGpuGsx();
         }
@@ -796,6 +796,14 @@ namespace Any2GSX.Aircraft
                 return Task.FromResult(CallLua<bool>(func));
             else
                 return base.GetLightBeacon();
+        }
+
+        public override Task SetExternalPowerAvailable(bool state)
+        {
+            if (HasLuaFunction("SetExternalPowerAvailable", out LuaFunction func))
+                return Task.FromResult(CallLua<object>(func, state));
+            else
+                return base.SetExternalPowerAvailable(state);
         }
 
         public override Task<bool> SetEquipmentPower(bool state, bool force = false)

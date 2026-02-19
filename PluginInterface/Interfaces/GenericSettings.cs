@@ -46,6 +46,7 @@ namespace Any2GSX.PluginInterface.Interfaces
         public const string OptionAircraftIsCargo = "Generic.Option.Aircraft.IsCargo";
         public const string OptionAircraftRefuelStair = "Generic.Option.Aircraft.RefuelStair";
         public const string OptionAircraftInitDelay = "Generic.Option.Aircraft.InitDelay";
+        public const string OptionAircraftGsxGpu = "Generic.Option.Aircraft.GsxGpu";
 
         public static List<PluginSetting> GetGenericSettings()
         {
@@ -161,6 +162,19 @@ namespace Any2GSX.PluginInterface.Interfaces
                 DefaultValue = 1000,
                 Description = "Delay in ms to wait for the Aircraft Systems to initialize"
             };
+            list.Add(setting);
+
+            //GsxGpu
+            setting = new PluginSetting()
+            {
+                Key = OptionAircraftGsxGpu,
+                Type = PluginSettingType.Enum,
+                DefaultValue = (int)GsxGpuUsage.Never,
+                Description = "Use GSX GPU for Aircraft",
+                EnumValues = []
+            };
+            foreach (var value in Enum.GetValues<GsxGpuUsage>())
+                setting.EnumValues.Add((int)value, value.ToString());
             list.Add(setting);
 
             //Engine Combustion Variables

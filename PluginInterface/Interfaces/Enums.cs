@@ -100,6 +100,13 @@
         Completing = 7,
     }
 
+    public enum GsxGpuUsage
+    {
+        Never = 0,
+        Always = 1,
+        NoJetway = 2,
+    }
+
     public enum GsxDoor
     {
         PaxDoor1 = 1,

@@ -620,7 +620,9 @@ namespace Any2GSX.GSX
                     }
                 }
 
-                if (Aircraft.UseGpuGsx && !GsxServices[GsxServiceType.GPU].IsCalled && !GsxServices[GsxServiceType.GPU].IsRunning)
+                if (!GsxServices[GsxServiceType.GPU].IsCalled && !GsxServices[GsxServiceType.GPU].IsRunning &&
+                    (Aircraft.UseGpuGsx == GsxGpuUsage.Always
+                    || (Aircraft.UseGpuGsx == GsxGpuUsage.NoJetway && !GsxController.HasGateJetway)))
                 {
                     Logger.Information($"Automation: Calling GSX GPU on Preparation");
                     await GsxServices[GsxServiceType.GPU].Call();
@@ -929,13 +931,12 @@ namespace Any2GSX.GSX
 
             if (Profile.GradualGroundEquipRemoval)
             {
-                if (Aircraft.HasGpuInternal && Aircraft.EquipmentPower && Aircraft.IsAvionicPowered && !Aircraft.IsExternalPowerConnected)
+                if (((Aircraft.HasGpuInternal && Aircraft.EquipmentPower) || (Aircraft.UseGpuGsx != GsxGpuUsage.Never && GsxController.ServiceGpu.IsConnected)) && Aircraft.IsAvionicPowered && !Aircraft.IsExternalPowerConnected)
                 {
-                    Logger.Information($"Automation: Removing GPU on External Power disconnect");
-                    await Aircraft.SetEquipmentPower(false);
+                    await RemoveGroundPower();
                 }
 
-                bool gpuCondition = !Aircraft.HasGpuInternal || (Aircraft.HasGpuInternal && !Aircraft.EquipmentPower);
+                bool gpuCondition = !Aircraft.HasGpuInternal || (Aircraft.HasGpuInternal && !Aircraft.EquipmentPower) || (!Aircraft.HasGpuInternal && Aircraft.UseGpuGsx != GsxGpuUsage.Never && !GsxController.ServiceGpu.IsConnected);
                 if (Aircraft.HasChocks && Aircraft.EquipmentChocks && Aircraft.IsBrakeSet && gpuCondition)
                 {
                     Logger.Information($"Automation: Removing Chocks on Parking Brake set");
@@ -954,7 +955,7 @@ namespace Any2GSX.GSX
                 if (Profile.ClearGroundEquipOnBeacon && GroundEquipmentPlaced)
                 {
                     Logger.Information($"Automation: Remove Ground Equipment on Beacon");
-                    SetGroundEquip(false);
+                    await SetGroundEquip(false);
                     GroundEquipmentPlaced = false;
                 }
                 
@@ -1010,7 +1011,7 @@ namespace Any2GSX.GSX
                 else
                     Logger.Information($"Automation: Remove Ground Equipment on Deice");
 
-                SetGroundEquip(false);
+                await SetGroundEquip(false);
                 GroundEquipmentPlaced = false;
                 await Task.Delay(Config.StateMachineInterval, RequestToken);
             }
@@ -1026,10 +1027,10 @@ namespace Any2GSX.GSX
                 else if (Aircraft.IsEngineRunning)
                     reason = "because Engines Running";
 
-                if (Aircraft.HasGpuInternal && Aircraft.EquipmentPower && !Aircraft.IsExternalPowerConnected)
+                if (((Aircraft.HasGpuInternal && Aircraft.EquipmentPower) || (Aircraft.UseGpuGsx != GsxGpuUsage.Never && GsxController.ServiceGpu.IsConnected)) && Aircraft.IsAvionicPowered && !Aircraft.IsExternalPowerConnected)
                 {
-                    Logger.Information($"Automation: Remove GPU {reason}");
-                    await Aircraft.SetEquipmentPower(false);
+                    Logger.Information($"Automation: Remove External Power {reason}");
+                    await RemoveGroundPower();
                 }
 
                 if (Aircraft.HasChocks && Aircraft.EquipmentChocks && Aircraft.IsBrakeSet)
@@ -1062,7 +1063,7 @@ namespace Any2GSX.GSX
                     if (GroundEquipmentPlaced)
                     {
                         Logger.Debug($"Remove Ground Equipment on SmartButton");
-                        SetGroundEquip(false);
+                        await SetGroundEquip(false);
                         GroundEquipmentPlaced = false;
                     }
                 }
@@ -1079,18 +1080,35 @@ namespace Any2GSX.GSX
             }
         }
 
-        protected virtual void SetGroundEquip(bool set)
+        protected virtual async Task SetGroundEquip(bool set)
         {
             if (Aircraft.HasChocks)
-                Aircraft.SetEquipmentChocks(set);
+                await Aircraft.SetEquipmentChocks(set);
             if (Aircraft.HasCones)
-                Aircraft.SetEquipmentCones(set);
+                await Aircraft.SetEquipmentCones(set);
             if (Aircraft.HasPca && !set)
-                Aircraft.SetEquipmentPca(set);
-            if (Aircraft.HasGpuInternal)
-                Aircraft.SetEquipmentPower(set);
+                await Aircraft.SetEquipmentPca(set);
+            if (Aircraft.HasGpuInternal && set)
+                await Aircraft.SetEquipmentPower(set);
+            else
+                await RemoveGroundPower();
             if (Aircraft.HasChocks)
-                Aircraft.SetEquipmentChocks(set);
+                await Aircraft.SetEquipmentChocks(set);
+        }
+
+        protected virtual async Task RemoveGroundPower()
+        {
+            if (Aircraft.HasGpuInternal && Aircraft.EquipmentPower && Aircraft.IsAvionicPowered && !Aircraft.IsExternalPowerConnected)
+            {
+                Logger.Information($"Automation: Removing Internal GPU");
+                await Aircraft.SetEquipmentPower(false);
+            }
+
+            if (Aircraft.UseGpuGsx != GsxGpuUsage.Never && GsxController.ServiceGpu.IsConnected && !GsxController.ServiceGpu.WasCanceled && Aircraft.IsAvionicPowered && !Aircraft.IsExternalPowerConnected)
+            {
+                Logger.Information($"Automation: Removing GSX GPU");
+                await GsxController.GsxServices[GsxServiceType.GPU].Cancel();
+            }
         }
 
         protected virtual async Task RunArrival()
@@ -1146,7 +1164,9 @@ namespace Any2GSX.GSX
                 }
             }
 
-            if (Aircraft.UseGpuGsx && !GsxServices[GsxServiceType.GPU].IsCalled && !GsxServices[GsxServiceType.GPU].IsRunning)
+            if (!GsxServices[GsxServiceType.GPU].IsCalled && !GsxServices[GsxServiceType.GPU].IsRunning &&
+                (Aircraft.UseGpuGsx == GsxGpuUsage.Always
+                || (Aircraft.UseGpuGsx == GsxGpuUsage.NoJetway && !GsxController.HasGateJetway)))
             {
                 Logger.Information($"Automation: Calling GSX GPU on Arrival");
                 await GsxServices[GsxServiceType.GPU].Call();

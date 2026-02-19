@@ -42,6 +42,7 @@ namespace Any2GSX.GSX
         public static string VarServiceDeboarding { get; } = "L:FSDT_GSX_DEBOARDING_STATE";
         public static string VarServiceDeparture { get; } = "L:FSDT_GSX_DEPARTURE_STATE";
         public static string VarServiceGpu { get; } = "L:FSDT_GSX_GPU_STATE";
+        public static string VarServiceGpuConnect { get; } = "L:FSDT_GSX_GPU_CONNECTED";
         public static string VarPusbackStatus { get; } = "L:FSDT_GSX_PUSHBACK_STATUS";
         public static string VarBypassPin { get; } = "L:FSDT_GSX_BYPASS_PIN";
         public static string VarServiceDeice { get; } = "L:FSDT_GSX_DEICING_STATE";

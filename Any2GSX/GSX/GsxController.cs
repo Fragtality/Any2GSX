@@ -49,6 +49,7 @@ namespace Any2GSX.GSX
         public virtual GsxServiceBoarding ServiceBoard => GsxServices[GsxServiceType.Boarding] as GsxServiceBoarding;
         public virtual GsxServiceDeboarding ServiceDeboard => GsxServices[GsxServiceType.Deboarding] as GsxServiceDeboarding;
         public virtual GsxServiceDeice ServiceDeice => GsxServices[GsxServiceType.Deice] as GsxServiceDeice;
+        public virtual GsxServiceGpu ServiceGpu => GsxServices[GsxServiceType.GPU] as GsxServiceGpu;
         public int JetwayState => (int)(ServiceJetway?.State ?? 0);
         public int JetwayOperation => (int)(ServiceJetway?.SubOperating?.GetNumber() ?? 0);
         public int StairsState => (int)(ServiceStairs?.State ?? 0);

@@ -74,6 +74,7 @@ namespace Any2GSX.Aircraft
             GsxController.ServiceStairs.SubOperating.OnReceived += OnStairOperationChange;
             GsxController.ServicePushBack.OnStateChanged += OnPushStateChange;
             GsxController.ServicePushBack.OnPushStatus += OnPushOperationChange;
+            GsxController.ServiceGpu.OnGpuConnection += OnGpuConnectionChange;
 
             GsxController.SubDoorToggleExit1.OnReceived += (sub, data) => OnDoorTrigger(GsxDoor.PaxDoor1, sub.GetNumber());
             GsxController.SubDoorToggleExit2.OnReceived += (sub, data) => OnDoorTrigger(GsxDoor.PaxDoor2, sub.GetNumber());
@@ -166,6 +167,7 @@ namespace Any2GSX.Aircraft
                     GsxController.ServiceStairs.SubOperating.OnReceived -= OnStairOperationChange;
                     GsxController.ServicePushBack.OnStateChanged -= OnPushStateChange;
                     GsxController.ServicePushBack.OnPushStatus -= OnPushOperationChange;
+                    GsxController.ServiceGpu.OnGpuConnection -= OnGpuConnectionChange;
 
                     SimStore.Remove("FUEL WEIGHT PER GALLON");
                 }
@@ -559,6 +561,17 @@ namespace Any2GSX.Aircraft
 
             Aircraft.DeboardUnloadingChange(door, state);
             return Task.CompletedTask;
+        }
+
+        public virtual async Task OnGpuConnectionChange(bool connected)
+        {
+            if (!GsxController.IsActive || Aircraft.UseGpuGsx == GsxGpuUsage.Never)
+                return;
+
+            if (connected)
+                await Aircraft.SetExternalPowerAvailable(true);
+            else
+                await Aircraft.SetExternalPowerAvailable(false);
         }
     }
 }

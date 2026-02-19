@@ -295,6 +295,8 @@ namespace Any2GSX.AppConfig
                 value = dblValue;
             else if (typeof(T) == typeof(int) && element.ValueKind == JsonValueKind.Number && element.TryGetInt32(out int intValue))
                 value = intValue;
+            else if (typeof(T).IsEnum && element.ValueKind == JsonValueKind.Number && element.TryGetInt32(out int enumValue))
+                value = enumValue;
             else if (typeof(T) == typeof(string) && element.ValueKind == JsonValueKind.String)
                 value = element.GetString();
             else
