@@ -64,6 +64,7 @@
   "DelayServiceStateChange": 500,
   "SpeedTresholdTaxiOut": 2,
   "SpeedTresholdTaxiIn": 30,
+  "RefuelDisconnectTimeout": 10000,
   "SettingProfiles": [
     {
       "Name": "default",
@@ -197,7 +198,7 @@
   ],
   "FuelFobSaved": {},
   "FuelResetPercent": 0.02,
-  "ConfigVersion": 16,
+  "ConfigVersion": 17,
   "LogInterval": 3,
   "SizeLimit": 10485760,
   "LogCount": 3,

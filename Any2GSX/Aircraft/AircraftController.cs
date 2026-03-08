@@ -432,6 +432,14 @@ namespace Any2GSX.Aircraft
                 Logger.Debug($"Aircraft Refuel Timer ended");
                 Aircraft.RefuelStop(FuelCounter, false);
                 Logger.Information($"Aircraft Refueling finished. FOB: {Math.Round(Config.ConvertKgToDisplayUnit(Aircraft.FuelOnBoardKg), 2)}{Config.DisplayUnitCurrentString}");
+                _ = Task.Delay(Config.RefuelDisconnectTimeout).ContinueWith(async delegate
+                {
+                    if (GsxController.ServiceRefuel.IsHoseConnected)
+                    {
+                        Logger.Information($"Cancel GSX Refuel Service after Aircraft has finished Refueling");
+                        await GsxController.ServiceRefuel.Cancel();
+                    }
+                });
             }
             else
             {
