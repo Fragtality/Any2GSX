@@ -116,9 +116,9 @@ namespace Any2GSX.GSX.Menu
                 int hide = !Profile.SkipCrewBoardQuestion && Profile.AnswerCrewBoardQuestion != 1 ? 0 : 2;
 
                 if (Profile.AttachTugDuringBoarding == 2)
-                    await Select(1, true, false, hide);
+                    await Select(1, true, false, hide, true);
                 else if (Profile.AttachTugDuringBoarding == 1)
-                    await Select(2, true, false, hide);
+                    await Select(2, true, false, hide, true);
             }
             if (Profile.SkipCrewBoardQuestion && Profile.AttachTugDuringBoarding != 0)
                 SuppressMenuRefresh = false;
@@ -131,7 +131,7 @@ namespace Any2GSX.GSX.Menu
             Logger.Debug($"Crew Board Question active");
             if (Profile.RunAutomationService && Profile.AnswerCrewBoardQuestion > 0)
             {
-                await Select(Profile.AnswerCrewBoardQuestion, true, false, 2);
+                await Select(Profile.AnswerCrewBoardQuestion, true, false, 2, true);
                 SuppressMenuRefresh = false;
             }
         }
@@ -141,7 +141,7 @@ namespace Any2GSX.GSX.Menu
             Logger.Debug($"Crew Deboard Question active");
             if (Profile.RunAutomationService && Profile.AnswerCrewDeboardQuestion > 0)
             {
-                await Select(Profile.AnswerCrewDeboardQuestion, true, false, 2);
+                await Select(Profile.AnswerCrewDeboardQuestion, true, false, 2, true);
                 SuppressMenuRefresh = false;
             }
         }
@@ -152,8 +152,11 @@ namespace Any2GSX.GSX.Menu
             if (Profile.RunAutomationService && Profile.SkipFollowMe && !FollowMeAnswered)
             {
                 var sequence = new GsxMenuSequence();
+                sequence.Commands.Add(GsxMenuCommand.CreateDummy());
                 sequence.Commands.Add(new GsxMenuCommand(2, GsxConstants.MenuFollowMe, false) { WaitReady = false});
+                sequence.Commands.Add(GsxMenuCommand.CreateDummy());
                 sequence.Commands.Add(GsxMenuCommand.CreateOperator());
+                sequence.Commands.Add(GsxMenuCommand.CreateDummy());
                 sequence.Commands.Add(GsxMenuCommand.CreateReset());
                 if (await RunSequence(sequence))
                 {
@@ -168,7 +171,7 @@ namespace Any2GSX.GSX.Menu
         {
             Logger.Debug($"DeIce Question active");
             if ((Profile.RunAutomationService || Profile.PilotsDeckIntegration) && Profile.KeepDirectionMenuOpen && DeIceQuestionAnswered)
-                await Select(2);
+                await Select(2, true, false, 0, true);
         }
 
         protected virtual async Task OnParking(GsxMenu menu)
@@ -363,7 +366,7 @@ namespace Any2GSX.GSX.Menu
             return result;
         }
 
-        public virtual async Task Select(int number, bool waitReady = true, bool openMenu = false, int hide = 0)
+        public virtual async Task Select(int number, bool waitReady = true, bool openMenu = false, int hide = 0, bool waitSelection = false)
         {
             if (openMenu && !IsMenuReady)
             {
@@ -377,8 +380,12 @@ namespace Any2GSX.GSX.Menu
                 await MsgMenuReady.ReceiveAsync(false, Config.MenuOpenTimeout, RequestToken);
             }
 
+            if (waitSelection)
+                await Task.Delay(Config.MenuCheckInterval * 2, RequestToken);
             Logger.Debug($"Menu Select Item {number} => Value {number - 1}");
             await SubMenuChoice.WriteValue(number - 1);
+            if (waitSelection && hide > 0)
+                await Task.Delay(Config.MenuCheckInterval * 2, RequestToken);
 
             if (hide == 1)
                 Hide();
@@ -504,7 +511,7 @@ namespace Any2GSX.GSX.Menu
         {
             var gsxOperator = GsxOperator.OperatorSelection(Profile, MenuLines);
             Logger.Information($"Selecting Operator '{gsxOperator.Title}' (GSX Choice: {gsxOperator.GsxChoice})");
-            await Select(gsxOperator.Number, false);
+            await Select(gsxOperator.Number, false, false, 0, true);
         }
 
         public virtual void FreeResources()

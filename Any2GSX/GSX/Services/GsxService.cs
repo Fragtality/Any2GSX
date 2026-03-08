@@ -215,7 +215,7 @@ namespace Any2GSX.GSX.Services
                 return;
             }
 
-            Logger.Debug($"Notify State Change for {Type}: {State}");
+            Logger.Debug($"Notify State Change for {Type}: {State} (Var: {(int)ReadState()})");
             TaskTools.RunLogged(() => OnStateChanged?.Invoke(this), Controller.Token);
         }
 

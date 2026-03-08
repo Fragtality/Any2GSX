@@ -33,6 +33,6 @@ namespace Any2GSX.PluginInterface.Interfaces
 
         public Task<bool> Open(bool waitReady = false);
         public Task<bool> OpenHide();
-        public Task Select(int number, bool waitReady = true, bool openMenu = false, int hide = 0);
+        public Task Select(int number, bool waitReady = true, bool openMenu = false, int hide = 0, bool waitSelection = false);
     }
 }

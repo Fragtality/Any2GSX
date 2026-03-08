@@ -1076,7 +1076,7 @@ namespace Any2GSX.GSX
                 await ServicePushBack.Call();
                 await GsxController.Menu.MsgMenuReady.ReceiveAsync();
                 if (GsxController.Menu.MatchTitle(GsxConstants.MenuPushbackInterrupt) && GsxController.Menu.MenuLines[2].StartsWith(GsxConstants.MenuPushbackChange, StringComparison.InvariantCultureIgnoreCase))
-                    await GsxController.Menu.Select(3, false, false);
+                    await GsxController.Menu.Select(3, false, false, 0, true);
             }
         }
 
