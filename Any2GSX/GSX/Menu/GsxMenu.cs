@@ -352,7 +352,7 @@ namespace Any2GSX.GSX.Menu
             try
             {
                 result = await Open(true);
-                await Task.Delay(75);
+                await Task.Delay(150);
                 Hide();
             }
             catch (Exception ex)

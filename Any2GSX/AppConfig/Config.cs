@@ -73,7 +73,7 @@ namespace Any2GSX.AppConfig
         public virtual int DelayForegroundChange { get; set; } = 1250;
         public virtual int DelayAircraftModeChange { get; set; } = 1500;
         public virtual int MenuCheckInterval { get; set; } = 250;
-        public virtual int MenuOpenTimeout { get; set; } = 2500;
+        public virtual int MenuOpenTimeout { get; set; } = 7500;
         [JsonIgnore]
         public virtual DisplayUnit DisplayUnitCurrent { get; set; }
         [JsonIgnore]
@@ -177,6 +177,11 @@ namespace Any2GSX.AppConfig
                         }
                     }
                 }
+            }
+
+            if (ConfigVersion < 16 && buildConfigVersion >= 16)
+            {
+                MenuOpenTimeout = 7500;
             }
         }
 

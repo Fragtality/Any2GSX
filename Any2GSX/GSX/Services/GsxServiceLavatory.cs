@@ -15,7 +15,9 @@ namespace Any2GSX.GSX.Services
         {
             var sequence = new GsxMenuSequence();
             sequence.Commands.Add(new(8, GsxConstants.MenuGate, true));
+            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
             sequence.Commands.Add(new(3, GsxConstants.MenuAdditionalServices) { WaitReady = true });
+            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
             sequence.Commands.Add(GsxMenuCommand.CreateOperator());
             sequence.Commands.Add(GsxMenuCommand.CreateReset());
 
@@ -26,6 +28,7 @@ namespace Any2GSX.GSX.Services
         {
             var sequence = new GsxMenuSequence();
             sequence.Commands.Add(new(8, GsxConstants.MenuGate, true));
+            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
             sequence.Commands.Add(new(3, GsxConstants.MenuAdditionalServices) { WaitReady = true });
 
             return sequence;
@@ -47,12 +50,6 @@ namespace Any2GSX.GSX.Services
             SubLavatoryService.OnReceived -= OnStateChange;
 
             SimStore.Remove(GsxConstants.VarServiceLavatory);
-        }
-
-        protected override bool CheckCalled()
-        {
-            IsCalled = IsRunning || CallSequence.IsSuccess;
-            return IsCalled;
         }
     }
 }

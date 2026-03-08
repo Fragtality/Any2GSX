@@ -209,7 +209,7 @@ namespace Any2GSX.Audio
 
                     if (DeviceManager.Scan(SessionManager.HasEmptySearches))
                         rescanNeeded = true;
-                    if (rescanNeeded)
+                    if (rescanNeeded && !SessionManager.HasEmptySearches)
                         Logger.Debug($"Rescan Needed - DeviceEnum");
 
                     HasInitialized = true;

@@ -19,6 +19,8 @@ namespace Any2GSX.UI.Views.Settings
             ViewModel.BindElement(nameof(ViewModel.SimbriefUser), InputSimBriefUser, null, new ValidationRuleString());
             ViewModel.BindStringNumber(nameof(ViewModel.FuelResetPercent), InputFuelPercent, "2", new ValidationRuleRange<double>(0,50));
             ViewModel.BindStringNumber(nameof(ViewModel.FuelCompareVariance), InputFuelVariance, "50", new ValidationRuleRange<double>(10, 100));
+            ViewModel.BindStringInteger(nameof(ViewModel.AudioDeviceCheckInterval), InputAudioScanDevice, "60000", new ValidationRuleRange<int>(5000, 600000));
+            ViewModel.BindStringInteger(nameof(ViewModel.AudioProcessCheckInterval), InputAudioScanProcess, "2500", new ValidationRuleRange<int>(1000, 120000));
             ViewModel.BindStringInteger(nameof(ViewModel.PortBase), InputPortBase, "60060");
             ViewModel.BindStringInteger(nameof(ViewModel.PortRange), InputPortRange, "10");
             ViewModel.BindElement(nameof(ViewModel.DeckUrlBase), InputDeckUrl, null, new ValidationRuleString());
