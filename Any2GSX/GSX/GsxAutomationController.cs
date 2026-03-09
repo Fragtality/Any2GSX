@@ -336,6 +336,8 @@ namespace Any2GSX.GSX
                 Logger.Verbose($"EnginesRunning: {Aircraft.IsEngineRunning} IsBrakeSet {Aircraft.IsBrakeSet} LightBeacon: {Aircraft.LightBeacon}");
                 if (!Aircraft.IsEngineRunning && Aircraft.IsBrakeSet && !Aircraft.LightBeacon)
                 {
+                    foreach (var activation in Profile.DepartureServices.Values)
+                        activation.ActivationCount++;
                     await GsxController.Menu.OpenHide();
                     await ServiceDeboard.SetPaxTarget(Flightplan.CountPax);
                     OfpArrivalId = Flightplan.LastId;
@@ -856,7 +858,6 @@ namespace Any2GSX.GSX
         protected virtual void MoveDepartureQueue(GsxService service, bool asSkipped = false)
         {
             DepartureServicesCalled.Add(service);
-            DepartureServicesCurrent.ActivationCount++;
             if (asSkipped)
                 service.IsSkipped = true;
             else
