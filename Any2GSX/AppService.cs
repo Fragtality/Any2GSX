@@ -337,7 +337,7 @@ namespace Any2GSX
             Sys.KillProcess(App.Config.BinaryGsx2020);
             Sys.KillProcess(App.Config.BinaryGsx2024);
 
-            Logger.Debug($"Wait for Binary Start ({Config.DelayGsxBinaryStart}ms) ...");
+            Logger.Debug($"Wait for Binary Exit ({Config.DelayGsxBinaryStart}ms) ...");
             await Task.Delay(Config.DelayGsxBinaryStart, Token);
 
             if (SimService.Manager.GetSimVersion() == SimVersion.MSFS2020 && !Sys.GetProcessRunning(App.Config.BinaryGsx2020))
@@ -354,7 +354,10 @@ namespace Any2GSX
                 Sys.StartProcess(Path.Join(dir, $"{App.Config.BinaryGsx2024}.exe"), dir);
             }
 
+            Logger.Debug($"Wait for Binary Start ({Config.DelayGsxBinaryStart}ms) ...");
             await Task.Delay(Config.DelayGsxBinaryStart, Token);
+
+            Logger.Debug($"GSX Restart finished");
         }
 
         //private bool flag = false;

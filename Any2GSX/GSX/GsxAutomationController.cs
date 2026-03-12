@@ -322,12 +322,14 @@ namespace Any2GSX.GSX
                 Logger.Verbose($"SimGround: {GsxController.IsOnGround} ControllerGround {IsOnGround} Speed: {Aircraft.GroundSpeed} SpeedTest: {Aircraft.GroundSpeed < Config.SpeedTresholdTaxiIn}");
                 if (IsOnGround && Aircraft.GroundSpeed < Config.SpeedTresholdTaxiIn)
                 {
+                    Logger.Debug("Entered Taxi-In phase Condition");
+                    StateChange(AutomationState.TaxiIn);
                     if (Config.RestartGsxOnTaxiIn)
                     {
+                        await Task.Delay(500, RequestToken);
                         Logger.Information($"Restarting GSX on Taxi-In");
                         await AppService.Instance.RestartGsx();
                     }
-                    StateChange(AutomationState.TaxiIn);
                 }
             }
             //TaxiIn => Arrival
