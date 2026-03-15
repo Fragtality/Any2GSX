@@ -167,6 +167,12 @@ namespace Any2GSX.GSX
                     {
                         if (!IsStarted)
                         {
+                            if (Aircraft?.IsConnected == true && GsxController?.SkippedWalkAround == true && SmartButtonRequest)
+                            {
+                                Logger.Debug($"Reset Smart Button on Service Start");
+                                await Aircraft.ResetSmartButton();
+                            }
+
                             Logger.Information($"Automation Service started");
                             IsStarted = true;
                         }
