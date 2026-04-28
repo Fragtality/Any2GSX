@@ -1,0 +1,161 @@
+﻿<UserControl x:Class="Any2GSX.UI.Views.Settings.ControlGsxSettings"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Any2GSX.UI.Views.Settings"
+             d:DataContext="{d:DesignInstance Type=local:ModelSettings}"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../StyleResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    
+    <Grid HorizontalAlignment="Stretch">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Grid.Column="0" Grid.Row="0" Margin="8,0,8,8" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>GSX Restart</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="196"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Column="0" Grid.Row="0" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="When checked, the App will disable the GSX Menu when it runs Commands.&#x0a;When unchecked, the Menu/Toolbar State is not changed (left enabled).">
+                    Disable User-enabled Menu:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Horizontal" Margin="6,0,0,0">
+                    <CheckBox IsChecked="{Binding DisableUserEnabledMenu}" Style="{StaticResource CheckBoxDefault}" ToolTip="When checked, the App will disable the GSX Menu when it runs Commands.&#x0a;When unchecked, the Menu/Toolbar State is not changed (left enabled)."/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="1" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Restart the GSX Binary on Startup when the Menu doesn't open / become ready.">
+                    Restart on Startup:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Horizontal" Margin="6,0,0,0">
+                    <CheckBox IsChecked="{Binding RestartGsxStartupFail}" Style="{StaticResource CheckBoxDefault}" ToolTip="Restart the GSX Binary on Startup when the Menu doesn't open / become ready after a certain Amount of failed Attempts to open the Menu."/>
+                    <TextBlock Margin="12,-1,6,0" Style="{StaticResource TextBlockDefault}">Max Failures:</TextBlock>
+                    <TextBox Name="InputGsxMaxFail" Style="{StaticResource TextBoxCentered}"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="2" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Restart the GSX Binary when switching to the Taxi-In Phase to ensure a 'clean' State.&#x0a;The Binary will be killed and started (if GSX' Watchdog has not restarted it already).">
+                    Restart GSX on Taxi-In:
+                </TextBlock>
+                <CheckBox Grid.Column="1" Grid.Row="2" IsChecked="{Binding RestartGsxOnTaxiIn}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="Restart the GSX Binary when switching to the Taxi-In Phase to ensure a 'clean' State.&#x0a;The Binary will be killed and started (if GSX' Watchdog has not restarted it already)."/>
+
+                <TextBlock Grid.Column="0" Grid.Row="3" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="When the Aircraft's Ground Speed gets below the configured Value (after Touchdown), the App will switch to the Taxi-In Phase.&#x0a;This Value is always used for the Phase-Switch (independent to the other Settings).">
+                    Speed Threshold for Taxi-In
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="3" Orientation="Horizontal" Style="{StaticResource SettingItemPanel}"
+                            ToolTip="When the Aircraft's Ground Speed gets below the configured Value (after Touchdown), the App will switch to the Taxi-In Phase.&#x0a;This Value is always used for the Phase-Switch (independent to the other Settings).">
+                    <TextBox Name="InputSpeedTresholdTaxiIn" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">kt</TextBlock>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Column="0" Grid.Row="1" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>Delays</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="196"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Column="0" Grid.Row="0" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Open the GSX Menu when the App switched to its Taxi-In Phase after the configured Amount of Seconds.">
+                    Open Menu on Taxi-In:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Horizontal" Style="{StaticResource SettingItemPanel}"
+                            ToolTip="Open the GSX Menu when the App switched to its Taxi-In Phase after the configured Amount of Seconds.">
+                    <TextBlock Margin="0,0,4,0" Style="{StaticResource TextBlockDefault}">After</TextBlock>
+                    <TextBox Name="InputDelayOpenMenuTaxiIn" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="1" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Open the Refuel Panel when the Service gets active and Close the Hose is disconnected after the configured Delay (with Underground Refuel).">
+                    Refuel Panel (Underground):
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="1" Style="{StaticResource SettingItemPanel}" ToolTip="Open the Refuel Panel when the Service gets active and Close the Hose is disconnected after the configured Delay (with Underground Refuel).">
+                    <TextBlock Margin="0,0,4,0" Style="{StaticResource TextBlockDefault}">Open:</TextBlock>
+                    <TextBox Name="InputRefuelOpenDelayUnderground" Style="{StaticResource TextBoxCentered}" MinWidth="72"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
+                    <TextBlock Margin="12,0,4,0" Style="{StaticResource TextBlockDefault}">Close:</TextBlock>
+                    <TextBox Name="InputRefuelCloseDelayUnderground" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="2" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Open the Refuel Panel when the Service gets active and Close the Hose is disconnected after the configured Delay (with Underground Refuel).">
+                    Refuel Panel (Tanker):
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="2" Style="{StaticResource SettingItemPanel}" ToolTip="Open the Refuel Panel when the Service gets active and Close the Hose is disconnected after the configured Delay (when a Tanker is used).">
+                    <TextBlock Margin="0,0,4,0" Style="{StaticResource TextBlockDefault}">Open:</TextBlock>
+                    <TextBox Name="InputRefuelOpenDelayTanker" Style="{StaticResource TextBoxCentered}" MinWidth="72"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
+                    <TextBlock Margin="12,0,4,0" Style="{StaticResource TextBlockDefault}">Close:</TextBlock>
+                    <TextBox Name="InputRefuelCloseDelayTanker" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="3" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Open the Lavatory Panel when the Service gets active. The Panel is closed when the Service completes.">
+                    Lavatory Panel Open:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="3" Orientation="Horizontal" Style="{StaticResource SettingItemPanel}"
+                            ToolTip="Open the Lavatory Panel when the Service gets active. The Panel is closed when the Service completes.">
+                    <TextBox Name="InputLavatoryOpenDelay" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="4" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Open the Water Panel when the Service gets active. The Panel is closed when the Service completes.">
+                    Water Panel Open:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="4" Orientation="Horizontal" Style="{StaticResource SettingItemPanel}"
+                            ToolTip="Open the Water Panel when the Service gets active. The Panel is closed when the Service completes.">
+                    <TextBox Name="InputWaterOpenDelay" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="5" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The Time until an Operator has to be selected befor a Selection is forced.">
+                    Operator Select Timeout:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="5" Orientation="Horizontal" Style="{StaticResource SettingItemPanel}"
+                            ToolTip="The Time until an Operator has to be selected befor a Selection is forced.">
+                    <TextBox Name="InputOperatorTimeout" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+    </Grid>
+</UserControl>

@@ -26,6 +26,9 @@ namespace Any2GSX.UI.Views.Automation
 
             ButtonUp.Command = new CommandWrapper(() => ViewModel.OperatorPreferences.MoveItem(ListOperators.SelectedIndex, -1), () => ListOperators?.SelectedIndex != -1).Subscribe(ListOperators);
             ButtonDown.Command = new CommandWrapper(() => ViewModel.OperatorPreferences.MoveItem(ListOperators.SelectedIndex, 1), () => ListOperators?.SelectedIndex != -1).Subscribe(ListOperators);
+
+            Tag = "Operator Selection";
+            ToolTip = "Configure if and which Operators is selected.";
         }
     }
 }

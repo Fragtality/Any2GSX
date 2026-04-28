@@ -25,6 +25,9 @@ namespace Any2GSX.UI.Views.Automation
 
             ButtonUp.Command = new CommandWrapper(() => ViewModel.CompanyHubs.MoveItem(ListHubs.SelectedIndex, -1), () => ListHubs?.SelectedIndex != -1).Subscribe(ListHubs);
             ButtonDown.Command = new CommandWrapper(() => ViewModel.CompanyHubs.MoveItem(ListHubs.SelectedIndex, 1), () => ListHubs?.SelectedIndex != -1).Subscribe(ListHubs);
+
+            Tag = "Company Hubs";
+            ToolTip = "Configure the Airports considered as Company Hub.";
         }
     }
 }

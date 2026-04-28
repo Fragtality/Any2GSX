@@ -1,6 +1,9 @@
 ﻿using Any2GSX.GSX.Menu;
 using Any2GSX.PluginInterface.Interfaces;
+using CFIT.AppLogger;
+using CFIT.AppTools;
 using CFIT.SimConnectLib.SimResources;
+using System;
 using System.Threading.Tasks;
 
 namespace Any2GSX.GSX.Services
@@ -11,18 +14,21 @@ namespace Any2GSX.GSX.Services
         public override GsxServiceType Type => GsxServiceType.Jetway;
         public virtual ISimResourceSubscription SubService { get; protected set; }
         protected override ISimResourceSubscription SubStateVar => SubService;
-        public virtual ISimResourceSubscription SubOperating { get; protected set; }
+        protected virtual ISimResourceSubscription SubOperating { get; set; }
+        public virtual GsxServiceState OperatingState => (GsxServiceState)(int)(SubOperating?.GetNumber() ?? 0);
 
         public virtual bool IsAvailable => State != GsxServiceState.NotAvailable;
         public virtual bool IsConnected => SubService.GetNumber() == (int)GsxServiceState.Active && SubOperating.GetNumber() < 3;
         public virtual bool IsOperating => SubService.GetNumber() == (int)GsxServiceState.Requested || SubOperating.GetNumber() > 3;
+        public virtual bool IsConnectable => IsAvailable && !IsConnected && !CheckCalled();
+        public event Func<GsxServiceState, Task> OnOperationChanged;
 
         protected override GsxMenuSequence InitCallSequence()
         {
             var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(new(6, GsxConstants.MenuGate, true));
-            sequence.Commands.Add(GsxMenuCommand.CreateOperator());
-            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            sequence.Commands.Add(GsxMenuCommand.Select(6, GsxConstants.MenuGate));
+            sequence.Commands.Add(GsxMenuCommand.Operator());
 
             return sequence;
         }
@@ -32,23 +38,32 @@ namespace Any2GSX.GSX.Services
             return new GsxMenuSequence();
         }
 
-        protected override void InitSubscriptions()
+        public override void InitSubscriptions()
         {
             SubService = SimStore.AddVariable(GsxConstants.VarServiceJetway);
             SubOperating = SimStore.AddVariable(GsxConstants.VarServiceJetwayOperation);
-            SubService.OnReceived += OnStateChange;
+            SubService?.OnReceived += OnStateChange;
+            SubOperating?.OnReceived += OnOperationChange;
         }
 
         protected override void DoReset()
         {
-            
+
         }
 
         public override void FreeResources()
         {
-            SubService.OnReceived -= OnStateChange;
+            SubService?.OnReceived -= OnStateChange;
+            SubOperating?.OnReceived -= OnOperationChange;
             SimStore.Remove(GsxConstants.VarServiceJetway);
             SimStore.Remove(GsxConstants.VarServiceJetwayOperation);
+        }
+
+        protected virtual Task OnOperationChange(ISimResourceSubscription sub, object data)
+        {
+            Logger.Debug($"Operation State Change for {Type}: {(int)(sub?.GetNumber() ?? 0)}");
+            _ = TaskTools.RunPool(() => OnOperationChanged?.Invoke(OperatingState), Controller.Token);
+            return Task.CompletedTask;
         }
 
         protected override bool CheckCalled()
@@ -57,25 +72,35 @@ namespace Any2GSX.GSX.Services
             return IsCalled;
         }
 
-        protected override async Task<bool> DoCall()
+        protected override Task<bool> DoCall()
         {
             if (IsAvailable)
-                return await base.DoCall();
+                return base.DoCall();
             else
-                return true;
+                return Task.FromResult(true);
         }
 
-        public virtual async Task Remove()
+        public virtual Task Remove()
         {
             if (!IsConnected || !IsAvailable || IsOperating)
-                return;
+                return Task.CompletedTask;
 
-            await DoCall();
+            return base.DoCall();
         }
 
-        public override async Task Cancel(int option = -1)
+        protected override async Task OnStateChange(ISimResourceSubscription sub, object data)
         {
-            await Remove();
+            await base.OnStateChange(sub, data);
+            if (State == GsxServiceState.Callable && IsCalled)
+            {
+                Logger.Debug($"Reset IsCalled for Jetway");
+                IsCalled = false;
+            }
+        }
+
+        public override Task Cancel(GsxCancelService option = GsxCancelService.Complete)
+        {
+            return Remove();
         }
     }
 }

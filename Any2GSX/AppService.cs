@@ -4,18 +4,23 @@ using Any2GSX.Audio;
 using Any2GSX.CommBus;
 using Any2GSX.GSX;
 using Any2GSX.Notifications;
+using Any2GSX.PluginInterface;
 using Any2GSX.PluginInterface.Interfaces;
 using Any2GSX.Plugins;
 using Any2GSX.Tools;
 using CFIT.AppFramework.Messages;
 using CFIT.AppFramework.Services;
+using CFIT.AppFramework.UI.ViewModels;
 using CFIT.AppLogger;
 using CFIT.AppTools;
+using CFIT.SimConnectLib;
 using CFIT.SimConnectLib.Definitions;
 using CFIT.SimConnectLib.InputEvents;
+using CFIT.SimConnectLib.SimResources;
 using CFIT.SimConnectLib.SimVars;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -45,24 +50,35 @@ namespace Any2GSX
         public virtual Flightplan Flightplan { get; set; }
         public virtual IFlightplan IFlightplan => Flightplan;
         public virtual NotificationManager NotificationManager { get; protected set; }
+        public virtual NotificationTracker NotificationTracker { get; protected set; }
         public virtual PluginController PluginController { get; protected set; }
         public virtual IGsxController IGsxController => GsxController;
         public virtual GsxController GsxController { get; protected set; }
         public virtual DateTime LastGsxRestart { get; protected set; } = DateTime.MinValue;
         public virtual AircraftController AircraftController { get; protected set; }
         public virtual string AircraftString => SimConnect?.AircraftString ?? "";
-		public virtual bool IsMsfs2020 => SimService?.Manager?.GetSimVersion() == SimVersion.MSFS2020;
-		public virtual bool IsMsfs2024 => SimService?.Manager?.GetSimVersion() == SimVersion.MSFS2024;
-		public virtual AudioController AudioController { get; protected set; }
+        public virtual bool IsMsfs2020 => SimService?.Manager?.GetSimVersion() == SimVersion.MSFS2020;
+        public virtual bool IsMsfs2024 => SimService?.Manager?.GetSimVersion() == SimVersion.MSFS2024;
+        public virtual AudioController AudioController { get; protected set; }
         public virtual ISettingProfile ISettingProfile => SettingProfile;
         public virtual bool IsProfileLoaded => SettingProfile != null;
         public virtual SettingProfile SettingProfile { get; protected set; } = null;
-        public event Action<SettingProfile> ProfileChanged;
+        public virtual string ProfileName => SettingProfile?.Name ?? "NULL";
+        public virtual PluginCapabilities PluginCapabilities { get; protected set; } = new();
         public virtual ApiController ApiController { get; protected set; }
-        public virtual AppResetRequest ResetRequested {  get; set; } = AppResetRequest.None;
-        public virtual bool IsSessionInitializing { get; protected set; } = false;
-        public virtual bool IsSessionInitialized { get; protected set; } = false;
-        public virtual bool SessionStopRequested { get; protected set; } = false;
+        public virtual AppResetRequest ResetRequested { get; set; } = AppResetRequest.None;
+        protected virtual bool IsSessionInitialized { get; set; } = false;
+        protected virtual DateTime NextGarbageCollection { get; set; } = DateTime.Now + TimeSpan.FromSeconds(300);
+
+        public virtual string AircraftAtcAirline { get; protected set; } = "";
+        public virtual string AircraftAtcId { get; protected set; } = "";
+        public virtual string AircraftTitle { get; protected set; } = "";
+
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public event Action<SettingProfile> ProfileChanged;
+        public event Action<PluginCapabilities> PluginCapabilitiesChanged;
+        public event Action ProfileCollectionChanged;
 
         public AppService(Config config) : base(config)
         {
@@ -78,58 +94,143 @@ namespace Any2GSX
         protected override void CreateServiceControllers()
         {
             CommBus = SimConnect.AddModule(typeof(ModuleCommBus), Config) as ModuleCommBus;
+
+            ApiController = new(Config);
+            ServiceControllers.Add(ApiController);
+
             Flightplan = new();
             NotificationManager = new();
+            NotificationTracker = new();
             PluginController = new();
             GsxController = new GsxController(Config);
             AircraftController = new AircraftController(Config);
             AudioController = new AudioController(Config);
         }
 
-        protected override Task InitReceivers()
+        protected override async Task DoInit()
         {
-            base.InitReceivers();
-            ReceiverStore.Add<MsgSessionReady>().OnMessage += OnSessionReady;
-            ReceiverStore.Add<MsgSessionEnded>().OnMessage += OnSessionEnded;
+            await base.DoInit();
+            MessageService.Subscribe<MsgSessionReady>(SessionInitialize);
+            MessageService.Subscribe<MsgSessionEnded>(SessionCleanup);
 
-            Logger.Information($"Starting API Controller Thread ...");
-            ApiController = new();
-            Task task = new(ApiController.Run, Token, TaskCreationOptions.AttachedToParent | TaskCreationOptions.LongRunning);
-            task.Start();
-
-            SimStore.AddVariable("ATC AIRLINE", SimUnitType.String);
-            SimStore.AddVariable("TITLE", SimUnitType.String);
+            SimService.Controller.SimConnect.CallbackAircraftString += OnAircraftStringChanged;
+            SimStore.AddVariable("ATC AIRLINE", SimUnitType.String).OnReceived += OnAtcAirlineChanged;
             if (Sys.GetProcessRunning(Config.BinaryMsfs2024))
-				SimStore.AddVariable("LIVERY NAME", SimUnitType.String);
-			SimStore.AddVariable("ATC ID", SimUnitType.String);
+                SimStore.AddVariable("LIVERY NAME", SimUnitType.String).OnReceived += OnAtcTitleChanged;
+            else
+                SimStore.AddVariable("TITLE", SimUnitType.String).OnReceived += OnAtcTitleChanged;
+            SimStore.AddVariable("ATC ID", SimUnitType.String).OnReceived += OnAtcIdChanged;
 
             PluginController.Refresh();
+            Config.InhibitSave = true;
             Logger.Debug($"Fetching Setting Profile");
             SetSettingProfile();
+            Config.InhibitSave = false;
+        }
+
+        public virtual Task OnAtcAirlineChanged(ISimResourceSubscription sub, object data)
+        {
+            AircraftAtcAirline = (string)data;
+            NotifyPropertyChanged(nameof(AircraftAtcAirline));
             return Task.CompletedTask;
         }
 
-        public virtual string GetAirline()
+        public virtual Task OnAtcTitleChanged(ISimResourceSubscription sub, object data)
         {
-            return SimStore["ATC AIRLINE"]?.GetString() ?? "";
+            AircraftTitle = (string)data;
+            NotifyPropertyChanged(nameof(AircraftTitle));
+            return Task.CompletedTask;
         }
 
-        public virtual string GetTitle()
+        public virtual void OnAircraftStringChanged(SimConnectManager manager, string aircraft)
         {
-            if (IsMsfs2024)
-                return SimStore["LIVERY NAME"]?.GetString() ?? "";
+            NotifyPropertyChanged(nameof(AircraftString));
+        }
+
+        public virtual Task OnAtcIdChanged(ISimResourceSubscription sub, object data)
+        {
+            AircraftAtcId = (string)data;
+            NotifyPropertyChanged(nameof(AircraftAtcId));
+            return Task.CompletedTask;
+        }
+
+        public virtual void NotifyPluginCapabilitiesChanged()
+        {
+            PluginCapabilities = PluginController.GetPluginCapabilities(SettingProfile.PluginId);
+            ModelHelper.RunOnDispatcher(() => PluginCapabilitiesChanged?.Invoke(PluginCapabilities));
+        }
+
+        public virtual void NotifyAircraftChannelsChanged()
+        {
+            if (AudioController.IsActive)
+                AudioController.ResetChannels = true;
+        }
+
+        public virtual void NotifyProfileCollectionChanged()
+        {
+            if (ProfileCollectionChanged != null)
+                ModelHelper.RunOnDispatcher(() => ProfileCollectionChanged?.Invoke());
+        }
+
+        public virtual void NotifyProfileChanged()
+        {
+            if (ProfileChanged != null)
+                ModelHelper.RunOnDispatcher(() => ProfileChanged?.Invoke(SettingProfile));
+        }
+
+        protected virtual void NotifyPropertyChanged(string propertyName)
+        {
+            ModelHelper.RunOnDispatcher(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)));
+        }
+
+        public virtual void AddSettingProfile(SettingProfile settingProfile)
+        {
+            if (settingProfile == null)
+                return;
+
+            Config.SettingProfiles.Add(settingProfile);
+            Config.SortProfiles();
+            NotifyProfileCollectionChanged();
+        }
+
+        public virtual bool RemoveSettingProfile(SettingProfile settingProfile)
+        {
+            if (settingProfile == null || settingProfile.IsReadOnly)
+                return false;
+
+            if (Config.SettingProfiles.Any((p) => p.Name.Equals(settingProfile.Name)))
+            {
+                Config.SettingProfiles.RemoveAll((p) => p.Name.Equals(settingProfile.Name));
+                Config.SaveConfiguration();
+                NotifyProfileCollectionChanged();
+                if (!Config.SettingProfiles.Any(p => p.Name == SettingProfile?.Name))
+                    SetSettingProfile();
+                return true;
+            }
             else
-                return SimStore["TITLE"]?.GetString() ?? "";
+                return false;
         }
 
-        public virtual string GetAircraftString()
+        public virtual void RenameSettingProfile(SettingProfile settingProfile, string name)
         {
-            return SimService?.Controller?.SimConnect?.AircraftString ?? "";
+            if (settingProfile == null)
+                return;
+
+            bool isActive = settingProfile.Name == SettingProfile.Name;
+            settingProfile.Name = name;
+            Config.SortProfiles();
+            NotifyProfileCollectionChanged();
+            if (isActive)
+                NotifyPropertyChanged(nameof(ProfileName));
         }
 
-        public virtual string GetAtcId()
+        public virtual void UpdateSettingProfile(SettingProfile settingProfile, SettingProfile newData)
         {
-            return SimStore["ATC ID"]?.GetString() ?? "";
+            bool isActive = settingProfile.Name == SettingProfile.Name;
+            settingProfile.Copy(newData);
+            Config.SortProfiles();
+            if (isActive)
+                NotifyPropertyChanged(nameof(ProfileName));
         }
 
         public virtual void SetSettingProfile(string name)
@@ -139,8 +240,25 @@ namespace Any2GSX
                 SettingProfile = Config.SettingProfiles.First(p => p.Name == name);
                 SettingProfile.Load();
                 Logger.Debug($"Using Profile {SettingProfile}");
-                ProfileChanged?.Invoke(SettingProfile);
+                PluginCapabilities = PluginController.GetPluginCapabilities(SettingProfile.PluginId);
+                NotifyProfileChanged();
+                NotifyPluginCapabilitiesChanged();
+                NotifyPropertyChanged(nameof(ProfileName));
+                NotifyPropertyChanged(nameof(SettingProfile));
+
+                if (IsSessionInitialized)
+                    ReloadAircraft();
             }
+        }
+
+        public virtual void ReloadAircraft()
+        {
+            if (!IsSessionInitialized)
+                return;
+
+            _ = TaskTools.RunDelayed(AircraftController.Restart, 1000, Token);
+            if (AudioController.IsActive)
+                _ = TaskTools.RunDelayed(() => AudioController.ResetChannels = true, 1500, Token);
         }
 
         public virtual void SetSettingProfile()
@@ -175,23 +293,17 @@ namespace Any2GSX
                 return null;
         }
 
-        protected virtual void OnSessionReady(MsgSessionReady obj)
-        {
-            _ = SessionInitialize();
-            if (string.IsNullOrWhiteSpace(Config?.SimbriefUser))
-            {
-                MessageBox.Show("SimBrief User is not set!\r\nConfigure your User Name or ID in the App Settings.", "SimBrief User", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
         protected virtual async Task SessionInitialize()
         {
             try
             {
-                if (IsSessionInitialized || IsSessionInitializing)
+                if (IsSessionInitialized)
                     return;
-                IsSessionInitializing = true;
-                SessionStopRequested = false;
+
+                if (string.IsNullOrWhiteSpace(Config?.SimbriefUser))
+                {
+                    MessageBox.Show(Any2GSX.Instance.AppWindow, "SimBrief User is not set!\r\nConfigure your User Name or ID in the App Settings.", "SimBrief User", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
 
                 Logger.Debug($"Refresh Token");
                 RefreshToken();
@@ -211,52 +323,41 @@ namespace Any2GSX
                 while (!CommBus.IsConnected && !Token.IsCancellationRequested && !RequestToken.IsCancellationRequested)
                     await Task.Delay(Config.CheckInterval, Token);
                 Logger.Debug($"CommBus Module connected");
-                if (SessionStopRequested || RequestToken.IsCancellationRequested)
-                {
-                    IsSessionInitializing = false;
+                if (!IsExecutionAllowed || RequestToken.IsCancellationRequested)
                     return;
-                }
 
                 Logger.Debug($"Fetching Setting Profile");
                 SetSettingProfile();
-                var startMode = PluginController.GetPluginStartMode(SettingProfile.PluginId);
-
-                if (startMode == PluginStartMode.PreWalkaround)
-                    await StartAircraftController(startMode);
-                if (SessionStopRequested || RequestToken.IsCancellationRequested)
-                {
-                    IsSessionInitializing = false;
+                if (!IsExecutionAllowed || RequestToken.IsCancellationRequested)
                     return;
-                }
+
+                Logger.Debug($"Reset Notification Tracker");
+                NotificationTracker.Reset();
 
                 Logger.Debug($"Start GSX Controller");
-                GsxController.Start();
+                await GsxController.Start();
                 Logger.Debug($"Waiting for GSX Controller active ...");
                 while (!GsxController.IsActive && !Token.IsCancellationRequested)
                     await Task.Delay(Config.CheckInterval, Token);
                 Logger.Debug($"GSX Controller active");
-                if (SessionStopRequested || RequestToken.IsCancellationRequested)
-                {
-                    IsSessionInitializing = false;
+                if (!IsExecutionAllowed || RequestToken.IsCancellationRequested)
                     return;
-                }
 
-                if (startMode == PluginStartMode.WaitConnected)
-                    await StartAircraftController(startMode);
-                if (SessionStopRequested || RequestToken.IsCancellationRequested)
-                {
-                    IsSessionInitializing = false;
+                Logger.Debug($"Start AircraftController");
+                await AircraftController.Start();
+                if (!IsExecutionAllowed || RequestToken.IsCancellationRequested)
                     return;
-                }
 
                 Logger.Debug($"Start Notification Manager");
-                NotificationManager.Start();
+                await NotificationManager.Start();
 
                 if (SettingProfile.RunAudioService)
                 {
                     Logger.Debug($"Start AudioController");
-                    AudioController.Start();
+                    await AudioController.Start();
                 }
+
+                IsSessionInitialized = true;
             }
             catch (Exception ex)
             {
@@ -264,52 +365,39 @@ namespace Any2GSX
                     Logger.LogException(ex);
             }
 
-            IsSessionInitialized = true;
-            IsSessionInitializing = false;
-            Logger.Debug($"Init done");
-        }
-
-        protected virtual async Task StartAircraftController(PluginStartMode mode)
-        {
-            Logger.Debug($"Start AircraftController ({mode})");
-            AircraftController.Start();
-            Logger.Debug($"Waiting for Aircraft Interface connected ...");
-            while (!AircraftController.IsConnected && !Token.IsCancellationRequested && !RequestToken.IsCancellationRequested)
-                await Task.Delay(Config.CheckInterval, Token);
-            Logger.Debug($"Aircraft Interface connected");
-        }
-
-        protected virtual void OnSessionEnded(MsgSessionEnded obj)
-        {
-            _ = SessionCleanup();
+            Logger.Debug("--- Session Init Done ---");
         }
 
         protected virtual async Task SessionCleanup()
         {
             try
             {
-                SessionStopRequested = true;
+                if (!IsSessionInitialized)
+                    return;
 
                 Logger.Debug($"Cancel Request Token");
                 RequestTokenSource.Cancel();
 
                 Logger.Debug($"Stop AudioController");
-                AudioController?.Stop();
+                await AudioController.Stop();
 
                 Logger.Debug($"Stop AircraftController");
-                AircraftController?.Stop();
+                await AircraftController.Stop();
 
                 Logger.Debug($"Stop Notification Manager");
                 await NotificationManager.Stop();
 
                 Logger.Debug($"Reset CommBus");
-                CommBus?.Reset();
+                await CommBus.Reset();
 
                 Logger.Debug($"Stop GsxController");
                 await GsxController.Stop();
 
+                Logger.Debug($"Reset Notification Tracker");
+                NotificationTracker.Reset();
+
                 Logger.Debug($"Reset Flightplan");
-                Flightplan?.Reset();
+                await Flightplan?.Reset();
 
                 Config.SetDisplayUnit(Config.DisplayUnitDefault);
 
@@ -322,7 +410,7 @@ namespace Any2GSX
             }
 
             IsSessionInitialized = false;
-            Logger.Debug($"Cleanup done");
+            Logger.Debug("--- Session Cleanup Done ---"); ;
         }
 
         protected override async Task StopServiceControllers()
@@ -331,36 +419,50 @@ namespace Any2GSX
             await base.StopServiceControllers();
         }
 
-        public virtual async Task RestartGsx()
+        public virtual void SetGsxStartTime()
         {
             LastGsxRestart = DateTime.Now;
-            Sys.KillProcess(App.Config.BinaryGsx2020);
-            Sys.KillProcess(App.Config.BinaryGsx2024);
-
-            Logger.Debug($"Wait for Binary Exit ({Config.DelayGsxBinaryStart}ms) ...");
-            await Task.Delay(Config.DelayGsxBinaryStart, Token);
-
-            if (SimService.Manager.GetSimVersion() == SimVersion.MSFS2020 && !Sys.GetProcessRunning(App.Config.BinaryGsx2020))
-            {
-                Logger.Debug($"Starting Process {App.Config.BinaryGsx2020}");
-                string dir = Path.Join(GsxController.PathInstallation, "couatl64");
-                Sys.StartProcess(Path.Join(dir, $"{App.Config.BinaryGsx2020}.exe"), dir);
-            }
-
-            if (SimService.Manager.GetSimVersion() == SimVersion.MSFS2024 && !Sys.GetProcessRunning(App.Config.BinaryGsx2024))
-            {
-                Logger.Debug($"Starting Process {App.Config.BinaryGsx2024}");
-                string dir = Path.Join(GsxController.PathInstallation, "couatl64");
-                Sys.StartProcess(Path.Join(dir, $"{App.Config.BinaryGsx2024}.exe"), dir);
-            }
-
-            Logger.Debug($"Wait for Binary Start ({Config.DelayGsxBinaryStart}ms) ...");
-            await Task.Delay(Config.DelayGsxBinaryStart, Token);
-
-            Logger.Debug($"GSX Restart finished");
         }
 
-        //private bool flag = false;
+        public virtual async Task RestartGsx()
+        {
+            try
+            {
+                NotificationTracker.Track(AppNotification.GsxRestart);
+                Sys.KillProcess(App.Config.BinaryGsx2020);
+                Sys.KillProcess(App.Config.BinaryGsx2024);
+
+                Logger.Debug($"Wait for Binary Exit ({Config.DelayGsxBinaryStart}ms) ...");
+                await Task.Delay(Config.DelayGsxBinaryStart, Token);
+
+                if (SimService.Manager.GetSimVersion() == SimVersion.MSFS2020 && !Sys.GetProcessRunning(App.Config.BinaryGsx2020))
+                {
+                    Logger.Debug($"Starting Process {App.Config.BinaryGsx2020}");
+                    string dir = Path.Join(GsxController.PathInstallation, "couatl64");
+                    Sys.StartProcess(Path.Join(dir, $"{App.Config.BinaryGsx2020}.exe"), dir);
+                }
+
+                if (SimService.Manager.GetSimVersion() == SimVersion.MSFS2024 && !Sys.GetProcessRunning(App.Config.BinaryGsx2024))
+                {
+                    Logger.Debug($"Starting Process {App.Config.BinaryGsx2024}");
+                    string dir = Path.Join(GsxController.PathInstallation, "couatl64");
+                    Sys.StartProcess(Path.Join(dir, $"{App.Config.BinaryGsx2024}.exe"), dir);
+                }
+
+                Logger.Debug($"Wait for Binary Start ({Config.DelayGsxBinaryStart}ms) ...");
+                await Task.Delay(Config.DelayGsxBinaryStart, Token);
+
+                Logger.Debug($"GSX Restart finished");
+                SetGsxStartTime();
+            }
+            catch (Exception ex)
+            {
+                if (ex is not TaskCanceledException)
+                    Logger.LogException(ex);
+            }
+            NotificationTracker.Clear(AppNotification.GsxRestart);
+        }
+
         protected override async Task MainLoop()
         {
             await Task.Delay(App.Config.TimerGsxCheck, Token);
@@ -369,7 +471,7 @@ namespace Any2GSX
             {
                 Logger.Debug($"Reset was requested: {ResetRequested}");
                 Logger.Information($"Restarting App Services ...");
-                OnSessionEnded(null);
+                await SessionCleanup();
                 if (ResetRequested == AppResetRequest.App)
                     await Task.Delay(2500, Token);
                 else
@@ -377,34 +479,46 @@ namespace Any2GSX
                     Logger.Information($"Restarting GSX ...");
                     await RestartGsx();
                 }
-                OnSessionReady(null);
+                await SessionInitialize();
                 ResetRequested = AppResetRequest.None;
             }
-
-            //if (!flag && AircraftController?.Aircraft?.IsConnected == true)
-            //{
-            //    await CommBus.RegisterCommBus("TabletToPlane", BroadcastFlag.WASM, (evt, data) => Logger.Debug("TabletToPlane -- " + data));
-            //    await CommBus.RegisterCommBus("PlaneToTablet", BroadcastFlag.JS, (evt, data) => Logger.Debug("PlaneToTablet -- " + data));
-            //    flag = true;
-            //}
+            else if (DateTime.Now >= NextGarbageCollection)
+                DoGarbageCollect();
         }
 
-        protected override Task FreeResources()
+        protected virtual void DoGarbageCollect()
         {
-            base.FreeResources();
-            SimStore.Remove("ATC AIRLINE");
-            SimStore.Remove("TITLE");
-            if (IsMsfs2024)
-                SimStore.Remove("LIVERY NAME");
-            SimStore.Remove("ATC ID");
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            NextGarbageCollection = DateTime.Now + TimeSpan.FromSeconds(300);
+            Logger.Verbose("Garbage collected");
+        }
 
-            ReceiverStore.Remove<MsgSessionReady>().OnMessage -= OnSessionReady;
-            ReceiverStore.Remove<MsgSessionEnded>().OnMessage -= OnSessionEnded;
+        protected override Task DoCleanup()
+        {
+            try
+            {
+                SimStore["ATC AIRLINE"]?.OnReceived -= OnAtcAirlineChanged;
+                SimStore.Remove("ATC AIRLINE");
+                if (IsMsfs2024)
+                {
+                    SimStore["LIVERY NAME"]?.OnReceived -= OnAtcAirlineChanged;
+                    SimStore.Remove("LIVERY NAME");
+                }
+                else
+                {
+                    SimStore["TITLE"]?.OnReceived -= OnAtcAirlineChanged;
+                    SimStore.Remove("TITLE");
+                }
+                SimStore["ATC ID"]?.OnReceived -= OnAtcIdChanged;
+                SimStore.Remove("ATC ID");
 
-            ApiController.IsExecutionAllowed = false;
-            NotificationManager.Dispose();
-            AircraftController.Dispose();
-            GsxController.Dispose();
+                MessageService.Unsubscribe<MsgSessionReady>(SessionInitialize);
+                MessageService.Unsubscribe<MsgSessionEnded>(SessionCleanup);
+
+                return base.DoCleanup();
+            }
+            catch { }
 
             return Task.CompletedTask;
         }

@@ -1,6 +1,6 @@
 ﻿using Any2GSX.Aircraft;
 using Any2GSX.Audio;
-using Any2GSX.GSX;
+using Any2GSX.GSX.Automation;
 using Any2GSX.PluginInterface;
 using Any2GSX.PluginInterface.Interfaces;
 using CFIT.AppLogger;
@@ -17,6 +17,8 @@ namespace Any2GSX.AppConfig
     {
         [JsonIgnore]
         public static string GenericId { get; } = "generic";
+        [JsonIgnore]
+        public static string GenericIdUpper { get; } = "Generic";
         public static string DefaultId { get; } = "default";
         [JsonIgnore]
         public virtual bool IsDefault => Name?.Equals(DefaultId, StringComparison.InvariantCultureIgnoreCase) == true;
@@ -100,9 +102,10 @@ namespace Any2GSX.AppConfig
         public virtual void Load()
         {
             LoadChannelNames();
-            if (AppService.Instance.PluginController.Plugins.TryGetValue(PluginId, out var plugin))
-                CheckPluginSettings(plugin.Settings);
-            CheckGenericSettings();
+            if (AppService.Instance.PluginController.HasPlugin(PluginId, out PluginManifest pluginManifest))
+                CheckPluginSettings(pluginManifest.Settings);
+            else
+                CheckGenericSettings();
         }
 
         public override string ToString()
@@ -111,18 +114,24 @@ namespace Any2GSX.AppConfig
         }
 
         //PilotsDeck
-        public virtual bool PilotsDeckIntegration { get; 
-            set; } = false;
+        public virtual bool PilotsDeckIntegration { get; set; } = false;
+        [JsonIgnore]
+        public virtual bool PilotsDeckRefresh => PilotsDeckIntegration && AppService.Instance.Config.RefreshMenuForDeck;
 
         //OFP
         public virtual bool FuelRoundUp100 { get; set; } = true;
         public virtual bool RandomizePax { get; set; } = true;
         public virtual int RandomizePaxMaxDiff { get; set; } = 5;
+        public virtual bool ApplyPaxToCargo { get; set; } = true;
         public virtual int DelayTurnAroundSeconds { get; set; } = 90;
         public virtual int DelayTurnRecheckSeconds { get; set; } = 30;
         public virtual bool RefreshGsxOnDeparture { get; set; } = true;
         public virtual bool RefreshGsxOnTurn { get; set; } = true;
         public virtual bool UseSimTime { get; set; } = true;
+        public virtual bool NotifyPrepFinished { get; set; } = true;
+        public virtual bool NotifyFinalReceived { get; set; } = true;
+        public virtual bool NotifyChocksPlaced { get; set; } = true;
+        public virtual bool NotifyTurnReady { get; set; } = true;
 
         //Plugin
         public virtual Dictionary<string, object> PluginSettings { get; set; } = [];
@@ -134,33 +143,40 @@ namespace Any2GSX.AppConfig
         public virtual int ConnectPca { get; set; } = 2; // 0 => false | 1 => true | 2 => only on jetway stand
         public virtual bool PcaOverride { get; set; } = true;
         public virtual bool CallReposition { get; set; } = true;
+        public virtual bool CallJetwayStairsInWalkaround { get; set; } = true;
         public virtual bool CallJetwayStairsOnPrep { get; set; } = true;
         public virtual bool CallJetwayStairsDuringDeparture { get; set; } = true;
         public virtual bool CallJetwayStairsOnArrival { get; set; } = true;
         public virtual int RemoveStairsAfterDepature { get; set; } = 2; // 0 => false | 1 => true | 2 => only on jetway stand
         public virtual bool AttemptConnectStairRefuel { get; set; } = true;
-        public virtual int DelayCallRefuelAfterStair { get; set; } = 30;
+        public virtual int DelayCallRefuelAfterStair { get; set; } = 60;
         public virtual bool SkipFuelOnTankering { get; set; } = true;
         public virtual bool CallPushbackOnBeacon { get; set; } = false;
         public virtual int CallPushbackWhenTugAttached { get; set; } = 2; // 0 => false | 1 => after Departure Services | 2 => after Final LS
         public virtual bool CancelServicesOnPushPhase { get; set; } = true;
         public virtual bool ClearGroundEquipOnBeacon { get; set; } = true;
+        public virtual bool ClearChocksOnTugAttach { get; set; } = true;
         public virtual bool GradualGroundEquipRemoval { get; set; } = false;
         public virtual bool CallDeboardOnArrival { get; set; } = true;
         public virtual bool RunDepartureOnArrival { get; set; } = false;
-        public virtual int SmartButtonAbortService { get; set; } = 0; // 0 => Never | 1 => abort current service gracefully | 2 => abort current service forcefully
+        public virtual GsxCancelService SmartButtonAbortService { get; set; } = GsxCancelService.Never; // 0 => Never | 1 => abort current service gracefully | 2 => abort current service forcefully
         public virtual int ChockDelayMin { get; set; } = 10;
         public virtual int ChockDelayMax { get; set; } = 20;
         public virtual int FinalDelayMin { get; set; } = 90;
         public virtual int FinalDelayMax { get; set; } = 150;
         public virtual bool CloseDoorsOnFinal { get; set; } = true;
+        public virtual bool DoorPaxHandling { get; set; } = true;
         public virtual bool DoorStairHandling { get; set; } = true;
         public virtual bool DoorServiceHandling { get; set; } = true;
+        public virtual bool DoorPanelHandling { get; set; } = true;
         public virtual bool DoorCargoHandling { get; set; } = true;
+        public virtual bool DoorCargoOpenOnActive { get; set; } = false;
+        public virtual int DoorCargoOpenCloseDelay { get; set; } = 2;
+        public virtual bool DoorsCargoKeepOpenOnDetachBoard { get; set; } = false;
+        public virtual bool DoorsCargoKeepOpenOnDetachDeboard { get; set; } = false;
         public virtual bool RemoveJetwayStairsOnFinal { get; set; } = true;
 
         public virtual bool FuelSaveLoadFob { get; set; } = true;
-        public virtual double RefuelResetDeltaKg { get; set; } = 2500;
         public virtual double FuelResetBaseKg { get; set; } = 2500;
         public virtual double RefuelRateKgSec { get; set; } = 28;
         public virtual bool RefuelFinishOnHose { get; set; } = false;
@@ -171,9 +187,11 @@ namespace Any2GSX.AppConfig
 
         public virtual int AttachTugDuringBoarding { get; set; } = 1; // 0 => not answer | 1 => no | 2 => yes
         public virtual bool OperatorAutoSelect { get; set; } = true;
+        public virtual bool OperatorPreferenceSelect { get; set; } = true;
         public virtual List<string> OperatorPreferences { get; set; } = [];
         public virtual List<string> CompanyHubs { get; set; } = [];
         public virtual bool KeepDirectionMenuOpen { get; set; } = true;
+        public virtual bool AnswerDeiceOnReopen { get; set; } = true;
         public virtual bool SkipCrewBoardQuestion { get; set; } = true;
         public virtual bool SkipCrewDeboardQuestion { get; set; } = true;
         public virtual int DefaultPilotTarget { get; set; } = 2;
@@ -181,16 +199,18 @@ namespace Any2GSX.AppConfig
         public virtual int AnswerCrewBoardQuestion { get; set; } = 1; // 0 => not answer | 1 => nobody | 2 => crew | 3 => pilots | 4 => both | (num - 1 for menu)
         public virtual int AnswerCrewDeboardQuestion { get; set; } = 1; // 0 => not answer | 1 => nobody | 2 => crew | 3 => pilots | 4 => both | (num - 1 for menu)
         public virtual bool SkipFollowMe { get; set; } = true;
-        public virtual int ClearGateMenuOption { get; set; } = 4; // 1 => change facility | 2 => req follow me | 3 => revoke park svc | 4 => free park from ai | 5 => just warp | 6 => show me
+        public virtual GsxChangePark ClearGateMenuOption { get; set; } = GsxChangePark.ClearAI;
+        public virtual GsxStopPush StopPushMenuOption { get; set; } = GsxStopPush.Pause;
+        public virtual bool EnableMenuForSelection { get; set; } = true;
 
         public virtual SortedDictionary<int, ServiceConfig> DepartureServices { get; set; } = new()
         {
-            { 0, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.AfterCalled, TimeSpan.Zero, GsxServiceConstraint.TurnAround, false, TimeSpan.Zero, TimeSpan.Zero) },
-            { 1, new ServiceConfig(GsxServiceType.Lavatory, GsxServiceActivation.AfterCalled, TimeSpan.Zero, GsxServiceConstraint.TurnAround, false, TimeSpan.Zero, TimeSpan.Zero) },
-            { 2, new ServiceConfig(GsxServiceType.Refuel, GsxServiceActivation.AfterCalled) },
-            { 3, new ServiceConfig(GsxServiceType.Catering, GsxServiceActivation.AfterCalled) },
-            { 4, new ServiceConfig(GsxServiceType.Water, GsxServiceActivation.AfterRequested) },
-            { 5, new ServiceConfig(GsxServiceType.Boarding, GsxServiceActivation.AfterAllCompleted) },
+            { 0, new ServiceConfig(GsxServiceType.Lavatory, GsxServiceActivation.AfterRequested, TimeSpan.Zero, GsxServiceConstraint.TurnAround, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
+            { 1, new ServiceConfig(GsxServiceType.Water, GsxServiceActivation.AfterRequested, TimeSpan.Zero, GsxServiceConstraint.NoneAlways, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
+            { 2, new ServiceConfig(GsxServiceType.Refuel, GsxServiceActivation.AfterRequested, TimeSpan.Zero, GsxServiceConstraint.NoneAlways, true, TimeSpan.Zero, TimeSpan.Zero,TimeSpan.Zero) },
+            { 3, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.AfterActive, TimeSpan.Zero, GsxServiceConstraint.TurnAround, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
+            { 4, new ServiceConfig(GsxServiceType.Catering, GsxServiceActivation.AfterRequested, TimeSpan.Zero, GsxServiceConstraint.NoneAlways, false, TimeSpan.Zero, TimeSpan.Zero,TimeSpan.Zero) },
+            { 5, new ServiceConfig(GsxServiceType.Boarding, GsxServiceActivation.AfterAllCompleted, TimeSpan.Zero, GsxServiceConstraint.NoneAlways, true, TimeSpan.Zero, TimeSpan.Zero,TimeSpan.Zero) },
         };
 
         public virtual bool IsCompanyHub(string icao)
@@ -240,6 +260,10 @@ namespace Any2GSX.AppConfig
         }
 
         //Plugin Settings
+        public virtual string GetPluginKey(string key)
+        {
+            return $"{AppService.Instance.PluginController.GetPluginSettingKey(PluginId)}.Option.{key}";
+        }
 
         public virtual bool HasSetting(string key)
         {
@@ -265,6 +289,16 @@ namespace Any2GSX.AppConfig
             return false;
         }
 
+        public virtual bool HasPluginSetting<T>(string key, out T value)
+        {
+            return HasSetting<T>(GetPluginKey(key), out value);
+        }
+
+        public virtual bool HasGenericSetting<T>(string key, out T value)
+        {
+            return HasSetting<T>($"{GenericIdUpper}.Option.{key}", out value);
+        }
+
         public virtual T GetSetting<T>(string key)
         {
             try
@@ -273,7 +307,7 @@ namespace Any2GSX.AppConfig
                 {
                     if (typeof(T) != typeof(object) && oValue is JsonElement element)
                         return (T)GetObjectFromElement<T>(element);
-                    else
+                    else if (oValue != null)
                         return (T)oValue;
                 }
             }
@@ -284,6 +318,32 @@ namespace Any2GSX.AppConfig
             }
 
             return default;
+        }
+
+        public virtual dynamic GetSetting(PluginSetting pluginSetting)
+        {
+            if (pluginSetting.Type == PluginSettingType.Bool)
+                return GetSetting<bool>(GetPluginKey(pluginSetting.Key));
+            else if (pluginSetting.Type == PluginSettingType.Integer)
+                return GetSetting<int>(GetPluginKey(pluginSetting.Key));
+            else if (pluginSetting.Type == PluginSettingType.Number)
+                return GetSetting<double>(GetPluginKey(pluginSetting.Key));
+            else if (pluginSetting.Type == PluginSettingType.String)
+                return GetSetting<string>(GetPluginKey(pluginSetting.Key));
+            else if (pluginSetting.Type == PluginSettingType.Enum)
+                return GetSetting<int>(GetPluginKey(pluginSetting.Key));
+            else
+                return default;
+        }
+
+        public virtual T GetPluginSetting<T>(string key)
+        {
+            return GetSetting<T>(GetPluginKey(key));
+        }
+
+        public virtual T GetGenericSetting<T>(string key)
+        {
+            return GetSetting<T>($"{GenericIdUpper}.Option.{key}");
         }
 
         public virtual object GetObjectFromElement<T>(JsonElement element)
@@ -312,13 +372,11 @@ namespace Any2GSX.AppConfig
                 if (PluginSettings.ContainsKey(key))
                 {
                     PluginSettings[key] = value;
-                    AppService.Instance.Config.SaveConfiguration();
-                    return true;
+                    return false;
                 }
                 else
                 {
                     PluginSettings.Add(key, value);
-                    AppService.Instance.Config.SaveConfiguration();
                     return true;
                 }
             }
@@ -329,12 +387,27 @@ namespace Any2GSX.AppConfig
             }
         }
 
+        public virtual bool SetPluginSetting(string key, object value)
+        {
+            SetSetting(GetPluginKey(key), value);
+            AppService.Instance.Config.SaveConfiguration();
+            return true;
+        }
+
+        public virtual bool SetGenericSetting(string key, object value)
+        {
+            SetSetting($"{GenericIdUpper}.Option.{key}", value);
+            AppService.Instance.Config.SaveConfiguration();
+            return true;
+        }
+
         public virtual void CheckGenericSettings()
         {
             Logger.Debug($"Check Generic Settings in Profile '{Name}'");
             var pluginSettings = GenericSettings.GetGenericSettings();
             foreach (var setting in pluginSettings)
                 AddSetting(setting);
+            AppService.Instance.Config.SaveConfiguration();
         }
 
         public virtual void CheckPluginSettings(List<PluginSetting> pluginSettings)
@@ -349,6 +422,7 @@ namespace Any2GSX.AppConfig
                     SetSetting(setting.Key, setting.DefaultValue);
                 }
             }
+            AppService.Instance.Config.SaveConfiguration();
         }
 
         protected virtual bool AddSetting(PluginSetting setting)

@@ -7,6 +7,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Any2GSX.Audio
 {
@@ -27,8 +28,8 @@ namespace Any2GSX.Audio
         public virtual int SearchCounter { get; set; } = 0;
         public virtual ConcurrentDictionary<string, float> SavedVolumes { get; } = [];
         public virtual ConcurrentDictionary<string, bool> SavedMutes { get; } = [];
-        public virtual ConcurrentDictionary<string, bool> SynchedSessionsVolume { get; } = [];
-        public virtual ConcurrentDictionary<string, bool> SynchedSessionsMute { get; } = [];
+        public virtual ConcurrentDictionary<string, bool> SyncedSessionsVolume { get; } = [];
+        public virtual ConcurrentDictionary<string, bool> SyncedSessionsMute { get; } = [];
         public virtual List<AudioSessionControl2> SessionControls { get; } = [];
         public virtual ISimResourceSubscription SubVolume { get; protected set; }
         public virtual ISimResourceSubscription SubMute { get; protected set; }
@@ -128,8 +129,8 @@ namespace Any2GSX.Audio
             }
             SavedMutes.Clear();
 
-            SynchedSessionsVolume.Clear();
-            SynchedSessionsMute.Clear();
+            SyncedSessionsVolume.Clear();
+            SyncedSessionsMute.Clear();
         }
 
         public virtual void SetSessionList(List<AudioSessionControl2> list)
@@ -158,31 +159,31 @@ namespace Any2GSX.Audio
 
             SubVolume = Controller.GetVolumeSub(Channel);
             if (SubVolume != null)
-                SubVolume.OnReceived += OnVolumeChange;
-            
+                SubVolume?.OnReceived += OnVolumeChange;
+
             SubMute = Controller.GetMuteSub(Channel);
             if (SubMute != null)
-                SubMute.OnReceived += OnMuteChange;
+                SubMute?.OnReceived += OnMuteChange;
         }
 
         public virtual void ClearSimSubscriptions()
         {
             if (SubVolume != null)
             {
-                try { SubVolume.OnReceived -= OnVolumeChange; } catch { }
+                try { SubVolume?.OnReceived -= OnVolumeChange; } catch { }
                 SubVolume = null;
             }
 
             if (SubMute != null)
             {
-                try { SubMute.OnReceived -= OnMuteChange; } catch { }
+                try { SubMute?.OnReceived -= OnMuteChange; } catch { }
                 SubMute = null;
             }
 
             ChannelDefinition = null;
         }
 
-        public virtual void SynchControls()
+        public virtual void SyncControls()
         {
             if (SubVolume != null)
                 OnVolumeChange(SubVolume, null);
@@ -190,18 +191,18 @@ namespace Any2GSX.Audio
                 OnMuteChange(SubMute, null);
         }
 
-        protected virtual void OnVolumeChange(ISimResourceSubscription sub, object data)
+        protected virtual Task OnVolumeChange(ISimResourceSubscription sub, object data)
         {
             if (!IsActive || SessionControls.Count == 0 || SubVolume == null)
-                return;
+                return Task.CompletedTask;
             if (sub.Name != SubVolume.Name)
-                return;
+                return Task.CompletedTask;
 
             double value = sub.GetValue<double>();
             if (value < ChannelDefinition.MinValue || value > ChannelDefinition.MaxValue)
             {
                 Logger.Debug($"Invalid Value Range for '{sub.Name}': {value}");
-                return;
+                return Task.CompletedTask;
             }
             float fValue = (float)AudioTools.NormalizedRatio(value, ChannelDefinition.MinValue, ChannelDefinition.MaxValue);
 
@@ -213,10 +214,10 @@ namespace Any2GSX.Audio
                 {
                     foreach (var ctrl in SessionControls)
                     {
-                        if (Controller.ResetVolumes || !SynchedSessionsVolume.ContainsKey(ctrl.SessionInstanceIdentifier))
+                        if (Controller.ResetVolumes || !SyncedSessionsVolume.ContainsKey(ctrl.SessionInstanceIdentifier))
                         {
                             ctrl.SimpleAudioVolume.MasterVolume = fValue;
-                            SynchedSessionsVolume.TryAdd(ctrl.SessionInstanceIdentifier, true);
+                            SyncedSessionsVolume.TryAdd(ctrl.SessionInstanceIdentifier, true);
                         }
                     }
                 }
@@ -225,14 +226,16 @@ namespace Any2GSX.Audio
             {
                 Logger.LogException(ex);
             }
+
+            return Task.CompletedTask;
         }
 
-        protected virtual void OnMuteChange(ISimResourceSubscription sub, object data)
+        protected virtual Task OnMuteChange(ISimResourceSubscription sub, object data)
         {
             if (!IsActive || SessionControls.Count == 0 || !UseLatch || SubMute == null)
-                return;
+                return Task.CompletedTask;
             if (sub.Name != SubMute.Name)
-                return;
+                return Task.CompletedTask;
 
             double value = sub.GetValue<double>();
             bool? mute = null;
@@ -243,7 +246,7 @@ namespace Any2GSX.Audio
             else
             {
                 Logger.Debug($"Invalid Value for '{sub.Name}': {value}");
-                return;
+                return Task.CompletedTask;
             }
 
             try
@@ -254,10 +257,10 @@ namespace Any2GSX.Audio
                 {
                     foreach (var ctrl in SessionControls)
                     {
-                        if (Controller.ResetVolumes || !SynchedSessionsMute.ContainsKey(ctrl.SessionInstanceIdentifier))
+                        if (Controller.ResetVolumes || !SyncedSessionsMute.ContainsKey(ctrl.SessionInstanceIdentifier))
                         {
                             ctrl.SimpleAudioVolume.Mute = mute == true;
-                            SynchedSessionsMute.TryAdd(ctrl.SessionInstanceIdentifier, true);
+                            SyncedSessionsMute.TryAdd(ctrl.SessionInstanceIdentifier, true);
                         }
                     }
                 }
@@ -266,6 +269,8 @@ namespace Any2GSX.Audio
             {
                 Logger.LogException(ex);
             }
+
+            return Task.CompletedTask;
         }
     }
 }

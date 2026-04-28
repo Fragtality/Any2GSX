@@ -4,10 +4,13 @@
                     xmlns:pluginui="clr-namespace:Any2GSX.UI.Views.Plugins"
                     xmlns:system="clr-namespace:System;assembly=mscorlib"
                     xmlns:conv="clr-namespace:CFIT.AppFramework.UI.ValueConverter;assembly=CFIT.AppFramework">
-    
-    <src:TimeSpanConverter x:Key="TimeSpanConverter"/>
 
+    <src:TimeSpanConverterSeconds x:Key="TimeSpanConverterSeconds"/>
+    <src:TimeSpanConverterMinutes x:Key="TimeSpanConverterMinutes"/>
+
+    <conv:SafeEnumConverter x:Key="SafeEnumConverter"/>
     <conv:BoolVisibilityConverter x:Key="BoolVisibilityConverter"/>
+    <conv:BoolVisibilityInverseConverter x:Key="BoolVisibilityInverseConverter"/>
 
     <pluginui:BoolColorConverter x:Key="BoolColorConverter"/>
 
@@ -193,7 +196,7 @@
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Background" Value="#FFBEE6FD" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="Padding" Value="2" />
         <Setter Property="Margin" Value="2" />

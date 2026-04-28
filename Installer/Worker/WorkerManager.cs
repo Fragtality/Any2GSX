@@ -15,11 +15,14 @@ namespace Installer.Worker
         protected void CreateInstallUpdateTasks(SetupMode key)
         {
             WorkerQueues[key].Enqueue(new WorkerDotNet<Config>(Config));
-            WorkerQueues[key].Enqueue(new WorkerModuleInstall<Config>(Config));
+            if (Config?.GetOption<bool>(Config.OptionSkipModuleUpdate) == false || Config?.GetOption<bool>(Config.OptionForceCommModuleUpdate) == true)
+                WorkerQueues[key].Enqueue(new WorkerModuleInstall<Config>(Config));
             WorkerQueues[key].Enqueue(new WorkerInstallUpdate(Config));
             WorkerQueues[key].Enqueue(new WorkerAutoStart<Config>(Config));
             if (Config?.GetOption<bool>(ConfigBase.OptionDesktopLink) == true)
                 WorkerQueues[key].Enqueue(new WorkerDesktopLinkCreate<Config>(Config));
+            if (Config?.GetOption<bool>(Config.OptionInstallDeckProfile) == true)
+                WorkerQueues[key].Enqueue(new WorkerPilotsdeckProfile(Config));
         }
 
         protected override void CreateInstallTasks()

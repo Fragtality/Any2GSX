@@ -2,6 +2,7 @@
 using CFIT.Installer.Product;
 using CFIT.Installer.UI.Behavior;
 using CFIT.Installer.UI.Config;
+using Installer.Worker;
 using System.Collections.Generic;
 
 namespace Installer
@@ -32,13 +33,22 @@ namespace Installer
                 if (FuncMsfs.CheckInstalledMsfs(Simulator.MSFS2024, SimulatorStore.MsStore))
                     options.Add((int)CommModuleOption.Only2024MStore, $"{word} Module only on MSFS 2024 Microsoft Store");
             }
-            Items.Add(new ConfigItemRadio($"{word} CommBus Module (required)", options, Config.OptionCommModuleInstallation, Config));
+            if (Config.Mode == SetupMode.INSTALL || WorkerModuleInstall<Config>.FindInstalledModules(Config, false).Count > 0)
+                Items.Add(new ConfigItemRadio($"{word} CommBus Module (required)", options, Config.OptionCommModuleInstallation, Config));
+            else
+                Config.SetOption<bool>(Config.OptionSkipModuleUpdate, true);
+
+            if (Config.PilotsdeckInstalled())
+                Items.Add(new ConfigItemCheckbox($"{word} Pilotsdeck Profile", "Install GSX Profile for StreamDeck (for PilotsDeck Integration)", Config.OptionInstallDeckProfile, Config));
 
             if (Config.Mode == SetupMode.UPDATE)
                 Items.Add(new ConfigItemCheckbox("Force Module Update", "Overwrite existing CommBus Modules (regardless of installed Version)", Config.OptionForceCommModuleUpdate, Config));
 
             ConfigItemHelper.CreateRadioAutoStart(Config, Items);
-            ConfigItemHelper.CreateCheckboxDesktopLink(Config, ConfigBase.OptionDesktopLink, Items);
+            if (Config.Mode == SetupMode.INSTALL)
+                ConfigItemHelper.CreateCheckboxDesktopLink(Config, ConfigBase.OptionDesktopLink, Items);
+
+            Items.Add(new ConfigItemCheckbox("Start App", $"Start Any2GSX after {word}", Config.OptionOpenApp, Config));
 
             if (Config.Mode == SetupMode.UPDATE)
                 Items.Add(new ConfigItemCheckbox("Reset Configuration", "Reset App Configuration to Default (only for Troubleshooting)", Config.OptionResetConfiguration, Config));

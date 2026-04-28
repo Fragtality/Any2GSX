@@ -19,8 +19,10 @@ interface MainPageProps extends RequiredProps<UiViewProps, "appViewService"> {
 }
 
 export interface EfbUpdateEvents {
-  ConnectionState: string;
+  AppConnectionState: string;
+  AircraftConnectionState: string;
   ProfileName: string;
+  FlightPhase: string;
   PhaseStatus: string;
   CouatlVarsValid: string;
   DepartureServices: string;
@@ -38,9 +40,12 @@ const StyleLineHidden = "visibility:collapse;";
 export class MainPage extends GamepadUiView<HTMLDivElement, MainPageProps> {
   public readonly tabName = MainPage.name;
   protected props: MainPageProps;
-  protected readonly ConnectionState: Subscribable<string>;
-  protected readonly ConnectionStateClass: Subject<string>;
+  protected readonly AppConnectionState: Subscribable<string>;
+  protected readonly AppConnectionStateClass: Subject<string>;
+  protected readonly AircraftConnectionState: Subscribable<string>;
+  protected readonly AircraftConnectionStateClass: Subject<string>;
   protected readonly ProfileName: Subscribable<string>;
+  protected readonly FlightPhase: Subscribable<string>;
   protected readonly PhaseStatus: Subscribable<string>;
   protected readonly DepartureServices: Subscribable<string>;
   protected readonly DepartureServicesVisibility: Subject<string>;
@@ -53,6 +58,7 @@ export class MainPage extends GamepadUiView<HTMLDivElement, MainPageProps> {
   protected readonly MenuTitleVisibility: Subject<string>;
   protected readonly MenuLinesDisplay: Subject<string>[];
   protected readonly MenuLinesVisibility: Subject<string>[];
+  protected readonly MenuOpenText: string = "Open Menu ...";
 
   constructor(props: MainPageProps) {
     super();
@@ -60,37 +66,41 @@ export class MainPage extends GamepadUiView<HTMLDivElement, MainPageProps> {
     const subscriber = this.props.eventBus.getSubscriber<EfbUpdateEvents>();
 
     //APP State
-    this.ConnectionState = ConsumerSubject.create(
-      subscriber.on("ConnectionState"),
-      "Disconnected"
+    this.AppConnectionState = ConsumerSubject.create(
+      subscriber.on("AppConnectionState"),
+      "Disconnected",
     );
-    this.ConnectionStateClass = Subject.create<string>("property-red");
+    this.AppConnectionStateClass = Subject.create<string>("property-red");
+    this.AircraftConnectionState = ConsumerSubject.create(
+      subscriber.on("AircraftConnectionState"),
+      "Disconnected",
+    );
+    this.AircraftConnectionStateClass = Subject.create<string>("property-red");
     this.ProfileName = ConsumerSubject.create(subscriber.on("ProfileName"), "");
+    this.FlightPhase = ConsumerSubject.create(subscriber.on("FlightPhase"), "");
     this.PhaseStatus = ConsumerSubject.create(subscriber.on("PhaseStatus"), "");
     this.DepartureServices = ConsumerSubject.create(
       subscriber.on("DepartureServices"),
-      ""
+      "",
     );
     this.DepartureServicesVisibility = Subject.create<string>(StyleHidden);
     this.ProgressLabel = ConsumerSubject.create(
       subscriber.on("ProgressLabel"),
-      ""
+      "",
     );
     this.ProgressInfo = ConsumerSubject.create(
       subscriber.on("ProgressInfo"),
-      ""
+      "",
     );
     this.ProgressVisibility = Subject.create<string>(StyleHidden);
     this.SmartCall = ConsumerSubject.create(subscriber.on("SmartCall"), "");
     this.SmartCallVisibility = Subject.create<string>(StyleHidden);
 
     subscriber
-      .on("ConnectionState")
+      .on("AppConnectionState")
       .whenChanged()
       .handle((state) => {
-        typeof state !== null && state == "Disconnected"
-          ? this.ConnectionStateClass.set("property-red")
-          : this.ConnectionStateClass.set("property-green");
+        this.SetConnectionState(state, this.AppConnectionStateClass);
         if (typeof state !== null && state == "Disconnected") {
           this.DepartureServicesVisibility.set(StyleHidden);
           this.SmartCallVisibility.set(StyleHidden);
@@ -106,12 +116,19 @@ export class MainPage extends GamepadUiView<HTMLDivElement, MainPageProps> {
       });
 
     subscriber
+      .on("AircraftConnectionState")
+      .whenChanged()
+      .handle((state) => {
+        this.SetConnectionState(state, this.AircraftConnectionStateClass);
+      });
+
+    subscriber
       .on("SmartCall")
       .whenChanged()
       .handle((call) =>
         typeof call !== null && call != ""
           ? this.SmartCallVisibility.set(StyleVisible)
-          : this.SmartCallVisibility.set(StyleHidden)
+          : this.SmartCallVisibility.set(StyleHidden),
       );
 
     subscriber
@@ -120,7 +137,7 @@ export class MainPage extends GamepadUiView<HTMLDivElement, MainPageProps> {
       .handle((text) =>
         typeof text !== null && text != ""
           ? this.DepartureServicesVisibility.set(StyleVisible)
-          : this.DepartureServicesVisibility.set(StyleHidden)
+          : this.DepartureServicesVisibility.set(StyleHidden),
       );
 
     subscriber
@@ -129,23 +146,16 @@ export class MainPage extends GamepadUiView<HTMLDivElement, MainPageProps> {
       .handle((text) =>
         typeof text !== null && text != ""
           ? this.ProgressVisibility.set(StyleVisible)
-          : this.ProgressVisibility.set(StyleHidden)
+          : this.ProgressVisibility.set(StyleHidden),
       );
 
     //GSX MENU
-    this.MenuTitleDisplay = Subject.create<string>("Open Menu ...");
+    this.MenuTitleDisplay = Subject.create<string>(this.MenuOpenText);
     this.MenuTitleVisibility = Subject.create<string>(StyleLineHidden);
     subscriber
       .on("MenuTitle")
       .whenChanged()
-      .handle((text) => {
-        typeof text !== null && text != ""
-          ? this.MenuTitleDisplay.set(text)
-          : this.MenuTitleDisplay.set("Open Menu ...");
-        if (typeof text !== null && text != "") {
-          this.MenuTitleVisibility.set(StyleVisible);
-        }
-      });
+      .handle((text) => this.SetMenuTitle(text));
 
     let i = 0;
     this.MenuLinesDisplay = [];
@@ -164,7 +174,7 @@ export class MainPage extends GamepadUiView<HTMLDivElement, MainPageProps> {
         menuLines.forEach((line) => {
           this.MenuLinesDisplay[index].set(line);
           this.MenuLinesVisibility[index].set(
-            typeof line !== null && line != "" ? StyleVisible : StyleLineHidden
+            typeof line !== null && line != "" ? StyleVisible : StyleLineHidden,
           );
           index++;
         });
@@ -175,9 +185,9 @@ export class MainPage extends GamepadUiView<HTMLDivElement, MainPageProps> {
       .whenChanged()
       .handle((state) => {
         if (typeof state != null && state == "true") {
-          this.MenuTitleVisibility.set(StyleVisible);
+          this.SetMenuTitle(this.MenuOpenText);
           this.MenuLinesVisibility.forEach((line) => {
-            line.set(StyleVisible);
+            line.set(StyleLineHidden);
           });
         } else {
           this.MenuTitleVisibility.set(StyleLineHidden);
@@ -188,6 +198,24 @@ export class MainPage extends GamepadUiView<HTMLDivElement, MainPageProps> {
       });
   }
 
+  public SetConnectionState(
+    state: string,
+    classProperty: Subject<string>,
+  ): void {
+    typeof state !== null && state == "Disconnected"
+      ? classProperty.set("property-red")
+      : classProperty.set("property-green");
+  }
+
+  public SetMenuTitle(text: string): void {
+    typeof text !== null && text != ""
+      ? this.MenuTitleDisplay.set(text)
+      : this.MenuTitleDisplay.set(this.MenuOpenText);
+    if (typeof text !== null && text != "") {
+      this.MenuTitleVisibility.set(StyleVisible);
+    }
+  }
+
   public SmartButtonRequest(): void {
     console.log("Setting SmartButton Request");
     SimVar.SetSimVarValue("L:ANY2GSX_SMARTBUTTON_REQ", "number", 1);
@@ -195,7 +223,11 @@ export class MainPage extends GamepadUiView<HTMLDivElement, MainPageProps> {
 
   public OpenMenu(): void {
     console.log("Open GSX Menu");
-    SimVar.SetSimVarValue("L:FSDT_GSX_MENU_OPEN", "number", 1);
+    if (this.MenuTitleDisplay.get() == this.MenuOpenText) {
+      SimVar.SetSimVarValue("L:FSDT_GSX_MENU_OPEN", "number", 1);
+    } else {
+      SimVar.SetSimVarValue("L:FSDT_GSX_MENU_CHOICE", "number", -1);
+    }
   }
 
   public SelectMenu(index: number): void {
@@ -210,9 +242,16 @@ export class MainPage extends GamepadUiView<HTMLDivElement, MainPageProps> {
           <div class="top-header">App State</div>
 
           <div class="row">
-            <span class="label">Connection State</span>
-            <span class={this.ConnectionStateClass}>
-              {this.ConnectionState}
+            <span class="label">App Connection</span>
+            <span class={this.AppConnectionStateClass}>
+              {this.AppConnectionState}
+            </span>
+          </div>
+
+          <div class="row">
+            <span class="label">Aircraft Connection</span>
+            <span class={this.AircraftConnectionStateClass}>
+              {this.AircraftConnectionState}
             </span>
           </div>
 
@@ -222,7 +261,12 @@ export class MainPage extends GamepadUiView<HTMLDivElement, MainPageProps> {
           </div>
 
           <div class="row">
-            <span class="label">Flight Phase &amp; Status</span>
+            <span class="label">Flight Phase</span>
+            <span class="property">{this.FlightPhase}</span>
+          </div>
+
+          <div class="row">
+            <span class="label">Status</span>
             <span class="property">{this.PhaseStatus}</span>
           </div>
 

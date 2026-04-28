@@ -22,12 +22,24 @@ namespace Any2GSX.Plugins
         public virtual SortedDictionary<string, PluginManifest> Plugins { get; } = [];
         public virtual SortedDictionary<string, AircraftChannels> Channels { get; } = [];
         public virtual SortedDictionary<string, ProfileManifest> Profiles { get; } = [];
+        protected virtual DateTime NextCheck { get; set; } = DateTime.MinValue;
+        protected virtual string ReleaseTimestamp { get; set; } = $"";
 
         public virtual async Task Refresh()
         {
-            await RefreshPlugins();
-            await RefreshChannels();
-            await RefreshProfiles();
+            if (NextCheck < DateTime.Now)
+            {
+                await RefreshReleaseInfo();
+                await RefreshPlugins();
+                await RefreshChannels();
+                await RefreshProfiles();
+                NextCheck = DateTime.Now + TimeSpan.FromMinutes(5);
+            }
+        }
+
+        protected virtual async Task RefreshReleaseInfo()
+        {
+            ReleaseTimestamp = await GetStringFromUrl($"{Definition.RepoDistUrlReleaseInfo}?{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
         }
 
         public virtual bool HasUpdates()
@@ -89,12 +101,12 @@ namespace Any2GSX.Plugins
             return json;
         }
 
-        public static async Task<Dictionary<string, PluginManifest>> GetPlugins()
+        public virtual async Task<Dictionary<string, PluginManifest>> GetPlugins()
         {
             Dictionary<string, PluginManifest> result = [];
             try
             {
-                JsonNode node = await GetJsonFromUrl(Definition.RepoDistUrlPluginFile);
+                JsonNode node = await GetJsonFromUrl($"{Definition.RepoDistUrlPluginFile}?{ReleaseTimestamp}");
 
                 foreach (var entry in node.AsObject())
                 {
@@ -111,28 +123,30 @@ namespace Any2GSX.Plugins
             return result;
         }
 
-        public virtual async Task<bool> InstallPluginFromRepo(string pluginFile)
+        public virtual Task<PluginManifest> InstallPluginFromRepo(string pluginFile)
         {
             if (!Plugins.TryGetValue(pluginFile, out _))
-                return false;
-            var installer = new PluginInstaller($"{Definition.RepoDistUrlPlugins}/{pluginFile}");
-            return await installer.Install();
+                return Task.FromResult<PluginManifest>(null);
+
+            var installer = new PluginInstaller($"{Definition.RepoDistUrlPlugins}/{pluginFile}?{ReleaseTimestamp}");
+            return installer.Install();
         }
 
-        public virtual async Task<bool> InstallPluginFromFile(string filePath)
+        public virtual Task<PluginManifest> InstallPluginFromFile(string filePath)
         {
             if (!File.Exists(filePath) || !Path.GetExtension(filePath).Equals(".zip", StringComparison.InvariantCultureIgnoreCase))
-                return false;
+                return Task.FromResult<PluginManifest>(null);
+
             var installer = new PluginInstaller(filePath);
-            return await installer.Install();
+            return installer.Install();
         }
 
-        public static async Task<Dictionary<string, AircraftChannels>> GetChannels()
+        public virtual async Task<Dictionary<string, AircraftChannels>> GetChannels()
         {
             Dictionary<string, AircraftChannels> result = [];
             try
             {
-                JsonNode node = await GetJsonFromUrl(Definition.RepoDistUrlChannelFile);
+                JsonNode node = await GetJsonFromUrl($"{Definition.RepoDistUrlChannelFile}?{ReleaseTimestamp}");
 
                 foreach (var entry in node.AsObject())
                 {
@@ -157,7 +171,7 @@ namespace Any2GSX.Plugins
             bool result = false;
             try
             {
-                string json = await GetStringFromUrl($"{Definition.RepoDistUrlChannels}/{channelFile}");
+                string json = await GetStringFromUrl($"{Definition.RepoDistUrlChannels}/{channelFile}?{ReleaseTimestamp}");
                 var channelDefinition = AircraftChannels.Deserialize(json);
                 if (channelDefinition != null && !string.IsNullOrWhiteSpace(channelDefinition.Id))
                 {
@@ -173,7 +187,7 @@ namespace Any2GSX.Plugins
             {
                 Logger.LogException(ex);
                 result = false;
-            }            
+            }
 
             return result;
         }
@@ -182,7 +196,7 @@ namespace Any2GSX.Plugins
         {
             if (!File.Exists(filePath) || !Path.GetExtension(filePath).Equals(".json", StringComparison.InvariantCultureIgnoreCase))
                 return false;
-            
+
             bool result = false;
             try
             {
@@ -206,12 +220,12 @@ namespace Any2GSX.Plugins
             return result;
         }
 
-        public static async Task<Dictionary<string, ProfileManifest>> GetProfiles()
+        public virtual async Task<Dictionary<string, ProfileManifest>> GetProfiles()
         {
             Dictionary<string, ProfileManifest> result = [];
             try
             {
-                JsonNode node = await GetJsonFromUrl(Definition.RepoDistUrlProfileFile);
+                JsonNode node = await GetJsonFromUrl($"{Definition.RepoDistUrlProfileFile}?{ReleaseTimestamp}");
 
                 foreach (var entry in node.AsObject())
                 {
@@ -236,7 +250,7 @@ namespace Any2GSX.Plugins
             bool result = false;
             try
             {
-                string json = await GetStringFromUrl($"{Definition.RepoDistUrlProfiles}/{profileFile}");
+                string json = await GetStringFromUrl($"{Definition.RepoDistUrlProfiles}/{profileFile}?{ReleaseTimestamp}");
                 SettingProfile profile = JsonSerializer.Deserialize<SettingProfile>(json);
                 if (profile == null)
                 {
@@ -253,11 +267,7 @@ namespace Any2GSX.Plugins
                     Config.SettingProfiles.RemoveAll(p => p.Name.Equals(profile.Name, StringComparison.InvariantCultureIgnoreCase));
                 }
 
-                if (Config.ImportProfile(json))
-                {
-                    Config.SaveConfiguration();
-                    result = true;
-                }
+                result = Config.ImportProfile(json);
 
                 if (result && !string.IsNullOrWhiteSpace(profile.ChannelFileId)
                     && profile.ChannelFileId != SettingProfile.GenericId && !PluginController.Channels.ContainsKey(profile.ChannelFileId)

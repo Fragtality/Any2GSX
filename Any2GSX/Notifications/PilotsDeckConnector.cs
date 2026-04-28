@@ -22,9 +22,10 @@ namespace Any2GSX.Notifications
         public virtual GsxMenu Menu => GsxController.Menu;
 
         public virtual string VarDeckConnected => Config.DeckVarConnected;
+        public virtual string VarDeckAircraftConnected => Config.DeckVarAircraftConnected;
         public virtual string VarDeckMenu => Config.DeckVarMenu;
         public virtual string VarDeckLine => Config.DeckVarLine;
-        public virtual string VarDeckState  => Config.DeckVarState;
+        public virtual string VarDeckState => Config.DeckVarState;
         public virtual string VarDeckCall => Config.DeckVarCall;
         public virtual string VarDeckInfoPax => Config.DeckVarInfoPax;
         public virtual string VarDeckInfoCargo => Config.DeckVarInfoCargo;
@@ -42,6 +43,19 @@ namespace Any2GSX.Notifications
             { GsxServiceState.Completing, "[[#FF940A" },
         };
         public virtual string StateColorOther { get; } = "[[#BFBFBF";
+
+        public static readonly Dictionary<GsxChangePark, string> ClearGateOptions = new()
+        {
+            { GsxChangePark.ChangeFacility, "Change[[nFacility" },
+            { GsxChangePark.FollowMe, "Request[[nFollowMe" },
+            { GsxChangePark.ProgTaxi, "Prog.[[nTaxi" },
+            { GsxChangePark.TowIn, "Push-In[[nTowing" },
+            { GsxChangePark.Revoke, "Revoke[[nServices" },
+            { GsxChangePark.ClearAI, "Remove[[nAI" },
+            { GsxChangePark.Warp, "Warp[[nGate" },
+            { GsxChangePark.ShowMe, "Show[[nGate" },
+            { GsxChangePark.Map, "Moving[[nMap" },
+        };
 
         public PilotsDeckConnector()
         {
@@ -83,41 +97,38 @@ namespace Any2GSX.Notifications
 
         public override async Task FreeRessources()
         {
+            if (!IsInitialized || !Sys.GetProcessRunning(BinaryPlugin))
+                return;
+
             try
             {
-                if (!IsInitialized || !Sys.GetProcessRunning(BinaryPlugin))
-                    return;
-
-                try
-                {
-                    await HttpClient.GetStringAsync(string.Format(Config.DeckMessageUnregister, VarDeckMenu), Token);
-                    for (int i = 1; i <= 10; i++)
-                        await HttpClient.GetStringAsync(string.Format(Config.DeckMessageUnregister, $"{VarDeckLine}{i}"), Token);
-                    await HttpClient.GetStringAsync(string.Format(Config.DeckMessageUnregister, VarDeckState), Token);
-                    await HttpClient.GetStringAsync(string.Format(Config.DeckMessageUnregister, VarDeckCall), Token);
-                    await HttpClient.GetStringAsync(string.Format(Config.DeckMessageUnregister, VarDeckInfoPax), Token);
-                    await HttpClient.GetStringAsync(string.Format(Config.DeckMessageUnregister, VarDeckInfoCargo), Token);
-                }
-                catch { }
+                await HttpClient.GetStringAsync(string.Format(Config.DeckMessageUnregister, VarDeckMenu), Token);
+                for (int i = 1; i <= 10; i++)
+                    await HttpClient.GetStringAsync(string.Format(Config.DeckMessageUnregister, $"{VarDeckLine}{i}"), Token);
+                await HttpClient.GetStringAsync(string.Format(Config.DeckMessageUnregister, VarDeckState), Token);
+                await HttpClient.GetStringAsync(string.Format(Config.DeckMessageUnregister, VarDeckCall), Token);
+                await HttpClient.GetStringAsync(string.Format(Config.DeckMessageUnregister, VarDeckInfoPax), Token);
+                await HttpClient.GetStringAsync(string.Format(Config.DeckMessageUnregister, VarDeckInfoCargo), Token);
             }
             catch (Exception ex)
             {
                 if (ex is not TaskCanceledException)
-                    Logger.LogException(ex);
+                    Logger.Debug($"Error '{ex.GetType().Name}': {ex.Message}");
             }
+
         }
 
-        protected virtual async Task WriteVariable(string name, string value)
+        protected virtual Task WriteVariable(string name, string value)
         {
             if (!IsInitialized || string.IsNullOrWhiteSpace(Config?.DeckMessageWrite))
-                return;
+                return Task.CompletedTask;
 
             try
             {
                 if (!string.IsNullOrWhiteSpace(value))
                     value = value.Replace("\t", "").Replace("\r", "").Replace("\n", "[[n");
 
-                await HttpClient.GetStringAsync(string.Format(Config.DeckMessageWrite, name, WebUtility.UrlEncode(value)), Token);
+                return HttpClient.GetStringAsync(string.Format(Config.DeckMessageWrite, name, WebUtility.UrlEncode(value)), Token);
             }
             catch (Exception ex)
             {
@@ -126,14 +137,24 @@ namespace Any2GSX.Notifications
                 else if (ex is not TaskCanceledException)
                     Logger.LogException(ex);
             }
+
+            return Task.CompletedTask;
         }
 
-        public override async Task SetConnected(bool connected, string profile)
+        public override Task SetConnected(bool connected, string profile)
         {
             if (connected)
-                await WriteVariable($"{VarDeckConnected}", "1");
+                return WriteVariable($"{VarDeckConnected}", "1");
             else
-                await WriteVariable($"{VarDeckConnected}", "0");
+                return WriteVariable($"{VarDeckConnected}", "0");
+        }
+
+        public override Task SetAircraftConnected(bool connected)
+        {
+            if (connected)
+                return WriteVariable($"{VarDeckAircraftConnected}", "1");
+            else
+                return WriteVariable($"{VarDeckAircraftConnected}", "0");
         }
 
         public override Task SetCouatlVars(string state)
@@ -141,7 +162,7 @@ namespace Any2GSX.Notifications
             return Task.CompletedTask;
         }
 
-        protected override async Task SetMenuLine(int line, string value)
+        protected override Task SetMenuLine(int line, string value)
         {
             line++;
             if (Menu.IsGateMenu && !string.IsNullOrWhiteSpace(value))
@@ -195,22 +216,24 @@ namespace Any2GSX.Notifications
                     else
                         value = $"{StateColors[GsxController.GsxServices[GsxServiceType.Stairs].State]}{value}";
                 }
-                else if (line > 7)
+                else if (line > 8)
                     value = $"{StateColorOther}{value}";
             }
 
-            await WriteVariable($"{VarDeckLine}{line}", value);
+            return WriteVariable($"{VarDeckLine}{line}", value);
         }
 
-        public override async Task SetMenuTitle(string title)
+        public override Task SetMenuTitle(string title)
         {
             if (GsxController.Menu.IsGateMenu)
                 title = title.Replace(GsxConstants.MenuGate, "", StringComparison.InvariantCultureIgnoreCase).TrimStart();
+            else if (GsxController.Menu.IsSelectGateMenu)
+                title = title.Replace(GsxConstants.MenuParkingSelect, "", StringComparison.InvariantCultureIgnoreCase).TrimStart();
 
-            await WriteVariable($"{VarDeckMenu}", title);
+            return WriteVariable($"{VarDeckMenu}", title);
         }
 
-        public override async Task SetSmartCall(SmartButtonCall call, string callInfo)
+        public override async Task SetSmartCall(SmartButtonCall call, string callInfo, bool force = false)
         {
             string text = call switch
             {
@@ -218,15 +241,25 @@ namespace Any2GSX.Notifications
                 SmartButtonCall.Connect => "Connect[[nJetway/Stairs",
                 SmartButtonCall.NextService => $"Call Next:[[n{callInfo}",
                 SmartButtonCall.PushCall => "Call[[nPushback",
-                SmartButtonCall.PushStop => "Stop[[nPushback",
-                SmartButtonCall.PushConfirm => "Confirm[[nPush",
-                SmartButtonCall.Deice => "Start[[nDe-icing",
-                SmartButtonCall.ClearGate => "Clear[[nGate",
+                SmartButtonCall.PushStop => $"{callInfo}[[nPushback",
+                SmartButtonCall.PushConfirm => "Confirm[[nStart",
+                SmartButtonCall.Deice => $"{callInfo}[[nDeIce",
+                SmartButtonCall.ClearGate => callInfo,
                 SmartButtonCall.Deboard => "Call[[nDeboard",
                 SmartButtonCall.SkipTurn => "Skip[[nTurnaround",
+                SmartButtonCall.WarpGate => "Warp[[nGate",
                 _ => "",
             };
-            await WriteVariable($"{VarDeckCall}", text);
+
+            if (ReportedCall != call || ReportedCallInfo != text || force)
+                await WriteVariable($"{VarDeckCall}", text);
+            ReportedCall = call;
+            ReportedCallInfo = text;
+        }
+
+        public override Task SetSmartCall(SmartButtonCall call, GsxChangePark callInfo, bool force = false)
+        {
+            return SetSmartCall(call, ClearGateOptions[Profile.ClearGateMenuOption], force);
         }
 
         public override Task SetDepartureServices(int completed, int running, int total)
@@ -239,58 +272,154 @@ namespace Any2GSX.Notifications
             return Task.CompletedTask;
         }
 
-        public override async Task SetState(AutomationState phase, string status)
+        public override async Task SetState(AutomationState phase, Notification notification)
         {
-            if (!string.IsNullOrEmpty(status))
+            string status = "";
+
+            switch (notification.Id)
             {
-                if (status.Contains("loading ...", StringComparison.InvariantCultureIgnoreCase) || status.Contains("boarding ...", StringComparison.InvariantCultureIgnoreCase))
-                    await WriteVariable(VarDeckState, status.Replace(" ...", "[[n..."));
-                else if (status.StartsWith('[') && status.EndsWith(']'))
-                    await WriteVariable(VarDeckState, status);
-                else if (status.StartsWith("Final in ") || status.StartsWith("Chocks in "))
-                    await WriteVariable(VarDeckState, status.Replace("in ", "in[[n"));
-                else if (status.Contains("OFP"))
-                    await WriteVariable(VarDeckState, status.Replace("OFP", "[[nOFP"));
-                else
-                    await WriteVariable(VarDeckState, status.Replace(" ", "[[n").Replace("[[n...", " ..."));
+                case AppNotification.UpdatesBlocked:
+                    status = $"Wait:[[n{notification.Message}";
+                    break;
+                case AppNotification.GsxRestart:
+                    status = "GSX Restart[[n...";
+                    break;
+                case AppNotification.GsxRefresh:
+                    status = "OFP Refresh[[n...";
+                    break;
+                case AppNotification.GsxQuestion:
+                    if (notification.HasMessage)
+                        status = notification.Message;
+                    break;
+                case AppNotification.ServiceCall:
+                    if (notification.HasMessage)
+                        status = $"Call {notification.Message}[[n...";
+                    break;
+                case AppNotification.MenuCommand:
+                    if (notification.Message.StartsWith("Open", StringComparison.InvariantCultureIgnoreCase))
+                        status = $"Open Menu[[n...";
+                    break;
+                case AppNotification.MenuSequence:
+                    status = $"Menu Call[[n...";
+                    break;
+                case AppNotification.GateSelect:
+                    if (GsxController.IsDeiceAvail && GsxController.AutomationState == AutomationState.TaxiOut)
+                        status = $"Select Pad!";
+                    else
+                        status = $"Select Gate!";
+                    break;
+                case AppNotification.GateMove:
+                    if (Tracker.HasCapture)
+                    {
+                        if (phase <= AutomationState.Departure)
+                            status = "Move to Gate!";
+                        else if (phase == AutomationState.TaxiOut)
+                            status = $"Pad: {Tracker.LastCapturedGate}";
+                        else if (phase == AutomationState.TaxiIn)
+                            status = $"Gate: {Tracker.LastCapturedGate}";
+                    }
+                    else
+                        status = "Move to Gate!";
+                    break;
+                case AppNotification.GateEquip:
+                    int countdown = AutomationController.EquipManager.GetCountdown();
+                    if (countdown > 0)
+                        status = $"Equipment in[[n{countdown}s";
+                    break;
+                case AppNotification.GateDepart:
+                    status = "Trigger Departure!";
+                    break;
+                case AppNotification.OfpImported:
+                    status = "OFP Imported";
+                    break;
+                case AppNotification.OfpCheck:
+                    if (notification.ClearTime > DateTime.Now)
+                        status = $"OFP Checkin[[n{(int)((notification.ClearTime - DateTime.Now).TotalSeconds)}s";
+                    break;
+                case AppNotification.OperateJetway:
+                    status = "Jetway Operating[[n...";
+                    break;
+                case AppNotification.OperateStairs:
+                    status = "Stairs Operating[[n...";
+                    break;
+                case AppNotification.ServiceComplete:
+                    if (notification.HasMessage)
+                        status = $"{notification.Message} completed";
+                    break;
+                case AppNotification.ServiceActive:
+                    if (notification.HasMessage)
+                        status = $"{notification.Message} active";
+                    break;
+                case AppNotification.ServiceDeboard:
+                    if (notification.HasMessage)
+                        status = notification.Message.Replace(" ...", "[[n...");
+                    break;
+                case AppNotification.ServiceBoard:
+                    if (notification.HasMessage)
+                        status = notification.Message.Replace(" ...", "[[n...");
+                    break;
+                case AppNotification.ServiceRefuel:
+                    if (notification.HasMessage)
+                        status = notification.Message;
+                    break;
+                case AppNotification.SheetFinal:
+                    if (notification.ClearTime > DateTime.Now)
+                        status = $"Final in[[n{(int)((notification.ClearTime - DateTime.Now).TotalSeconds)}s";
+                    break;
+                case AppNotification.PushPhase:
+                    if (notification.HasMessage)
+                        status = notification.Message.Replace(" ...", "[[n...");
+                    break;
+                default:
+                    if (notification.Id != AppNotification.None)
+                        status = notification.Id.ToString();
+                    break;
             }
-            else
-                await WriteVariable(VarDeckState, phase.ToString().Replace("Taxi", "Taxi-"));
+
+            if (ReportedPhase != phase || ReportedStatusMessage != status)
+            {
+                if (!string.IsNullOrEmpty(status))
+                    await WriteVariable(VarDeckState, status);
+                else
+                    await WriteVariable(VarDeckState, phase.ToString().Replace("Taxi", "Taxi-"));
+            }
+            ReportedPhase = phase;
+            ReportedStatusMessage = status;
         }
 
-        public override async Task SetBoardPaxInfo(int pax)
+        public override Task SetBoardPaxInfo(int pax)
         {
             if (!Profile.PilotsDeckIntegration)
-                return;
+                return Task.CompletedTask;
 
-            await SetPaxInfo(pax, true);
+            return SetPaxInfo(pax, true);
         }
 
-        public override async Task SetBoardCargoInfo(int percent)
+        public override Task SetBoardCargoInfo(int percent)
         {
             if (!Profile.PilotsDeckIntegration)
-                return;
+                return Task.CompletedTask;
 
-            await SetCargoInfo(percent, true);
+            return SetCargoInfo(percent, true);
         }
 
-        public override async Task SetDeboardPaxInfo(int pax)
+        public override Task SetDeboardPaxInfo(int pax)
         {
             if (!Profile.PilotsDeckIntegration)
-                return;
+                return Task.CompletedTask;
 
-            await SetPaxInfo(pax, false);
+            return SetPaxInfo(pax, false);
         }
 
-        public override async Task SetDeboardCargoInfo(int percent)
+        public override Task SetDeboardCargoInfo(int percent)
         {
             if (!Profile.PilotsDeckIntegration)
-                return;
+                return Task.CompletedTask;
 
-            await SetCargoInfo(percent, false);
+            return SetCargoInfo(percent, false);
         }
 
-        protected virtual async Task SetPaxInfo(int num, bool board)
+        protected virtual Task SetPaxInfo(int num, bool board)
         {
             string value = num >= 0 ? num.ToString() : "";
             if (num >= 0)
@@ -301,10 +430,10 @@ namespace Any2GSX.Notifications
                     value = $"< {value}";
             }
 
-            await WriteVariable(VarDeckInfoPax, value);
+            return WriteVariable(VarDeckInfoPax, value);
         }
 
-        protected virtual async Task SetCargoInfo(int num, bool board)
+        protected virtual Task SetCargoInfo(int num, bool board)
         {
             string value = num >= 0 ? num.ToString() : "";
             if (num > 100)
@@ -318,7 +447,7 @@ namespace Any2GSX.Notifications
                     value = $"{value}% >";
             }
 
-            await WriteVariable(VarDeckInfoCargo, value);
+            return WriteVariable(VarDeckInfoCargo, value);
         }
     }
 }

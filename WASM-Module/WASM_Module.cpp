@@ -17,10 +17,11 @@
 typedef long long FsNetworkRequestId;
 typedef void (*HttpRequestCallback)(FsNetworkRequestId requestId, int errorCode, void* userData);
 
-const char* VERSION = "0.1";
+const char* VERSION = "0.4";
 const char* CLIENTNAME = "Any2GSX_CommBus";
 
 const char* EventNameJs = "Any2GSX_RelayToJs";
+const char* EventNameGsx = "Any2GSX_RelayToGsx";
 
 struct ReceivedEvent
 {
@@ -44,6 +45,7 @@ enum RequestType
 	RELAY = 6,
 	CODE = 7,
 	EFB = 8,
+	GSXMENU = 9
 };
 
 struct RequestMessage
@@ -317,7 +319,7 @@ void CALLBACK SimConnectDispatch(SIMCONNECT_RECV* pData, DWORD cbData, void* pCo
 				}
 				else if (request.type == PING)
 				{
-					const char* msg = SerializeRequestJs("all", PING, request.data);
+					const char* msg = SerializeRequestJs(VERSION, PING, request.data);
 					fsCommBusCall(EventNameJs, msg, strlen(msg) + 1, FsCommBusBroadcast_JS);
 					fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "Relayed Ping to JavaScript Module - Port", request.data);
 				}
@@ -330,6 +332,12 @@ void CALLBACK SimConnectDispatch(SIMCONNECT_RECV* pData, DWORD cbData, void* pCo
 					const char* msg = SerializeRequestJs("EfbUpdate", EFB, request.data);
 					fsCommBusCall(EventNameJs, msg, strlen(msg) + 1, FsCommBusBroadcast_JS);
 					fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "Send Update to EFB App", request.data);
+				}
+				else if (request.type == GSXMENU)
+				{
+					const char* msg = SerializeRequestJs("GsxMenu", GSXMENU, request.data);
+					fsCommBusCall(EventNameGsx, msg, strlen(msg) + 1, FsCommBusBroadcast_JS);
+					fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "Send GsxMenu Event", request.data);
 				}
 				else
 					fprintf(stdout, "[%s] %s %d\n", CLIENTNAME, "received unknown Request Type:", (int)request.type);

@@ -1,6 +1,7 @@
-﻿using Any2GSX.GSX;
+﻿using Any2GSX.GSX.Automation;
 using Any2GSX.PluginInterface.Interfaces;
 using CFIT.AppFramework.AppConfig;
+using CFIT.AppFramework.UI.ViewModels;
 using CFIT.AppLogger;
 using CFIT.AppTools;
 using CoreAudio;
@@ -35,12 +36,15 @@ namespace Any2GSX.AppConfig
         public virtual int DeckRefreshSelectionDelay { get; set; } = 3000;
         public virtual int DeckRegisterDelay { get; set; } = 2000;
         public virtual int DeckClearedMenuRefresh { get; set; } = 5000;
+        public virtual int StatusTimeoutDefault { get; set; } = 10000;
         public virtual bool RefreshMenuForEfb { get; set; } = false;
+        public virtual bool RefreshMenuForDeck { get; set; } = true;
         public virtual string DeckUrlBase { get; set; } = "http://localhost:42042";
         public virtual string DeckMessageWrite { get; set; } = "/v1/set/{0}={1}";
         public virtual string DeckMessageRegister { get; set; } = "/v1/register/{0}";
         public virtual string DeckMessageUnregister { get; set; } = "/v1/unregister/{0}";
         public virtual string DeckVarConnected { get; set; } = "X:ANY2GSX_RUNNING";
+        public virtual string DeckVarAircraftConnected { get; set; } = "X:ANY2GSX_PLUGIN_CONNECTED";
         public virtual string DeckVarMenu { get; set; } = "X:GSX_MENU_TITLE";
         public virtual string DeckVarLine { get; set; } = "X:GSX_MENU_LINE";
         public virtual string DeckVarState { get; set; } = "X:GSX_INFO_STATE";
@@ -68,7 +72,7 @@ namespace Any2GSX.AppConfig
         public virtual int AudioProcessMaxSearchCount { get; set; } = 30;
         public virtual bool AudioSynchSessionOnCountChange { get; set; } = false;
         public virtual List<string> AudioDeviceBlacklist { get; set; } = [];
-        public virtual int GsxServiceStartDelay { get; set; } = 4000;
+        public virtual int GsxServiceStartDelay { get; set; } = 8000;
         public virtual int GroundTicks { get; set; } = 2;
         public virtual int DelayForegroundChange { get; set; } = 1250;
         public virtual int DelayAircraftModeChange { get; set; } = 1500;
@@ -81,16 +85,23 @@ namespace Any2GSX.AppConfig
         public virtual DisplayUnit DisplayUnitDefault { get; set; } = DisplayUnit.KG;
         public virtual DisplayUnitSource DisplayUnitSource { get; set; } = DisplayUnitSource.Simbrief;
         public virtual int OperatorWaitTimeout { get; set; } = 1500;
-        public virtual int OperatorSelectTimeout { get; set; } = 10000;
+        public virtual int OperatorSelectTimeout { get; set; } = 25000;
         public virtual bool DebugArrival { get; set; } = false;
         public virtual int StateMachineInterval { get; set; } = 500;
-        public virtual int DelayServiceStateChange { get; set; } = 500;
+        public virtual int DelayServiceStateChange { get; set; } = 750;
+        public virtual bool DisableUserEnabledMenu { get; set; } = false;
         public virtual int SpeedTresholdTaxiOut { get; set; } = 2;
         public virtual int SpeedTresholdTaxiIn { get; set; } = 30;
-        public virtual int RefuelDisconnectTimeout { get; set; } = 10000;
+        public virtual int DelayOpenTaxiInMenu { get; set; } = 15;
+        public virtual int RefuelDisconnectTimeout { get; set; } = 30000;
+        public virtual int CargoPercentChangePerSec { get; set; } = 5;
+        public virtual int PanelRefuelOpenDelayUnderground { get; set; } = 80;
+        public virtual int PanelRefuelCloseDelayUnderground { get; set; } = 23;
+        public virtual int PanelRefuelOpenDelayTanker { get; set; } = 24;
+        public virtual int PanelRefuelCloseDelayTanker { get; set; } = 20;
+        public virtual int PanelLavatoryOpenDelay { get; set; } = 27;
+        public virtual int PanelWaterOpenDelay { get; set; } = 27;
 
-        [JsonIgnore]
-        public virtual SettingProfile CurrentProfile => AppService.Instance?.SettingProfile;
         public virtual List<SettingProfile> SettingProfiles { get; set; } = new()
         {
             { new SettingProfile() { IsReadOnly = true } }
@@ -98,8 +109,21 @@ namespace Any2GSX.AppConfig
         public virtual Dictionary<string, double> FuelFobSaved { get; set; } = [];
         public virtual double FuelResetPercent { get; set; } = 0.02;
 
+        public virtual void SortProfiles(bool save = true)
+        {
+            SettingProfiles.Sort((x, y) => x.Name.CompareTo(y.Name));
+            if (save)
+                SaveConfiguration();
+        }
+
+        [JsonIgnore]
+        public virtual bool InhibitSave { get; set; } = false;
+
         public override void SaveConfiguration()
         {
+            if (InhibitSave)
+                return;
+
             SaveConfiguration<Config>(this, ConfigFile);
             Logger.Debug($"Configuration saved");
         }
@@ -122,7 +146,7 @@ namespace Any2GSX.AppConfig
                 var old = profile.DepartureServices.ToDictionary();
                 profile.DepartureServices.Clear();
                 int index = 0;
-                profile.DepartureServices.Add(index, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.AfterCalled, TimeSpan.Zero, GsxServiceConstraint.TurnAround, false, TimeSpan.Zero, TimeSpan.Zero));
+                profile.DepartureServices.Add(index, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.AfterCalled, TimeSpan.Zero, GsxServiceConstraint.TurnAround, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero));
                 index++;
                 foreach (var service in old)
                 {
@@ -169,7 +193,7 @@ namespace Any2GSX.AppConfig
                         var old = profile.DepartureServices.ToDictionary();
                         profile.DepartureServices.Clear();
                         int index = 0;
-                        profile.DepartureServices.Add(index, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.AfterCalled, TimeSpan.Zero, GsxServiceConstraint.TurnAround, false, TimeSpan.Zero, TimeSpan.Zero));
+                        profile.DepartureServices.Add(index, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.AfterCalled, TimeSpan.Zero, GsxServiceConstraint.TurnAround, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero));
                         index++;
                         foreach (var service in old)
                         {
@@ -183,6 +207,20 @@ namespace Any2GSX.AppConfig
             if (ConfigVersion < 16 && buildConfigVersion >= 16)
             {
                 MenuOpenTimeout = 7500;
+            }
+
+            if (ConfigVersion < 18 && buildConfigVersion >= 18)
+            {
+                ResetGsxStateVarsFlight = false;
+                OperatorSelectTimeout = 25000;
+                DelayServiceStateChange = 750;
+                RefuelDisconnectTimeout = 30000;
+                GsxServiceStartDelay = 8000;
+                foreach (var profile in SettingProfiles)
+                {
+                    profile.DelayCallRefuelAfterStair = 60;
+                    profile.ClearGateMenuOption = GsxChangePark.ClearAI;
+                }
             }
         }
 
@@ -222,26 +260,22 @@ namespace Any2GSX.AppConfig
             if (query.Any())
             {
                 Logger.Debug($"The Profile '{profile.Name}' is already configured");
-                if (MessageBox.Show($"The Profile '{profile.Name}' is already configured.\r\nDo you want to override it?", "Profile already exists", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                if (MessageBox.Show(Any2GSX.Instance.AppWindow, $"The Profile '{profile.Name}' is already configured.\r\nDo you want to override it?", "Profile already exists", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                     return result;
                 else
                 {
                     query.First().FullCopy(profile);
-                    Logger.Debug($"Profile '{profile.Name}' overridden");
+                    SortProfiles();
+                    AppService.Instance.NotifyProfileCollectionChanged();
+                    Logger.Information($"Profile '{profile.Name}' overridden");
                     result = true;
                 }
             }
             else
             {
-                SettingProfiles.Add(profile);
-                Logger.Debug($"Profile '{profile.Name}' imported");
+                AppService.Instance.AddSettingProfile(profile);
+                Logger.Information($"Profile '{profile.Name}' imported");
                 result = true;
-            }
-
-            if (result)
-            {
-                SettingProfiles?.Sort((x, y) => x.Name.CompareTo(y.Name));
-                SaveConfiguration();
             }
 
             return result;
@@ -283,7 +317,7 @@ namespace Any2GSX.AppConfig
 
         public virtual void NotifyPropertyChanged(string propertyName)
         {
-            TaskTools.RunLogged(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)));
+            ModelHelper.RunOnDispatcher(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)));
         }
 
         public virtual void NotifyDisplayUnit()
@@ -302,9 +336,9 @@ namespace Any2GSX.AppConfig
             else if (AppService.Instance?.SimConnect?.IsSessionRunning == true)
             {
                 if (DisplayUnitSource == DisplayUnitSource.Aircraft && AppService.Instance?.AircraftController?.Aircraft?.IsConnected == true
-                    && AppService.Instance?.AircraftController?.Aircraft.UnitAircraft != DisplayUnitCurrent)
+                    && AppService.Instance?.AircraftController?.Aircraft.GetAircraftUnits().RunSync() != DisplayUnitCurrent)
                 {
-                    DisplayUnitCurrent = AppService.Instance.AircraftController.Aircraft.UnitAircraft;
+                    DisplayUnitCurrent = AppService.Instance.AircraftController.Aircraft.GetAircraftUnits().RunSync();
                     NotifyDisplayUnit();
                 }
                 else if (DisplayUnitSource == DisplayUnitSource.Simbrief && AppService.Instance?.Flightplan?.IsLoaded == true
@@ -329,6 +363,7 @@ namespace Any2GSX.AppConfig
                 FuelFobSaved.Add(title, fuelKg);
 
             SaveConfiguration();
+            NotifyPropertyChanged(nameof(FuelFobSaved));
             Logger.Debug($"Saved Fuel for '{title}': {fuelKg}kg");
         }
 

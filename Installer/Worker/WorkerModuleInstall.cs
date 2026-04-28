@@ -28,7 +28,7 @@ namespace Installer.Worker
         public virtual bool IsOptionMStore => ModuleInstallOption == CommModuleOption.Only2020MStore || ModuleInstallOption == CommModuleOption.Only2024MStore;
 
         public virtual List<ModuleItem> ModuleItems { get; } = new List<ModuleItem>();
-        
+
         public WorkerModuleInstall(Config config) : base(config, $"CommBus Sim Module", "Check State of Module ...")
         {
             if (Config.HasOption<int>(Config.OptionCommModuleInstallation, out int value))
@@ -54,7 +54,7 @@ namespace Installer.Worker
 
         protected override async Task<bool> DoRun()
         {
-            bool result = false;            
+            bool result = false;
 
             CheckSimulators();
             if (ModuleItems.Count == 0)
@@ -81,7 +81,7 @@ namespace Installer.Worker
                 Model.SetSuccess("CommBus Modules installed & updated for configured Simulators.");
                 result = true;
             }
-                
+
             return result;
         }
 
@@ -93,14 +93,14 @@ namespace Installer.Worker
                 CheckSimulator(Simulator.MSFS2024);
             if (ModuleInstallOption == CommModuleOption.UpdateExisting)
             {
-                Logger.Debug($"UpdateExisting only");                
-                var list = FindInstalledModules();
+                Logger.Debug($"UpdateExisting only");
+                var list = FindInstalledModules(Config);
                 Logger.Debug($"Found {list.Count} Modules");
                 ModuleItems.AddRange(list);
             }
         }
 
-        public static List<ModuleItem> FindInstalledModules()
+        public static List<ModuleItem> FindInstalledModules(Config config, bool ignoreVersion = true)
         {
             var list = new List<ModuleItem>();
 
@@ -113,8 +113,11 @@ namespace Installer.Worker
                     {
                         if (HasModulePath(path.Value))
                         {
-                            list.Add(new ModuleItem() { Simulator = simulator, Store = path.Key, PackagePath = path.Value });
-                            Logger.Debug($"Found installed CommModule on {simulator} {path.Key}");
+                            if (!FuncMsfs.CheckPackageVersion(path.Value, Config.CommModuleName, config.ModuleVersion) || ignoreVersion)
+                            {
+                                list.Add(new ModuleItem() { Simulator = simulator, Store = path.Key, PackagePath = path.Value });
+                                Logger.Debug($"Found installed CommModule on {simulator} {path.Key}");
+                            }
                         }
                     }
                 }

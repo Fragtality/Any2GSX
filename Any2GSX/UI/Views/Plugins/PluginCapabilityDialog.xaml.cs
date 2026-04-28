@@ -12,18 +12,33 @@ namespace Any2GSX.UI.Views.Plugins
     {
         protected virtual PluginManifest Plugin { get; }
         protected virtual PluginCapabilities Capabilities => Plugin.Capabilities;
+        public virtual bool NeedsConfirmation { get; set; } = false;
+        protected virtual bool ReadConfirmed { get; set; } = false;
 
-        public PluginCapabilityDialog(PluginManifest plugin)
+        public PluginCapabilityDialog(PluginManifest plugin, bool needConfirm = false)
         {
             InitializeComponent();
             Plugin = plugin;
             this.DataContext = Plugin;
+            NeedsConfirmation = needConfirm;
 
             Title = $"{Plugin.Id} Plugin Capabilities";
-            ButtonClose.Click += (_, _) => this.Close();
+            ButtonClose.Click += OnButtonCloseClicked;
+            CheckBoxConfirm.Checked += OnCheckboxConfirmChecked;
             this.AddHandler(Hyperlink.RequestNavigateEvent, new RequestNavigateEventHandler(Nav.RequestNavigateHandler));
             SetCapabilities();
-            MaxHeight = SystemParameters.PrimaryScreenHeight - 256;
+            MaxHeight = SystemParameters.PrimaryScreenHeight - 196;
+        }
+
+        protected virtual void OnCheckboxConfirmChecked(object sender, RoutedEventArgs e)
+        {
+            ReadConfirmed = CheckBoxConfirm?.IsChecked == true;
+        }
+
+        protected virtual void OnButtonCloseClicked(object sender, RoutedEventArgs e)
+        {
+            if ((NeedsConfirmation && ReadConfirmed) || !NeedsConfirmation)
+                this.Close();
         }
 
         protected virtual void SetCapabilities()
@@ -38,25 +53,50 @@ namespace Any2GSX.UI.Views.Plugins
                 sb.AppendLine("• Volume Control");
             if (Capabilities.HasFobSaveRestore)
                 sb.AppendLine("• Save/Load FOB");
-            if (Capabilities.FuelSync != SynchType.ManualNone)
-                sb.AppendLine($"• Fuel-Sync by {GetSynchString(Capabilities.FuelSync)}");
+            if (Capabilities.FuelSync != SyncType.ManualNone)
+                sb.AppendLine($"• Fuel-Sync by {GetSyncString(Capabilities.FuelSync)}");
             if (Capabilities.CanSetPayload)
                 sb.AppendLine("• Reset Payload");
-            if (Capabilities.PayloadSync != SynchType.ManualNone)
-                sb.AppendLine($"• Payload-Sync by {GetSynchString(Capabilities.PayloadSync)}");
-            if (Capabilities.DoorHandling != SynchType.ManualNone)
-                sb.AppendLine($"• Door-Handling by {GetSynchString(Capabilities.DoorHandling)}");
+            if (Capabilities.PayloadSync != SyncType.ManualNone)
+                sb.AppendLine($"• Payload-Sync by {GetSyncString(Capabilities.PayloadSync)}");
+            if (Capabilities.DoorHandling != SyncType.ManualNone)
+                sb.AppendLine($"• Door-Handling by {GetSyncString(Capabilities.DoorHandling)}");
+            if (Capabilities.DoorsSynced != DoorTypeSynced.None)
+                sb.AppendLine($"• Door Types {GetDoorsSyncString(Capabilities.DoorsSynced)}");
+            if (Capabilities.DoorsCloseAll)
+                sb.AppendLine($"• Door Close All");
             if (Capabilities.GroundEquipmentHandling != GroundEquipment.ManualNone)
                 sb.AppendLine($"• Equipment-Handling of {GetEquipString(Capabilities.GroundEquipmentHandling)}");
 
             BlockCapabilities.Text = sb.ToString();
         }
 
-        protected virtual string GetSynchString(SynchType types)
+        protected virtual string GetSyncString(SyncType types)
         {
-            StringBuilder sb = new ();
+            StringBuilder sb = new();
             bool first = true;
-            foreach (var value in Enum.GetValues<SynchType>())
+            foreach (var value in Enum.GetValues<SyncType>())
+            {
+                if (types.HasFlag(value))
+                {
+                    if (first)
+                    {
+                        sb.Append(value.ToString());
+                        first = false;
+                    }
+                    else
+                        sb.Append($" | {value}");
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        protected virtual string GetDoorsSyncString(DoorTypeSynced types)
+        {
+            StringBuilder sb = new();
+            bool first = true;
+            foreach (var value in Enum.GetValues<DoorTypeSynced>())
             {
                 if (types.HasFlag(value))
                 {
@@ -100,9 +140,11 @@ namespace Any2GSX.UI.Views.Plugins
             var appWindow = AppService.Instance.App.AppWindow;
             Top = appWindow.Top + (appWindow.ActualHeight / 2.0) - (this.ActualHeight / 2.0);
             Left = appWindow.Left + (appWindow.ActualWidth / 2.0) - (this.ActualWidth / 2.0);
-            MaxWidth = appWindow.ActualWidth + 96;
+            MaxWidth = appWindow.ActualWidth + 196;
             BorderBrush = SystemColors.ActiveBorderBrush;
             BorderThickness = new Thickness(2);
+            if (NeedsConfirmation)
+                CheckBoxConfirm.Visibility = Visibility.Visible;
         }
     }
 }

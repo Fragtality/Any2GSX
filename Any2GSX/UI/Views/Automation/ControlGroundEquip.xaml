@@ -44,26 +44,34 @@
                     <Italic>
                         <Bold>Note:</Bold> Ground Equipment (Chocks, Cones, GPU, PCA) is handled through the configured Aircraft Plugin.
                         <LineBreak/>
-                        If and which Equipment is handled depends on the Plugin implementing that! (Jetway &amp; Stairs are always handled by Any2GSX)
+                        If and which Equipment is handled depends on the Plugin implementing that Function.
+                        <LineBreak/>
+                        (Jetway &amp; Stairs are always handled by Any2GSX)
                     </Italic>
                 </TextBlock>
 
-                <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding ClearGroundEquipOnBeacon}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}"
-                          ToolTip="Remove all Ground Equipment (including Jetway/Stairs) as soon as the Beacon is on, Brake is set and Power is disconnected.">
-                    <TextBlock>Remove Ground Equipment when <Underline>Beacon</Underline> is turned on (and Brake Set and Power Disconnected)</TextBlock>
+                <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding ClearChocksOnTugAttach}" Margin="6,6,6,6" Visibility="{Binding PluginCapabilities.HasEquipChocks, Converter={StaticResource BoolVisibilityConverter}}" Style="{StaticResource CheckBoxSettingItem}"
+                          ToolTip="Remove the Chocks in the Departure Phase when the Tug attaches during Boarding.&#x0a;The GPU is also attempted, if the current Aircraft needs the GPU disconnected for Chock-Removal.">
+                    <TextBlock>Remove Chocks when <Underline>Tug is attached</Underline> during Boarding</TextBlock>
                 </CheckBox>
 
-                <CheckBox Grid.Column="0" Grid.Row="2" IsChecked="{Binding GradualGroundEquipRemoval}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}"
+                <CheckBox Grid.Column="0" Grid.Row="2" IsChecked="{Binding ClearGroundEquipOnBeacon}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}"
+                          ToolTip="Remove all Ground Equipment (including Jetway/Stairs) as soon as the Beacon is on, Brake is set and Power is disconnected.">
+                    <TextBlock>Remove Ground Equipment when <Underline>Beacon</Underline> is turned on and Aircraft is secured</TextBlock>
+                </CheckBox>
+
+                <CheckBox Grid.Column="0" Grid.Row="3" IsChecked="{Binding GradualGroundEquipRemoval}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}" Visibility="{Binding PluginCapabilities.HasGroundEquip, Converter={StaticResource BoolVisibilityConverter}}"
                           ToolTip="The Ground Equipment is removed gradually when the Aircraft isn't connected anymore.&#x0a;For Example the GPU is removed as soon as external Power was disconnected. Or the Chocks or Cones are removed when the Parking Brake is set (external Power has to be disconnected first)&#x0a;Only applies to Ground Equipment supported by the current Aircraft Plugin!">
                     <TextBlock><Underline>Gradually remove</Underline> Ground Equipment in the Pushback <Underline>Phase</Underline></TextBlock>
                 </CheckBox>
 
-                <CheckBox Grid.Column="0" Grid.Row="3" IsChecked="{Binding ConnectGpuWithApuRunning}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}"
+                <CheckBox Grid.Column="0" Grid.Row="4" IsChecked="{Binding ConnectGpuWithApuRunning}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}" Visibility="{Binding PluginCapabilities.HasEquipGpu, Converter={StaticResource BoolVisibilityConverter}}"
                           ToolTip="Connect the GPU in the Preparation Phase (Session Start) when the APU is already running.&#x0a;Intended for starting at the Gate with the APU running - starting with Engines running skips the Preparation Phase.">
                     <TextBlock>Connect <Underline>GPU</Underline> on Session Start when <Underline>APU</Underline> is already running</TextBlock>
                 </CheckBox>
 
-                <StackPanel Grid.Column="0" Grid.Row="4" Style="{StaticResource SettingItemPanel}" ToolTip="Automatically connect PCA in the EFB on Session Start and Arrival.&#x0a;Note: PCA will always be disconnected as soon as the Bleed Air is turned on or latest for Pushback.">
+                <StackPanel Grid.Column="0" Grid.Row="5" Style="{StaticResource SettingItemPanel}" Visibility="{Binding PluginCapabilities.HasEquipPca, Converter={StaticResource BoolVisibilityConverter}}"
+                            ToolTip="Automatically connect PCA in the EFB on Session Start and Arrival.&#x0a;Note: PCA will always be disconnected as soon as the Bleed Air is turned on or latest for Pushback.">
                     <TextBlock Style="{StaticResource TextBlockDefault}">Connect <Underline>Pre Conditioned Air</Underline> (PCA) on Session Start &amp; Arrival</TextBlock>
                     <ComboBox SelectedValue="{Binding ConnectPca}" SelectedValuePath="Tag" Margin="8,0,0,0" Style="{StaticResource ComboBoxDefault}">
                         <ComboBoxItem Tag="0">Never</ComboBoxItem>
@@ -72,12 +80,12 @@
                     </ComboBox>
                 </StackPanel>
 
-                <CheckBox Grid.Column="0" Grid.Row="5" IsChecked="{Binding PcaOverride}" Margin="18,2,6,6" Style="{StaticResource CheckBoxSettingItem}"
-                          ToolTip="PCA will be removed/disconnected if it should be connected (i.e. default Panel State) but isn't allowed currently as per Configuration above.">
-                    <TextBlock><Underline>Override</Underline> PCA State (disconnect) on Session Start &amp; Arrival</TextBlock>
+                <CheckBox Grid.Column="0" Grid.Row="6" IsChecked="{Binding PcaOverride}" Margin="18,2,6,6" Style="{StaticResource CheckBoxSettingItem}" Visibility="{Binding PluginCapabilities.HasEquipPca, Converter={StaticResource BoolVisibilityConverter}}"
+                          ToolTip="PCA will be removed/disconnected if it was placed by the Aircraft (i.e. Panel State) but is not allowed as per above Setting.">
+                    <TextBlock><Underline>Disconnect</Underline> PCA (override) if not allowed on the current Gate</TextBlock>
                 </CheckBox>
 
-                <Grid Grid.Column="0" Grid.Row="6" Margin="6,6,6,6">
+                <Grid Grid.Column="0" Grid.Row="7" Margin="6,6,6,6" Visibility="{Binding PluginCapabilities.HasGroundEquip, Converter={StaticResource BoolVisibilityConverter}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" MinWidth="160"/>
                         <ColumnDefinition Width="Auto"/>
@@ -88,46 +96,22 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Column="0" Grid.Row="0" Margin="0,0,0,6" Style="{StaticResource TextBlockDefault}" ToolTip="Minimum Delay in Seconds after Engine Shutdown &amp; Beacon off before the Chocks are placed.">
-                        Arrival Chock Delay Minimum
+                    <TextBlock Grid.Column="0" Grid.Row="0" Margin="0,0,0,6" Style="{StaticResource TextBlockDefault}" ToolTip="Minimum Delay in Seconds after Engine Shutdown &amp; Beacon off before Chocks -> GPU -> PCA are placed.&#x0a;The Delay is random per Item, but the Order is maintained.">
+                        Equipment Delay Min.
                     </TextBlock>
-                    <TextBox Grid.Column="1" Grid.Row="0" Name="InputChockMinimum" Margin="8,0,0,6" Style="{StaticResource TextBoxCentered}" ToolTip="Minimum Delay in Seconds after Engine Shutdown &amp; Beacon off before the Chocks are placed."/>
+                    <TextBox Grid.Column="1" Grid.Row="0" Name="InputChockMinimum" Margin="8,0,0,6" Style="{StaticResource TextBoxCentered}" ToolTip="Minimum Delay in Seconds after Engine Shutdown &amp; Beacon off before Chocks -> GPU -> PCA are placed.&#x0a;The Delay is random per Item, but the Order is maintained."/>
                     <TextBlock Grid.Column="2" Grid.Row="0" Margin="2,0,0,6" Style="{StaticResource TextBlockDefault}">s</TextBlock>
 
-                    <TextBlock Grid.Column="0" Grid.Row="1" Style="{StaticResource TextBlockDefault}" ToolTip="Maximum Delay in Seconds after Engine Shutdown &amp; Beacon off before the Chocks are placed.">
-                        Arrival Chock Delay Maximum
+                    <TextBlock Grid.Column="0" Grid.Row="1" Style="{StaticResource TextBlockDefault}" ToolTip="Maximum Delay in Seconds after Engine Shutdown &amp; Beacon off before Chocks -> GPU -> PCA are placed.&#x0a;The Delay is random per Item, but the Order is maintained.">
+                        Equipment Delay Max.
                     </TextBlock>
-                    <TextBox Grid.Column="1" Grid.Row="1" Name="InputChockMaximum" Margin="8,0,0,0" Style="{StaticResource TextBoxCentered}" ToolTip="Maximum Delay in Seconds after Engine Shutdown &amp; Beacon off before the Chocks are placed."/>
+                    <TextBox Grid.Column="1" Grid.Row="1" Name="InputChockMaximum" Margin="8,0,0,0" Style="{StaticResource TextBoxCentered}" ToolTip="Maximum Delay in Seconds after Engine Shutdown &amp; Beacon off before Chocks -> GPU -> PCA are placed.&#x0a;The Delay is random per Item, but the Order is maintained."/>
                     <TextBlock Grid.Column="2" Grid.Row="1" Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
                 </Grid>
 
-                <Grid Grid.Column="0" Grid.Row="7" Margin="6,6,6,6">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" MinWidth="160"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Grid.Column="0" Grid.Row="0" Margin="0,0,0,6" Style="{StaticResource TextBlockDefault}" ToolTip="Minimum Delay in Seconds after Departure Services completed before the Final Loadsheet is considered as received (for other Settings waiting on the Final).">
-                        Final LS Delay Minimum
-                    </TextBlock>
-                    <TextBox Grid.Column="1" Grid.Row="0" Name="InputFinalMinimum" Margin="8,0,0,6" Style="{StaticResource TextBoxCentered}" ToolTip="Minimum Delay in Seconds after Departure Services completed before the Final Loadsheet is considered as received (for other Settings waiting on the Final)."/>
-                    <TextBlock Grid.Column="2" Grid.Row="0" Margin="2,0,0,6" Style="{StaticResource TextBlockDefault}">s</TextBlock>
-
-                    <TextBlock Grid.Column="0" Grid.Row="1" Style="{StaticResource TextBlockDefault}" ToolTip="Maximum Delay in Seconds after Departure Services completed before the Final Loadsheet is considered as received (for other Settings waiting on the Final).">
-                        Final LS Delay Maximum
-                    </TextBlock>
-                    <TextBox Grid.Column="1" Grid.Row="1" Name="InputFinalMaximum" Margin="8,0,0,0" Style="{StaticResource TextBoxCentered}" ToolTip="Maximum Delay in Seconds after Departure Services completed before the Final Loadsheet is considered as received (for other Settings waiting on the Final)."/>
-                    <TextBlock Grid.Column="2" Grid.Row="1" Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
-                </Grid>
-
-                <TextBlock Grid.Column="0" Grid.Row="8" Margin="0,10,6,6" MaxWidth="620" TextWrapping="WrapWithOverflow">
+                <TextBlock Grid.Column="0" Grid.Row="8" Margin="0,10,6,6" MaxWidth="620" TextWrapping="WrapWithOverflow" Visibility="{Binding PluginCapabilities.HasGroundEquip, Converter={StaticResource BoolVisibilityConverter}}">
                     <Italic>
-                        <Bold>Note:</Bold> Basic Ground Equipment Handling (Chocks, Cones, GPU) is always active and can not be disabled.
+                        <Bold>Note:</Bold> Basic Ground Equipment Handling (Chocks, Cones, GPU) is always active, even with Automation disabled.
                         <LineBreak/>
                         Any2GSX will automatically place or remove the Equipment on Startup, during Pushback and on Arrival (if supported by the Plugin).
                     </Italic>

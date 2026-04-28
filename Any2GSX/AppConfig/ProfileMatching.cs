@@ -101,25 +101,25 @@ namespace Any2GSX.AppConfig
             if (MatchData == MatchData.Airline)
             {
                 foreach (var s in strings)
-                    if (Match(appService.GetAirline(), MatchOperation, s))
+                    if (Match(appService.AircraftAtcAirline, MatchOperation, s))
                         score = MatchScores[MatchData];
             }
             else if (MatchData == MatchData.Title)
             {
                 foreach (var s in strings)
-                    if (Match(appService.GetTitle(), MatchOperation, s))
+                    if (Match(appService.AircraftTitle, MatchOperation, s))
                         score = MatchScores[MatchData];
             }
             else if (MatchData == MatchData.AtcId)
             {
                 foreach (var s in strings)
-                    if (Match(appService.GetAtcId(), MatchOperation, s))
+                    if (Match(appService.AircraftAtcId, MatchOperation, s))
                         score = MatchScores[MatchData];
             }
             else if (MatchData == MatchData.SimObject)
             {
                 foreach (var s in strings)
-                    if (Match(appService.GetAircraftString(), MatchOperation, s))
+                    if (Match(appService.AircraftString, MatchOperation, s))
                         score = MatchScores[MatchData];
             }
 

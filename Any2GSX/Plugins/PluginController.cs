@@ -2,6 +2,7 @@
 using Any2GSX.AppConfig;
 using Any2GSX.PluginInterface;
 using Any2GSX.PluginInterface.Interfaces;
+using CFIT.AppFramework.UI.ViewModels;
 using CFIT.AppLogger;
 using CFIT.AppTools;
 using System;
@@ -23,10 +24,28 @@ namespace Any2GSX.Plugins
         protected virtual ConcurrentDictionary<string, Assembly> LoadedAssemblies { get; } = [];
         public virtual List<string> LoadedPluginsBinary => [.. LoadedAssemblies.Keys];
 
+        public event Action PluginsChanged;
+        public event Action ChannelsChanged;
+
         public virtual void Refresh()
         {
             RefreshPlugins();
             RefreshChannels();
+        }
+
+        public virtual bool HasUpdates()
+        {
+            return HasPluginUpdates() || HasChannelUpdates();
+        }
+
+        public virtual bool HasPluginUpdates()
+        {
+            return Plugins?.Values?.Where(p => p.HasUpdateAvail)?.Any() == true;
+        }
+
+        public virtual bool HasChannelUpdates()
+        {
+            return Channels?.Values?.Where(c => c.HasUpdateAvail)?.Any() == true;
         }
 
         public virtual void RefreshVersions(PluginRepo repo)
@@ -106,11 +125,19 @@ namespace Any2GSX.Plugins
                     else
                         Logger.Debug($"Plugin Folder {dir} does not contain a manifest File");
                 }
+
+                NotifyPluginsChanged();
             }
             catch (Exception ex)
             {
                 Logger.LogException(ex);
             }
+        }
+
+        public virtual void NotifyPluginsChanged()
+        {
+            if (PluginsChanged != null)
+                ModelHelper.RunOnDispatcher(() => PluginsChanged?.Invoke());
         }
 
         public virtual bool DeleteInstalledPlugin(PluginManifest manifest)
@@ -122,7 +149,7 @@ namespace Any2GSX.Plugins
 
                 if (LoadedAssemblies.ContainsKey(manifest.Id))
                 {
-                    MessageBox.Show($"The Plugin {manifest.Id} was already loaded by Any2GSX!\r\nRestart the Application (preferably without the Sim running) and try again!", "Plugin already loaded", MessageBoxButton.OK, MessageBoxImage.Stop);
+                    MessageBox.Show(Any2GSX.Instance.AppWindow, $"The Plugin {manifest.Id} was already loaded by Any2GSX!\r\nRestart the Application (preferably without the Sim running) and try again!", "Plugin already loaded", MessageBoxButton.OK, MessageBoxImage.Stop);
                     return false;
                 }
 
@@ -182,11 +209,19 @@ namespace Any2GSX.Plugins
                             Logger.Warning($"Plugin Manifest for Id '{channel.Id}' already added");
                     }
                 }
+
+                NotifyChannelsChanged();
             }
             catch (Exception ex)
             {
                 Logger.LogException(ex);
             }
+        }
+
+        public virtual void NotifyChannelsChanged()
+        {
+            if (ChannelsChanged != null)
+                ModelHelper.RunOnDispatcher(() => ChannelsChanged?.Invoke());
         }
 
         public virtual bool DeleteInstalledChannel(AircraftChannels channel)
@@ -224,19 +259,11 @@ namespace Any2GSX.Plugins
             return false;
         }
 
-        public virtual PluginStartMode GetPluginStartMode(string pluginId)
-        {
-            if (!Plugins.TryGetValue(pluginId, out var manifest))
-                return PluginStartMode.WaitConnected;
-            else
-                return manifest.StartMode;
-        }
-
         public virtual AircraftBase GetAircraftInterface(SettingProfile profile, string aircraftString, out string pluginId)
         {
             AircraftBase result = new GenericAircraft(AppService.Instance);
-            pluginId = "Generic";
-            if (profile.PluginId == SettingProfile.GenericId)
+            pluginId = SettingProfile.GenericId;
+            if (profile.PluginId.Equals(SettingProfile.GenericId, StringComparison.InvariantCultureIgnoreCase))
             {
                 Logger.Debug($"Using Generic Aircraft Interface");
                 return result;
@@ -298,11 +325,11 @@ namespace Any2GSX.Plugins
             {
                 var pluginType = query.First();
                 AppPlugin appPlugin = Activator.CreateInstance(pluginType, AppService.Instance) as AppPlugin;
-                
+
                 var moduleType = appPlugin.SimConnectModuleType;
                 if (appPlugin.SimConnectModuleType != null)
                     appPlugin.SimConnectModule = AppService.Instance.SimConnect.AddModule(appPlugin.SimConnectModuleType, AppService.Instance.Config);
-                
+
                 var aircraftType = appPlugin.GetAircraftInterface(aircraftString);
                 dllInterface = Activator.CreateInstance(aircraftType, AppService.Instance) as AircraftBase;
                 AppPlugin.Instance = appPlugin;
@@ -310,7 +337,7 @@ namespace Any2GSX.Plugins
 
             return dllInterface;
         }
-        
+
         protected virtual Assembly GetAssembly(string id, string path)
         {
             if (!LoadedAssemblies.TryGetValue(id, out Assembly assembly))
@@ -334,6 +361,49 @@ namespace Any2GSX.Plugins
             }
 
             AppPlugin.Instance = null;
+        }
+
+        public virtual string GetPluginSettingKey(string pluginId)
+        {
+            if (Plugins.TryGetValue(pluginId, out PluginManifest manifest))
+                return manifest.SettingId;
+            else
+                return SettingProfile.GenericIdUpper;
+        }
+
+        public virtual bool HasPlugin(string pluginId)
+        {
+            return Plugins.ContainsKey(pluginId);
+        }
+
+        public virtual bool HasPlugin(string pluginId, out PluginManifest manifest)
+        {
+            if (Plugins.TryGetValue(pluginId, out PluginManifest? value))
+            {
+                manifest = value;
+                return true;
+            }
+            else
+            {
+                manifest = null;
+                return false;
+            }
+        }
+
+        public virtual PluginManifest GetPluginManifest(string pluginId)
+        {
+            if (Plugins.TryGetValue(pluginId, out PluginManifest manifest))
+                return manifest;
+            else
+                return null;
+        }
+
+        public virtual PluginCapabilities GetPluginCapabilities(string pluginId)
+        {
+            if (Plugins.TryGetValue(pluginId, out PluginManifest manifest))
+                return manifest.Capabilities;
+            else
+                return new PluginCapabilities();
         }
     }
 }

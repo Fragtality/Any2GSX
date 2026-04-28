@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Any2GSX.UI.Views.Monitor"
+             xmlns:app="clr-namespace:Any2GSX"
              d:DataContext="{d:DesignInstance Type=local:ModelMonitor}"
              mc:Ignorable="d" 
              d:DesignHeight="1024" d:DesignWidth="800">
@@ -46,37 +47,37 @@
 
                 <StackPanel Grid.Column="0" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Simulator Executable active?">
                     <Label>Running</Label>
-                    <Label Content="{Binding SimRunning}" Foreground="{Binding SimRunningColor}"/>
+                    <Label Content="{Binding SimRunning}" Foreground="{Binding SimRunningColor}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="SimConnect fully connected?">
                     <Label>Connected</Label>
-                    <Label Content="{Binding SimConnected}" Foreground="{Binding SimConnectedColor}"/>
+                    <Label Content="{Binding SimConnected}" Foreground="{Binding SimConnectedColor}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Simulator is in Flight Session?">
                     <Label>Session Running</Label>
-                    <Label Content="{Binding SimSession}" Foreground="{Binding SimSessionColor}"/>
+                    <Label Content="{Binding SimSession}" Foreground="{Binding SimSessionColor}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="3" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Camera State (used to determine Session State)">
                     <Label>Camera State</Label>
-                    <Label Content="{Binding CameraState}"/>
+                    <Label Content="{Binding CameraState}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="4" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Any Type of Simulator Pause active?">
                     <Label>Paused</Label>
-                    <Label Content="{Binding SimPaused}" Foreground="{Binding SimPausedColor}"/>
+                    <Label Content="{Binding SimPaused}" Foreground="{Binding SimPausedColor}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="5" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Simulator is in Walkaround Mode">
                     <Label>Walkaround</Label>
-                    <Label Content="{Binding SimWalkaround}" Foreground="{Binding SimWalkaroundColor}"/>
+                    <Label Content="{Binding SimWalkaround}" Foreground="{Binding SimWalkaroundColor}" FontStyle="Italic"/>
                 </StackPanel>                
 
                 <StackPanel Grid.Column="0" Grid.ColumnSpan="6" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="Version reported by SimConnect">
                     <Label>Version</Label>
-                    <Label Content="{Binding SimVersion}"/>
+                    <Label Content="{Binding SimVersion}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="0" Grid.ColumnSpan="6" Grid.Row="3" Style="{StaticResource LabelMonitorPanel}" ToolTip="Aircraft SimObject received by SimConnect">
                     <Label>Aircraft</Label>
-                    <Label Content="{Binding AircraftString}" MaxWidth="780"/>
+                    <Label Content="{Binding Source={x:Static app:AppService.Instance}, Path=AircraftString}" MaxWidth="780" FontStyle="Italic"/>
                 </StackPanel>
             </Grid>
         </GroupBox>
@@ -100,77 +101,77 @@
 
                 <StackPanel Grid.Column="0" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="GSX Binary running?">
                     <Label>Running</Label>
-                    <Label Content="{Binding GsxRunning}" Foreground="{Binding GsxRunningColor}"/>
+                    <Label Content="{Binding GsxRunning}" Foreground="{Binding GsxRunningColor}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="GSX Startup completed?">
                     <Label>Started</Label>
-                    <Label Content="{Binding GsxStarted}" Foreground="{Binding GsxStartedColor}"/>
+                    <Label Content="{Binding GsxStarted}" Foreground="{Binding GsxStartedColor}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="State of the GSX Menu">
                     <Label>Menu</Label>
-                    <Label Content="{Binding GsxMenu}"/>
+                    <Label Content="{Binding GsxMenu, Converter={StaticResource SafeEnumConverter}}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="3" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Passenger Count set for GSX (and Pilots and Crew)">
                     <Label>Pax Target</Label>
-                    <Label Content="{Binding GsxPaxTarget}"/>
+                    <Label Content="{Binding GsxPaxTarget}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="4" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Boarded and Deboarded Passenger Count reported by GSX">
                     <Label>Pax Total</Label>
-                    <Label Content="{Binding GsxPaxTotal}"/>
+                    <Label Content="{Binding GsxPaxTotal}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="5" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Percent of Cargo Loading and Unloading Progress reported by GSX">
                     <Label>Cargo</Label>
-                    <Label Content="{Binding GsxCargoProgress}"/>
+                    <Label Content="{Binding GsxCargoProgress}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="0" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Was Reposition executed?">
                     <Label>Reposition</Label>
-                    <Label Content="{Binding ServiceReposition}"/>
+                    <Label Content="{Binding ServiceReposition, Converter={StaticResource SafeEnumConverter}}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Refuel Service State">
                     <Label>Refuel</Label>
-                    <Label Content="{Binding ServiceRefuel}"/>
+                    <Label Content="{Binding ServiceRefuel, Converter={StaticResource SafeEnumConverter}}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Catering Service State">
                     <Label>Catering</Label>
-                    <Label Content="{Binding ServiceCatering}"/>
+                    <Label Content="{Binding ServiceCatering, Converter={StaticResource SafeEnumConverter}}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="3" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Lavatory Service State">
                     <Label>Lavatory</Label>
-                    <Label Content="{Binding ServiceLavatory}"/>
+                    <Label Content="{Binding ServiceLavatory, Converter={StaticResource SafeEnumConverter}}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="4" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Water Service State">
                     <Label>Water</Label>
-                    <Label Content="{Binding ServiceWater}"/>
+                    <Label Content="{Binding ServiceWater, Converter={StaticResource SafeEnumConverter}}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="5" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Cleaning Service State">
                     <Label>Cleaning</Label>
-                    <Label Content="{Binding ServiceCleaning}"/>
+                    <Label Content="{Binding ServiceCleaning, Converter={StaticResource SafeEnumConverter}}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="0" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="Boarding Service State">
                     <Label>Boarding</Label>
-                    <Label Content="{Binding ServiceBoarding}"/>
+                    <Label Content="{Binding ServiceBoarding, Converter={StaticResource SafeEnumConverter}}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="Debarding Service State">
                     <Label>Deboarding</Label>
-                    <Label Content="{Binding ServiceDeboarding}"/>
+                    <Label Content="{Binding ServiceDeboarding, Converter={StaticResource SafeEnumConverter}}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="Departure/Pushback Service State (and State of the Pushback)">
                     <Label>Pushback</Label>
-                    <Label Content="{Binding ServicePushback}"/>
+                    <Label Content="{Binding ServicePushback}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="3" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="Jetway Service State as reported by GSX (and Operating State)">
                     <Label>Jetway</Label>
-                    <Label Content="{Binding ServiceJetway}"/>
+                    <Label Content="{Binding ServiceJetway}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="4" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="Stair Service State as reported by GSX (and Operating State)">
                     <Label>Stairs</Label>
-                    <Label Content="{Binding ServiceStairs}"/>
+                    <Label Content="{Binding ServiceStairs}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="5" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="GSX (!) GPU Service State">
                     <Label>GPU</Label>
-                    <Label Content="{Binding ServiceGpu}"/>
+                    <Label Content="{Binding ServiceGpu, Converter={StaticResource SafeEnumConverter}}" FontStyle="Italic"/>
                 </StackPanel>
             </Grid>
         </GroupBox>
@@ -194,39 +195,39 @@
 
                 <StackPanel Grid.Column="0" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="GSX Controller active?">
                     <Label>GSX Controller</Label>
-                    <Label Content="{Binding AppGsxController}" Foreground="{Binding AppGsxControllerColor}"/>
+                    <Label Content="{Binding AppGsxController}" Foreground="{Binding AppGsxControllerColor}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Aircraft Interface connected?">
                     <Label>Aircraft Interface</Label>
-                    <Label Content="{Binding AppAircraftInterface}" Foreground="{Binding AppAircraftInterfaceColor}"/>
+                    <Label Content="{Binding AppAircraftInterface}" Foreground="{Binding AppAircraftInterfaceColor}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Automation Engine started?">
                     <Label>Automation Controller</Label>
-                    <Label Content="{Binding AppAutomationController}" Foreground="{Binding AppAutomationControllerColor}"/>
+                    <Label Content="{Binding AppAutomationController}" Foreground="{Binding AppAutomationControllerColor}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="3" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Audio Controller active? (starts only after Aircraft is powered)">
                     <Label>Audio Controller</Label>
-                    <Label Content="{Binding AppAudioController}" Foreground="{Binding AppAudioControllerColor}"/>
+                    <Label Content="{Binding AppAudioController}" Foreground="{Binding AppAudioControllerColor}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="4" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Notification Manager running?">
                     <Label>Notification Manager</Label>
-                    <Label Content="{Binding AppDeckController}" Foreground="{Binding AppDeckControllerColor}"/>
+                    <Label Content="{Binding AppDeckController}" Foreground="{Binding AppDeckControllerColor}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="0" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Operational Flight Phase the Automation is in">
                     <Label>Automation Phase</Label>
-                    <Label Content="{Binding AppAutomationState}"/>
+                    <Label Content="{Binding AppAutomationState}" FontStyle="Italic"/>
                 </StackPanel>
 
 
                 <StackPanel Grid.Column="1" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Operational Flight Phase the Automation is in">
                     <Label>SmartCall</Label>
-                    <Label Content="{Binding AppSmartCall}"/>
+                    <Label Content="{Binding AppSmartCall}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="The OFP ID of the currently loaded SimBrief Flightplan">
                     <Label>Flightplan ID</Label>
-                    <Label Content="{Binding AppFlightPlan}"/>
+                    <Label Content="{Binding AppFlightPlan}" FontStyle="Italic"/>
                     <Button Style="{StaticResource BtnInfo}"
                         Command="{Binding ShowFlightplanInfoCommand}">
                         <Image Source="../../Icons/info.png" Width="16" Height="16" Margin="0"/>
@@ -235,22 +236,22 @@
 
                 <StackPanel Grid.Column="3" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Count of completed &amp; skipped / requested &amp; active / total Departure Services">
                     <Label>Departure Services</Label>
-                    <Label Content="{Binding AppAutomationDepartureServices}"/>
+                    <Label Content="{Binding AppAutomationDepartureServices}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="4" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Next Service in the Queue (regardless of Activation)?">
                     <Label>Next Service</Label>
-                    <Label Content="{Binding AppAutomationNextService}"/>
+                    <Label Content="{Binding AppAutomationNextService}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="Active Aircraft Profile used by Any2GSX">
                     <Label>Aircraft Profile</Label>
-                    <Label Content="{Binding AppProfile}"/>
+                    <Label Content="{Binding AppProfile}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="Active Aircraft Plugin used by Any2GSX">
                     <Label>Aircraft Plugin</Label>
-                    <Label Content="{Binding AppPlugin}"/>
+                    <Label Content="{Binding AppPlugin}" FontStyle="Italic"/>
                 </StackPanel>
             </Grid>
         </GroupBox>
@@ -274,102 +275,102 @@
 
                 <StackPanel Grid.Column="0" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Is the Aircraft turned on?">
                     <Label>Avionics Powered</Label>
-                    <Label Content="{Binding PluginAvionics}"/>
+                    <Label Content="{Binding PluginAvionics}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Is Ground Power available?">
                     <Label>Power Avail</Label>
-                    <Label Content="{Binding PluginGpu}"/>
+                    <Label Content="{Binding PluginGpu}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Is Ground Power available (GPU placed)?">
                     <Label>Power Connected</Label>
-                    <Label Content="{Binding PluginExtCon}"/>
+                    <Label Content="{Binding PluginExtCon}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="3" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Does the APU provide Power?">
                     <Label>APU Running</Label>
-                    <Label Content="{Binding PluginApuRun}"/>
+                    <Label Content="{Binding PluginApuRun}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="4" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Does the APU provide Bleed Air/AC?">
                     <Label>APU Bleed</Label>
-                    <Label Content="{Binding PluginApuBleed}"/>
+                    <Label Content="{Binding PluginApuBleed}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="0" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Smart Button Request detected?">
                     <Label>SmartButton</Label>
-                    <Label Content="{Binding PluginSmartButton}"/>
+                    <Label Content="{Binding PluginSmartButton}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Parking Brake set?">
                     <Label>Brake</Label>
-                    <Label Content="{Binding PluginBrake}"/>
+                    <Label Content="{Binding PluginBrake}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Chocks set?">
                     <Label>Chocks</Label>
-                    <Label Content="{Binding PluginChocks}"/>
+                    <Label Content="{Binding PluginChocks}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="3" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Cones set?">
                     <Label>Cones</Label>
-                    <Label Content="{Binding PluginCones}"/>
+                    <Label Content="{Binding PluginCones}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="4" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Pre Conditioned Air available?">
                     <Label>PCA</Label>
-                    <Label Content="{Binding PluginPca}"/>
+                    <Label Content="{Binding PluginPca}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="0" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="Nav Lights turned on?">
                     <Label>Nav</Label>
-                    <Label Content="{Binding PluginNav}"/>
+                    <Label Content="{Binding PluginNav}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="Beacon Light turned on?">
                     <Label>Beacon</Label>
-                    <Label Content="{Binding PluginBeacon}"/>
+                    <Label Content="{Binding PluginBeacon}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="Any Engine combusting?">
                     <Label>Engines Running</Label>
-                    <Label Content="{Binding PluginEngineRunning}"/>
+                    <Label Content="{Binding PluginEngineRunning}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="3" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="GPS Ground Speed">
                     <Label>Groundspeed</Label>
-                    <Label Content="{Binding PluginSpeed}"/>
+                    <Label Content="{Binding PluginSpeed}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="4" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="Aircraft is on Ground?">
                     <Label>On Ground</Label>
-                    <Label Content="{Binding AppOnGround}"/>
+                    <Label Content="{Binding AppOnGround}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="0" Grid.Row="3" Style="{StaticResource LabelMonitorPanel}" ToolTip="Is the Aircraft detected as Cargo?">
                     <Label>Cargo</Label>
-                    <Label Content="{Binding PluginCargo}"/>
+                    <Label Content="{Binding PluginCargo}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Grid.Row="3" Style="{StaticResource LabelMonitorPanel}" ToolTip="Does the Aircraft Plugin signal Ready for Departure?">
                     <Label>ReadyDeparture</Label>
-                    <Label Content="{Binding PluginReadyDeparture}"/>
+                    <Label Content="{Binding PluginReadyDeparture}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Grid.Row="3" Style="{StaticResource LabelMonitorPanel}" ToolTip="Fuel currently on Board?">
                     <Label>FOB</Label>
-                    <Label Content="{Binding PluginFuelOnBoard}"/>
+                    <Label Content="{Binding PluginFuelOnBoard}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="3" Grid.Row="3" Style="{StaticResource LabelMonitorPanel}" ToolTip="Total Weight of the Aircraft?">
                     <Label>GW</Label>
-                    <Label Content="{Binding PluginTotalWeight}"/>
+                    <Label Content="{Binding PluginTotalWeight}" FontStyle="Italic"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="4" Grid.Row="3" Style="{StaticResource LabelMonitorPanel}" ToolTip="Maximum Fuel Capacity of the Aircraft?">
-                    <Label>Fuel Capacity</Label>
-                    <Label Content="{Binding PluginFuelCapacity}"/>
+                <StackPanel Grid.Column="4" Grid.Row="3" Style="{StaticResource LabelMonitorPanel}" ToolTip="Zero Fuel Weight of the Aircraft?">
+                    <Label>ZFW</Label>
+                    <Label Content="{Binding PluginZeroFuel}" FontStyle="Italic"/>
                 </StackPanel>
             </Grid>
         </GroupBox>

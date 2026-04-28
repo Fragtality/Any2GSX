@@ -5,7 +5,6 @@ using CFIT.AppLogger;
 using CFIT.AppTools;
 using CFIT.SimConnectLib.SimResources;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Any2GSX.GSX.Services
@@ -23,23 +22,16 @@ namespace Any2GSX.GSX.Services
         public virtual int CargoPercent => (int)SubCargoPercent.GetNumber();
         public virtual double CargoScalar => CargoPercent / 100.0;
         public virtual ISimResourceSubscription SubCargoPercent { get; protected set; }
-        public virtual Dictionary<GsxDoor, bool> CargoUnloadingState { get; } = new()
-        {
-            { GsxDoor.CargoDoor1, false },
-            { GsxDoor.CargoDoor2, false },
-            { GsxDoor.CargoDoor3Main, false },
-        };
 
         public event Func<GsxServiceDeboarding, Task> OnPaxChange;
         public event Func<GsxServiceDeboarding, Task> OnCargoChange;
-        public event Func<GsxDoor, bool, Task> OnUnloadingChange;
 
         protected override GsxMenuSequence InitCallSequence()
         {
             var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(new(1, GsxConstants.MenuGate, true));
-            sequence.Commands.Add(GsxMenuCommand.CreateOperator());
-            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            sequence.Commands.Add(GsxMenuCommand.Select(1, GsxConstants.MenuGate));
+            sequence.Commands.Add(GsxMenuCommand.Operator());
 
             return sequence;
         }
@@ -47,67 +39,52 @@ namespace Any2GSX.GSX.Services
         protected override GsxMenuSequence InitCancelSequence()
         {
             var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(new(1, GsxConstants.MenuGate, true) { WaitReady = true });
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            sequence.Commands.Add(GsxMenuCommand.Select(1, GsxConstants.MenuGate));
 
             return sequence;
         }
 
-        protected override void InitSubscriptions()
+        public override void InitSubscriptions()
         {
             SubDeboardService = SimStore.AddVariable(GsxConstants.VarServiceDeboarding);
-            SubDeboardService.OnReceived += OnStateChange;
+            SubDeboardService?.OnReceived += OnStateChange;
 
             SubPaxTarget = SimStore.AddVariable(GsxConstants.VarPaxTarget);
             SubPaxTotal = SimStore.AddVariable(GsxConstants.VarPaxTotalDeboard);
-            SubPaxTotal.OnReceived += NotifyPaxChange;
+            SubPaxTotal?.OnReceived += NotifyPaxChange;
             SubCargoPercent = SimStore.AddVariable(GsxConstants.VarCargoPercentDeboard);
-            SubCargoPercent.OnReceived += NotifyCargoChange;
-
-            SimStore.AddVariable(GsxConstants.VarCargoUnloading1).OnReceived += NotifyUnloadingChange;
-            SimStore.AddVariable(GsxConstants.VarCargoUnloading2).OnReceived += NotifyUnloadingChange;
-            SimStore.AddVariable(GsxConstants.VarCargoUnloading3).OnReceived += NotifyUnloadingChange;
+            SubCargoPercent?.OnReceived += NotifyCargoChange;
 
             SimStore.AddVariable(GsxConstants.VarNoCrewDeboard);
             SimStore.AddVariable(GsxConstants.VarNoPilotsDeboard);
 
-            ReceiverStore.Get<MsgGsxCouatlStarted>().OnMessage += OnCouatlStarted;
+            Controller.OnCouatlStarted += OnCouatlStarted;
         }
 
-        protected virtual async void OnCouatlStarted(MsgGsxCouatlStarted msg)
+        protected virtual Task OnCouatlStarted(IGsxController gsxController)
         {
             if (WasTargetSet && Controller.AutomationController.State >= AutomationState.Flight && Controller.AutomationController.State < AutomationState.TurnAround)
-                await SetPaxTarget(Flightplan.CountPax);
+                return SetPaxTarget(Flightplan.CountPax);
+
+            return Task.CompletedTask;
         }
 
         protected override void DoReset()
         {
-            foreach (var door in CargoUnloadingState)
-                CargoUnloadingState[door.Key] = false;
-
             WasTargetSet = false;
         }
 
         public override void FreeResources()
         {
-            SubDeboardService.OnReceived -= OnStateChange;
-            SubPaxTotal.OnReceived -= NotifyPaxChange;
-            SubCargoPercent.OnReceived -= NotifyCargoChange;
-
-            try
-            {
-                SimStore[GsxConstants.VarCargoUnloading1].OnReceived -= NotifyUnloadingChange;
-                SimStore[GsxConstants.VarCargoUnloading2].OnReceived -= NotifyUnloadingChange;
-                SimStore[GsxConstants.VarCargoUnloading3].OnReceived -= NotifyUnloadingChange;
-            }
-            catch { }
+            SubDeboardService?.OnReceived -= OnStateChange;
+            SubPaxTotal?.OnReceived -= NotifyPaxChange;
+            SubCargoPercent?.OnReceived -= NotifyCargoChange;
 
             SimStore.Remove(GsxConstants.VarServiceDeboarding);
             SimStore.Remove(GsxConstants.VarPaxTarget);
             SimStore.Remove(GsxConstants.VarPaxTotalDeboard);
             SimStore.Remove(GsxConstants.VarCargoPercentDeboard);
-            SimStore.Remove(GsxConstants.VarCargoUnloading1);
-            SimStore.Remove(GsxConstants.VarCargoUnloading2);
-            SimStore.Remove(GsxConstants.VarCargoUnloading3);
             SimStore.Remove(GsxConstants.VarNoCrewDeboard);
             SimStore.Remove(GsxConstants.VarNoPilotsDeboard);
         }
@@ -132,7 +109,7 @@ namespace Any2GSX.GSX.Services
                 await Controller?.SubCrewTarget?.WriteValue(Controller.Profile.DefaultCrewTarget);
             }
 
-            if (Controller?.AircraftController?.Aircraft?.IsCargo == false && Profile?.PluginId != SettingProfile.GenericId)
+            if (!await Controller.AircraftController.GetIsCargo() && Profile?.PluginId != SettingProfile.GenericId)
             {
                 WasTargetSet = true;
                 Logger.Debug($"Setting Pax Target to {num}");
@@ -146,80 +123,60 @@ namespace Any2GSX.GSX.Services
             }
         }
 
-        protected virtual void NotifyPaxChange(ISimResourceSubscription sub, object data)
+        protected virtual Task NotifyPaxChange(ISimResourceSubscription sub, object data)
         {
-            if (State != GsxServiceState.Active)
+            if (!IsRunning)
             {
-                Logger.Debug($"Ignoring Pax Change - Service not active");
-                return;
+                Logger.Debug($"Ignoring Pax Change - Service not running");
+                return Task.CompletedTask;
             }
 
-            var pax = sub.GetNumber();
-            if (pax < 0 || pax > Flightplan.CountPax)
-            {
-                if (Profile.RunAutomationService)
-                    Logger.Warning($"Ignoring Pax Change - Value received: {pax} (Targets: {PaxTarget} | {Flightplan.CountPax})");
-                return;
-            }
-
-            TaskTools.RunLogged(() => OnPaxChange?.Invoke(this), Controller.Token);
+            _ = TaskTools.RunPool(() => OnPaxChange?.Invoke(this), Controller.Token);
+            return Task.CompletedTask;
         }
 
-        protected virtual void NotifyCargoChange(ISimResourceSubscription sub, object data)
+        protected virtual Task NotifyCargoChange(ISimResourceSubscription sub, object data)
         {
-            if (State != GsxServiceState.Active)
+            if (!IsRunning)
             {
-                Logger.Debug($"Ignoring Cargo Change - Service not active");
-                return;
+                Logger.Debug($"Ignoring Cargo Change - Service not running");
+                return Task.CompletedTask;
             }
 
             var cargo = sub.GetNumber();
-            if (cargo < 0 || cargo > 100)
-            {
-                if (Profile.RunAutomationService)
-                    Logger.Warning($"Ignoring Cargo Change - Value received: {cargo}");
-                return;
-            }
-
-            TaskTools.RunLogged(() => OnCargoChange?.Invoke(this), Controller.Token);
+            _ = TaskTools.RunPool(() => OnCargoChange?.Invoke(this), Controller.Token);
             Logger.Information($"Cargo Unloading Progress {(int)cargo}%");
 
-            if (cargo == 100 && !Profile.SkipCrewDeboardQuestion && Profile.AnswerCrewDeboardQuestion != 1)
+            if (cargo >= 75 && !Profile.SkipCrewDeboardQuestion && Profile.AnswerCrewDeboardQuestion != 0)
+                Controller.Menu.BlockMenuUpdates(true, "Crew Question");
+
+            return Task.CompletedTask;
+        }
+
+        protected override void RunStateRequested()
+        {
+            base.RunStateRequested();
+            WasActive = true;
+        }
+
+        protected override async Task OnStateChange(ISimResourceSubscription sub, object data)
+        {
+            await base.OnStateChange(sub, data);
+            if (State < GsxServiceState.Requested)
+                Controller.Menu.BlockMenuUpdates(false);
+            else if (ReadState() >= GsxServiceState.Completed)
             {
-                Logger.Debug($"Supressing Menu Refresh");
-                Controller.Menu.SuppressMenuRefresh = true;
+                Controller.Menu.BlockMenuUpdates(true, "Crew Question");
+                _ = TaskTools.RunDelayed(() => Controller.Menu.BlockMenuUpdates(false), Controller.Config.OperatorSelectTimeout, Controller.Token);
             }
         }
 
-        protected override void OnStateChange(ISimResourceSubscription sub, object data)
+        protected override void NotifyStateChange()
         {
-            base.OnStateChange(sub, data);
-            if (State == GsxServiceState.Completed || State == GsxServiceState.Callable)
-                Controller.Menu.SuppressMenuRefresh = false;
-        }
+            base.NotifyStateChange();
 
-        protected virtual void NotifyUnloadingChange(ISimResourceSubscription sub, object data)
-        {
-            Logger.Debug($"Received Cargo Unloading Var '{sub.Name}': {sub.GetNumber()}");
-            bool state = sub.GetNumber() > 0;
-            GsxDoor door;
-            if (sub.Name == GsxConstants.VarCargoUnloading1)
-                door = GsxDoor.CargoDoor1;
-            else if (sub.Name == GsxConstants.VarCargoUnloading2)
-                door = GsxDoor.CargoDoor2;
-            else
-                door = GsxDoor.CargoDoor3Main;
-
-            if ((state && !CargoUnloadingState[door])
-                || (!state && (SubCargoPercent.GetNumber() > 0 || State < GsxServiceState.Active)))
-            {
-                CargoUnloadingState[door] = state;
-                if (State >= GsxServiceState.Active)
-                {
-                    Logger.Debug($"Notify CargoUnloadingState {state} on Door {door}");
-                    TaskTools.RunLogged(() => OnUnloadingChange?.Invoke(door, state), Controller.Token);
-                }
-            }
+            if (State < GsxServiceState.Requested)
+                Controller.Menu.BlockMenuUpdates(false);
         }
     }
 }

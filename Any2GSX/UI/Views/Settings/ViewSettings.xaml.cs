@@ -1,14 +1,25 @@
-﻿using CFIT.AppFramework.UI.Validations;
-using CFIT.AppFramework.UI.ViewModels;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Windows.Controls;
 
 namespace Any2GSX.UI.Views.Settings
 {
+    public enum AppSettingControl
+    {
+        OfpWeights = 0,
+        GsxSettings = 1,
+        AppServices = 2,
+    }
+
     public partial class ViewSettings : UserControl, IView
     {
         protected virtual ModelSettings ViewModel { get; }
-        protected virtual ViewModelSelector<KeyValuePair<string, double>, string> ViewModelSelector { get; }
+        protected virtual Dictionary<AppSettingControl, UserControl> SettingControls { get; } = [];
+        protected static Dictionary<AppSettingControl, string> SettingGroups { get; } = new()
+        {
+            { AppSettingControl.OfpWeights, "OFP & Weights" },
+            { AppSettingControl.GsxSettings, "GSX Parameter" },
+            { AppSettingControl.AppServices, "App Behavior" },
+        };
 
         public ViewSettings()
         {
@@ -16,34 +27,24 @@ namespace Any2GSX.UI.Views.Settings
             ViewModel = new(AppService.Instance);
             this.DataContext = ViewModel;
 
-            ViewModel.BindElement(nameof(ViewModel.SimbriefUser), InputSimBriefUser, null, new ValidationRuleString());
-            ViewModel.BindStringNumber(nameof(ViewModel.FuelResetPercent), InputFuelPercent, "2", new ValidationRuleRange<double>(0,50));
-            ViewModel.BindStringNumber(nameof(ViewModel.FuelCompareVariance), InputFuelVariance, "50", new ValidationRuleRange<double>(10, 100));
-            ViewModel.BindStringInteger(nameof(ViewModel.AudioDeviceCheckInterval), InputAudioScanDevice, "60000", new ValidationRuleRange<int>(5000, 600000));
-            ViewModel.BindStringInteger(nameof(ViewModel.AudioProcessCheckInterval), InputAudioScanProcess, "2500", new ValidationRuleRange<int>(1000, 120000));
-            ViewModel.BindStringInteger(nameof(ViewModel.PortBase), InputPortBase, "60060");
-            ViewModel.BindStringInteger(nameof(ViewModel.PortRange), InputPortRange, "10");
-            ViewModel.BindElement(nameof(ViewModel.DeckUrlBase), InputDeckUrl, null, new ValidationRuleString());
-            ViewModel.BindStringInteger(nameof(ViewModel.GsxMenuStartupMaxFail), InputGsxMaxFail, "4", new ValidationRuleRange<int>(1, 16));
+            SettingControls.Add(AppSettingControl.OfpWeights, new ControlOfpWeights(ViewModel));
+            SettingControls.Add(AppSettingControl.GsxSettings, new ControlGsxSettings(ViewModel));
+            SettingControls.Add(AppSettingControl.AppServices, new ControlAppServices(ViewModel));
 
-            InputSimBriefUser.KeyUp += OnSimbriefKeyUp;
-
-            ViewModelSelector = new(ListSavedFuel, ViewModel.ModelSavedFuel);
-            ViewModelSelector.BindRemoveButton(ButtonRemove);
+            SelectorSettingGroup.ItemsSource = SettingGroups;
+            SelectorSettingGroup.SelectionChanged += OnSelectionChanged;
         }
 
-        protected virtual void OnSimbriefKeyUp(object sender, System.Windows.Input.KeyEventArgs e)
+        protected virtual void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            ViewModel.NotifyPropertyChanged(nameof(ViewModel.BrushSimbrief));
+            if (SelectorSettingGroup?.SelectedValue is AppSettingControl controlKey && SettingControls.TryGetValue(controlKey, out var control))
+                ViewSettingGroup.Content = control;
         }
 
         public virtual void Start()
         {
-            ViewModel.InhibitConfigSave = true;
-            ViewModel.NotifyPropertyChanged(nameof(ViewModel.SimbriefUser));
-            ViewModel.NotifyPropertyChanged(nameof(ViewModel.BrushSimbrief));
-            ViewModel.ModelSavedFuel.NotifyCollectionChanged();
-            ViewModel.InhibitConfigSave = false;
+            if (SelectorSettingGroup?.SelectedValue is not AppSettingControl)
+                SelectorSettingGroup.SelectedIndex = 0;
         }
 
         public virtual void Stop()

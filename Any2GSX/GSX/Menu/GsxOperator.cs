@@ -11,21 +11,31 @@ namespace Any2GSX.GSX.Menu
         public virtual string Title { get; set; } = title;
         public virtual int Number { get; set; } = number;
         public virtual bool GsxChoice { get; set; } = gsxChoice;
+        public virtual bool Preferred { get; set; } = false;
 
         public static GsxOperator OperatorSelection(SettingProfile profile, List<string> menuLines)
         {
-            var operators = ParseOperators(menuLines);
-
-            GsxOperator gsxOperator = operators.Where(o => o.GsxChoice).First();
-            foreach (var preference in profile.OperatorPreferences)
+            GsxOperator gsxOperator = null;
+            try
             {
-                var query = operators.Where(o => o.Title.Contains(preference, StringComparison.InvariantCultureIgnoreCase));
-                if (query.Any())
+                var operators = ParseOperators(menuLines);
+
+                gsxOperator = operators?.Where(o => o.GsxChoice)?.FirstOrDefault();
+                foreach (var preference in profile.OperatorPreferences)
                 {
-                    gsxOperator = query.First();
-                    Logger.Debug($"Found preferred Operator: '{gsxOperator.Title}'");
-                    break;
-                }    
+                    var query = operators?.Where(o => o.Title.Contains(preference, StringComparison.InvariantCultureIgnoreCase));
+                    if (query?.Any() == true)
+                    {
+                        gsxOperator = query?.FirstOrDefault();
+                        gsxOperator.Preferred = true;
+                        Logger.Debug($"Found preferred Operator: '{gsxOperator?.Title ?? "null"}'");
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
             }
 
             return gsxOperator;

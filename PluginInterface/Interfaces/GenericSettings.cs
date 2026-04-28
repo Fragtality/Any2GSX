@@ -45,6 +45,7 @@ namespace Any2GSX.PluginInterface.Interfaces
 
         public const string OptionAircraftIsCargo = "Generic.Option.Aircraft.IsCargo";
         public const string OptionAircraftRefuelStair = "Generic.Option.Aircraft.RefuelStair";
+        public const string OptionAircraftFuelDialog = "Generic.Option.Aircraft.FuelDialog";
         public const string OptionAircraftInitDelay = "Generic.Option.Aircraft.InitDelay";
         public const string OptionAircraftGsxGpu = "Generic.Option.Aircraft.GsxGpu";
 
@@ -58,7 +59,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarSmartButtonName,
                 Type = PluginSettingType.String,
                 DefaultValue = VarSmartButtonDefault,
-                Description = "Simulation Variable indicating a SmartButton Request"
+                Description = "SmartButton: Simulation Variable",
+                Tooltip = "The Variable to be monitored and compared to trigger SmartButton Requests.\nThe default L-Var will still work if a different Variable is used here (both will trigger a SmartButton Request)."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -66,7 +68,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarSmartButtonUnit,
                 Type = PluginSettingType.String,
                 DefaultValue = SimUnitType.Number,
-                Description = "Simulation Variable Unit for SmartButton"
+                Description = "SmartButton: Variable Unit",
+                Tooltip = "Simulation Variable Unit as known to SimConnect. When in doubt: use 'number'."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -74,8 +77,9 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarSmartButtonComp,
                 Type = PluginSettingType.Enum,
                 DefaultValue = (int)Comparison.NOT_EQUAL,
-                Description = "Comparison for the SmartButton Variable",
-                EnumValues = []
+                Description = "SmartButton: Comparison",
+                EnumValues = [],
+                Tooltip = "Comparison used to compare the current Value against the configured Value.\nMust evaluate to true for a SmartButton Request to be triggered."
             };
             foreach (var value in Enum.GetValues<Comparison>())
                 setting.EnumValues.Add((int)value, value.ToString());
@@ -85,7 +89,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarSmartButtonValue,
                 Type = PluginSettingType.Number,
                 DefaultValue = 0.0,
-                Description = "Value used in SmartButton Comparison"
+                Description = "SmartButton: Value",
+                Tooltip = "The Value to be compared against the Variable's current Value."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -93,7 +98,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarSmartButtonReset,
                 Type = PluginSettingType.String,
                 DefaultValue = "",
-                Description = "RPN/Calculator Code to execute for Reset (blank if not required)"
+                Description = "SmartButton: Reset Code",
+                Tooltip = "The RPN Code used to reset the Switch/Variable after the Request was handled.\nLeave blank if not required (i.e. the Switch/Variable resets itself after clicked)."
             };
             list.Add(setting);
 
@@ -103,7 +109,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarDepartTriggerName,
                 Type = PluginSettingType.String,
                 DefaultValue = "",
-                Description = "Variable used as an additional Trigger for Departure Services"
+                Description = "Departure Trigger: Simulation Variable",
+                Tooltip = "The Variable to be monitored and compared to trigger the Departure Services.\nThe default Conditions (Avionics powered, External connected, Nav Lights on) and this Trigger (if configured) need all to be true.\nCan be used to Trigger the Departure only after Flightplan Import in the Aircraft - IF that can be checked through a Sim- or L-Variable."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -111,7 +118,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarDepartTriggerUnit,
                 Type = PluginSettingType.String,
                 DefaultValue = SimUnitType.Number,
-                Description = "Simulation Variable Unit for Departure Trigger Variable"
+                Description = "Departure Trigger: Variable Unit",
+                Tooltip = "Simulation Variable Unit as known to SimConnect. When in doubt: use 'number'."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -119,8 +127,9 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarDepartTriggerComp,
                 Type = PluginSettingType.Enum,
                 DefaultValue = (int)Comparison.NOT_EQUAL,
-                Description = "Comparison for the Departure Trigger Variable",
-                EnumValues = []
+                Description = "Departure Trigger: Comparison",
+                EnumValues = [],
+                Tooltip = "Comparison used to compare the current Value against the configured Value.\nMust evaluate to true for the Trigger to be recognized."
             };
             foreach (var value in Enum.GetValues<Comparison>())
                 setting.EnumValues.Add((int)value, value.ToString());
@@ -129,8 +138,8 @@ namespace Any2GSX.PluginInterface.Interfaces
             {
                 Key = VarDepartTriggerValue,
                 Type = PluginSettingType.Number,
-                DefaultValue = 0.0,
-                Description = "Value used in Departure Trigger Comparison"
+                Description = "Departure Trigger: Value",
+                Tooltip = "The Value to be compared against the Variable's current Value."
             };
             list.Add(setting);
 
@@ -140,7 +149,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = OptionAircraftIsCargo,
                 Type = PluginSettingType.Bool,
                 DefaultValue = false,
-                Description = "Handle the Aircraft as Cargo Plane"
+                Description = "Aircraft: Is Cargo",
+                Tooltip = "Report the Aircraft as Cargo Aircraft to the App (i.e. to decide which Services are called)."
             };
             list.Add(setting);
 
@@ -150,7 +160,19 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = OptionAircraftRefuelStair,
                 Type = PluginSettingType.Bool,
                 DefaultValue = false,
-                Description = "The Aircraft is refueled on the Left/Stair Side"
+                Description = "Aircraft: Refuel on Left/Port Side",
+                Tooltip = "Report the Refuel Side for the Aircraft on the Left Side to the App.\nSome Services (i.e. Stairs) need different Handling when Refuel is on the same Side."
+            };
+            list.Add(setting);
+
+            //FuelDialog
+            setting = new PluginSetting()
+            {
+                Key = OptionAircraftFuelDialog,
+                Type = PluginSettingType.Bool,
+                DefaultValue = false,
+                Description = "Aircraft: Uses Refuel Dialog",
+                Tooltip = "When enabled, the App will automatically wait for and the Refuel Level Dialog and automatically select the Simbrief Fuel.\nThis Option is needed for (GSX) Aircraft Profiles with the Option 'Default Fuel System' checked (i.e. some iniBuilds Aircrafts)"
             };
             list.Add(setting);
 
@@ -160,7 +182,9 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = OptionAircraftInitDelay,
                 Type = PluginSettingType.Integer,
                 DefaultValue = 1000,
-                Description = "Delay in ms to wait for the Aircraft Systems to initialize"
+                Description = "Aircraft: Initialization Delay",
+                DescUnit = "ms",
+                Tooltip = "Delay to wait after the Aircraft Variables are initialized before they are used to check the Aircraft State."
             };
             list.Add(setting);
 
@@ -170,8 +194,9 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = OptionAircraftGsxGpu,
                 Type = PluginSettingType.Enum,
                 DefaultValue = (int)GsxGpuUsage.Never,
-                Description = "Use GSX GPU for Aircraft",
-                EnumValues = []
+                Description = "GSX GPU: Call for Aircraft",
+                EnumValues = [],
+                Tooltip = "Call/Remove the GSX GPU as Part of the App's Ground Equipment Flow.\n(Call on Session Start, remove in Pushback Phase or call on Arrival)"
             };
             foreach (var value in Enum.GetValues<GsxGpuUsage>())
                 setting.EnumValues.Add((int)value, value.ToString());
@@ -183,7 +208,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarEngine1Name,
                 Type = PluginSettingType.String,
                 DefaultValue = "ENG COMBUSTION:1",
-                Description = "Simulation Variable indicating Combustion for Engine 1"
+                Description = "Engine 1: Simulation Variable",
+                Tooltip = "The Variable used to check if the Engines are running.\nUsed to check if the Aircraft is ready for Arrival Services or Runway Starts.\nA non-Zero Value means the Engine is running."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -191,7 +217,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarEngine1Unit,
                 Type = PluginSettingType.String,
                 DefaultValue = SimUnitType.Bool,
-                Description = "Simulation Variable Unit for Engine 1 Combustion"
+                Description = "Engine 1: Variable Unit",
+                Tooltip = "Simulation Variable Unit as known to SimConnect. When in doubt: use 'number'."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -199,7 +226,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarEngine2Name,
                 Type = PluginSettingType.String,
                 DefaultValue = "ENG COMBUSTION:2",
-                Description = "Simulation Variable indicating Combustion for Engine 2"
+                Description = "Engine 2: Simulation Variable",
+                Tooltip = "The Variable used to check if the Engines are running.\nUsed to check if the Aircraft is ready for Arrival Services or Runway Starts.\nA non-Zero Value means the Engine is running."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -207,7 +235,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarEngine2Unit,
                 Type = PluginSettingType.String,
                 DefaultValue = SimUnitType.Bool,
-                Description = "Simulation Variable Unit for Engine 2 Combustion"
+                Description = "Engine 2: Variable Unit",
+                Tooltip = "Simulation Variable Unit as known to SimConnect. When in doubt: use 'number'."
             };
             list.Add(setting);
 
@@ -217,7 +246,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarPowerAvionicName,
                 Type = PluginSettingType.String,
                 DefaultValue = "ELECTRICAL MAIN BUS VOLTAGE",
-                Description = "Simulation Variable indicating Avionics powered"
+                Description = "Avionics powered: Simulation Variable",
+                Tooltip = "The Variable used to check if the Aircraft is powered (not cold and dark).\nUsed to check if the Aircraft is ready for Departure Services and for Audio Control to become active.\nA non-Zero Value means the Avionics are powered."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -225,7 +255,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarPowerAvionicUnit,
                 Type = PluginSettingType.String,
                 DefaultValue = SimUnitType.Volts,
-                Description = "Simulation Variable Unit for Avionics powered"
+                Description = "Avionics powered: Variable Unit",
+                Tooltip = "Simulation Variable Unit as known to SimConnect. When in doubt: use 'number'."
             };
             list.Add(setting);
 
@@ -234,7 +265,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarPowerExtAvailName,
                 Type = PluginSettingType.String,
                 DefaultValue = "EXTERNAL POWER AVAILABLE",
-                Description = "Simulation Variable indicating External Power available"
+                Description = "External Power available: Simulation Variable",
+                Tooltip = "The Variable used to check if the Aircraft's external Power Source (i.e. GPU) is available.\nA non-Zero Value means that external Power is available."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -242,7 +274,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarPowerExtAvailUnit,
                 Type = PluginSettingType.String,
                 DefaultValue = SimUnitType.Bool,
-                Description = "Simulation Variable Unit for External Power available"
+                Description = "External Power available: Variable Unit",
+                Tooltip = "Simulation Variable Unit as known to SimConnect. When in doubt: use 'number'."
             };
             list.Add(setting);
 
@@ -251,7 +284,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarPowerExtConnName,
                 Type = PluginSettingType.String,
                 DefaultValue = "EXTERNAL POWER ON",
-                Description = "Simulation Variable indicating External Power connected"
+                Description = "External Power connected: Simulation Variable",
+                Tooltip = "The Variable used to check if the Aircraft's external Power Source is connected.\nUsed to check if the Aircraft is ready for Departure Services or Pushback.\nA non-Zero Value means that external Power is connected."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -259,7 +293,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarPowerExtConnUnit,
                 Type = PluginSettingType.String,
                 DefaultValue = SimUnitType.Bool,
-                Description = "Simulation Variable Unit for External Power connected"
+                Description = "External Power connected: Variable Unit",
+                Tooltip = "Simulation Variable Unit as known to SimConnect. When in doubt: use 'number'."
             };
             list.Add(setting);
 
@@ -269,7 +304,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarApuRunningName,
                 Type = PluginSettingType.String,
                 DefaultValue = "APU GENERATOR ACTIVE:1",
-                Description = "Simulation Variable indicating APU generating Power"
+                Description = "APU Running: Simulation Variable",
+                Tooltip = "The Variable used to check if the Aircraft's APU is generating Power.\nAlternative to Avionics powered and additional Condition to APU Bleed.\nA non-Zero Value means that the APU is running and providing Power."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -277,7 +313,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarApuRunningUnit,
                 Type = PluginSettingType.String,
                 DefaultValue = SimUnitType.Bool,
-                Description = "Simulation Variable Unit for APU generating Power"
+                Description = "APU Running: Variable Unit",
+                Tooltip = "Simulation Variable Unit as known to SimConnect. When in doubt: use 'number'."
             };
             list.Add(setting);
 
@@ -286,7 +323,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarApuBleedOnName,
                 Type = PluginSettingType.String,
                 DefaultValue = "BLEED AIR APU",
-                Description = "Simulation Variable indicating APU providing AC"
+                Description = "APU Bleed: Simulation Variable",
+                Tooltip = "The Variable used to check if the Aircraft's APU is providing AC.\nUsed to check if PCA can be disconnected.\nA non-Zero Value means that the APU is providing Bleed Air/AC."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -294,7 +332,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarApuBleedOnUnit,
                 Type = PluginSettingType.String,
                 DefaultValue = SimUnitType.Bool,
-                Description = "Simulation Variable Unit for APU providing AC"
+                Description = "APU Bleed: Variable Unit",
+                Tooltip = "Simulation Variable Unit as known to SimConnect. When in doubt: use 'number'."
             };
             list.Add(setting);
 
@@ -304,7 +343,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarLightNavName,
                 Type = PluginSettingType.String,
                 DefaultValue = "LIGHT NAV ON",
-                Description = "Simulation Variable indicating NAV Lights on"
+                Description = "Nav Lights: Simulation Variable",
+                Tooltip = "The Variable used to check if the Aircraft's Nav Lights are on.\nUsed to check if the Aircraft is ready for Departure Services.\nA non-Zero Value means that the Lights are on."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -312,7 +352,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarLightNavUnit,
                 Type = PluginSettingType.String,
                 DefaultValue = SimUnitType.Bool,
-                Description = "Simulation Variable Unit for NAV Lights on"
+                Description = "Nav Lights: Variable Unit",
+                Tooltip = "Simulation Variable Unit as known to SimConnect. When in doubt: use 'number'."
             };
             list.Add(setting);
 
@@ -321,7 +362,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarLightBeaconName,
                 Type = PluginSettingType.String,
                 DefaultValue = "LIGHT BEACON ON",
-                Description = "Simulation Variable indicating Beacon Light on"
+                Description = "Beacon Lights: Simulation Variable",
+                Tooltip = "The Variable used to check if the Aircraft's Beacon Lights are on.\nUsed to check if the Aircraft is ready for Arrival Services or as Pushback Trigger.\nA non-Zero Value means that the Lights are on."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -329,7 +371,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarLightBeaconUnit,
                 Type = PluginSettingType.String,
                 DefaultValue = SimUnitType.Bool,
-                Description = "Simulation Variable Unit for Beacon Light on"
+                Description = "Beacon Lights: Variable Unit",
+                Tooltip = "Simulation Variable Unit as known to SimConnect. When in doubt: use 'number'."
             };
             list.Add(setting);
 
@@ -339,7 +382,8 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarParkBrakeName,
                 Type = PluginSettingType.String,
                 DefaultValue = "BRAKE PARKING POSITION",
-                Description = "Simulation Variable indicating Parking Brake set"
+                Description = "Parking Brake: Simulation Variable",
+                Tooltip = "The Variable used to check if the Aircraft's Parking Brake is set.\nUsed to check if the Aircraft is ready for Arrival Services or as Pushback Trigger.\nA non-Zero Value means that Brakes are set."
             };
             list.Add(setting);
             setting = new PluginSetting()
@@ -347,11 +391,17 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Key = VarParkBrakeUnit,
                 Type = PluginSettingType.String,
                 DefaultValue = SimUnitType.Bool,
-                Description = "Simulation Variable Unit for Parking Brake set"
+                Description = "Parking Brake: Variable Unit",
+                Tooltip = "Simulation Variable Unit as known to SimConnect. When in doubt: use 'number'."
             };
             list.Add(setting);
 
             return list;
+        }
+
+        public static List<string> GetEssentialIds()
+        {
+            return [VarEngine1Name, VarEngine2Name, VarPowerAvionicName, VarPowerExtConnName, VarLightNavName, VarLightBeaconName, VarParkBrakeName];
         }
     }
 }

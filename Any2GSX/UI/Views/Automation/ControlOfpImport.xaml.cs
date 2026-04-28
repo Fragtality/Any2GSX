@@ -17,6 +17,9 @@ namespace Any2GSX.UI.Views.Automation
             ViewModel.BindElement(nameof(ViewModel.RandomizePaxMaxDiff), InputPaxMaxDiff, new RealInvariantConverter("5"), new ValidationRuleRange<int>(0, 10));
             ViewModel.BindElement(nameof(ViewModel.DelayTurnAroundSeconds), InputDelayTurn, new RealInvariantConverter("90"), new ValidationRuleRange<int>(20, 600));
             ViewModel.BindElement(nameof(ViewModel.DelayTurnRecheckSeconds), InputDelayRecheck, new RealInvariantConverter("30"), new ValidationRuleRange<int>(10, 300));
+
+            Tag = "OFP Import";
+            ToolTip = "Configure how the Flightplan is imported & handled.";
         }
     }
 }

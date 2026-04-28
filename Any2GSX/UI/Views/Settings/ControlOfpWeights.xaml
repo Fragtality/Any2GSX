@@ -1,0 +1,111 @@
+﻿<UserControl x:Class="Any2GSX.UI.Views.Settings.ControlOfpWeights"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Any2GSX.UI.Views.Settings"
+             d:DataContext="{d:DesignInstance Type=local:ModelSettings}"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../StyleResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    
+    <Grid HorizontalAlignment="Stretch">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Grid.Column="0" Grid.Row="0" Margin="8,0,8,8" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>OFP &amp; Weights</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="196"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Column="0" Grid.Row="0" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="SimBrief User Name or ID to import OFP Data like Pax, Fuel and Payload.">
+                    SimBrief User:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="0" Style="{StaticResource SettingItemPanel}" ToolTip="SimBrief User Name or ID to import OFP Data like Pax, Fuel and Payload.">
+                    <TextBox Name="InputSimBriefUser" Style="{StaticResource TextBoxLeft}" MinWidth="128" BorderBrush="{Binding BrushSimbrief}"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="1" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Which Source is used for the Unit used in the UI.">
+                    UI Unit Source:
+                </TextBlock>
+                <ComboBox Grid.Column="1" Grid.Row="1" SelectedValue="{Binding DisplayUnitSource}" MinWidth="64" MaxWidth="96" ItemsSource="{Binding DisplayUnitSourceItems}" SelectedValuePath="Key" DisplayMemberPath="Value"
+                          Margin="6" Style="{StaticResource ComboBoxDefault}" HorizontalAlignment="Left" ToolTip="Which Source is used for the Unit used in the UI."/>
+                
+                <TextBlock Grid.Column="0" Grid.Row="2" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The Unit used in the UI when no other Unit Source is available.">
+                    UI Default Unit:
+                </TextBlock>
+                <ComboBox Grid.Column="1" Grid.Row="2" SelectedValue="{Binding DisplayUnitDefault}" MinWidth="64" MaxWidth="96" ItemsSource="{Binding DisplayUnitDefaultItems}" SelectedValuePath="Key" DisplayMemberPath="Value"
+                          Margin="6" Style="{StaticResource ComboBoxDefault}" HorizontalAlignment="Left" ToolTip="The Unit used in the UI when no other Unit Source is available."/>
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Column="0" Grid.Row="1" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>Fuel Save &amp; Restore</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="196"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Column="0" Grid.Row="0" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Percentage of the Aircrafts maximum Fuel Capacity which will be added to the Reset Base Value set in the current Profile.">
+                    FOB Reset Percent:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="0" Style="{StaticResource SettingItemPanel}" ToolTip="Percentage of the Aircrafts maximum Fuel Capacity which will be added to the Reset Base Value set in the current Profile (Limited to 50% max).">
+                    <TextBox Name="InputFuelPercent" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">%</TextBlock>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="1" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The maximum allowed Difference when the Fuel on Board or Gross Weight is compared to be equal to a specific Target.">
+                    Fuel Compare Variance:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="1" Style="{StaticResource SettingItemPanel}" ToolTip="The maximum allowed Difference when the Fuel on Board or Gross Weight is compared to be equal to a specific Target.">
+                    <TextBox Name="InputFuelVariance" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Text="{Binding DisplayUnitCurrentString}" Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="2" Margin="6" Style="{StaticResource TextBlockDefault}" VerticalAlignment="Top" ToolTip="The Fuel-on-Board Values currently stored by Any2GSX for the various Aircrafts.">
+                    Saved Fuel Values:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="2" Margin="6" Orientation="Vertical">
+                    <ListView MinWidth="384" MaxWidth="384" Height="96" MaxHeight="142" ScrollViewer.CanContentScroll="True" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                              HorizontalAlignment="Left" HorizontalContentAlignment="Left" VerticalAlignment="Top" VerticalContentAlignment="Center"
+                              Name="ListSavedFuel">
+                    </ListView>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,6,6" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <TextBox Name="InputSavedFuel" Style="{StaticResource TextBoxLeft}" MinWidth="324" MaxWidth="324" MinHeight="24" ToolTip="The saved Fuel Amount for this Aircraft/Livery (in the current UI Units)."/>
+                        <Button Name="ButtonAdd" Margin="6,0,0,0" Style="{StaticResource BtnSquareSmall}" ToolTip="Save Fuel Amount">
+                            <Image Name="ImageAdd" Source="../../Icons/edit.png" Style="{StaticResource ImgSquareSmall}"/>
+                        </Button>
+                        <Button Name="ButtonRemove" Margin="6,0,6,0" Style="{StaticResource BtnSquareSmall}" ToolTip="Remove Saved Fuel">
+                            <Image Source="../../Icons/remove.png" Style="{StaticResource ImgSquareSmall}"/>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+    </Grid>
+</UserControl>

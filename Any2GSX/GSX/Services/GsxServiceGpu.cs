@@ -22,12 +22,10 @@ namespace Any2GSX.GSX.Services
         protected override GsxMenuSequence InitCallSequence()
         {
             var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(new(8, GsxConstants.MenuGate, true));
-            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
-            sequence.Commands.Add(new(1, GsxConstants.MenuAdditionalServices) { WaitReady = true });
-            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
-            sequence.Commands.Add(GsxMenuCommand.CreateOperator());
-            sequence.Commands.Add(GsxMenuCommand.CreateReset());
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            sequence.Commands.Add(GsxMenuCommand.Select(8, GsxConstants.MenuGate));
+            sequence.Commands.Add(GsxMenuCommand.Select(1, GsxConstants.MenuAdditionalServices));
+            sequence.Commands.Add(GsxMenuCommand.Operator());
 
             return sequence;
         }
@@ -37,37 +35,39 @@ namespace Any2GSX.GSX.Services
             return new GsxMenuSequence();
         }
 
-        protected override void InitSubscriptions()
+        public override void InitSubscriptions()
         {
             SubGpuService = SimStore.AddVariable(GsxConstants.VarServiceGpu);
             SubGpuConnect = SimStore.AddVariable(GsxConstants.VarServiceGpuConnect);
 
-            SubGpuService.OnReceived += OnStateChange;
-            SubGpuConnect.OnReceived += OnGpuChange;
+            SubGpuService?.OnReceived += OnStateChange;
+            SubGpuConnect?.OnReceived += OnGpuChange;
         }
 
-        protected override void OnStateChange(ISimResourceSubscription sub, object data)
+        protected override async Task OnStateChange(ISimResourceSubscription sub, object data)
         {
-            base.OnStateChange(sub, data);
+            await base.OnStateChange(sub, data);
             if ((sub.GetNumber() == 1 || sub.GetNumber() == 2 || sub.GetNumber() == 3) && WasCanceled)
                 WasCanceled = false;
         }
 
-        protected virtual void OnGpuChange(ISimResourceSubscription sub, object data)
+        protected virtual Task OnGpuChange(ISimResourceSubscription sub, object data)
         {
             if (!Controller.IsGsxRunning)
-                return;
+                return Task.CompletedTask;
 
             if (sub.GetNumber() == 1)
             {
                 Logger.Information($"GSX GPU connected");
-                TaskTools.RunLogged(() => OnGpuConnection?.Invoke(true), Controller.Token);
+                _ = TaskTools.RunPool(() => OnGpuConnection?.Invoke(true), Controller.Token);
             }
             if (sub.GetNumber() == 0)
             {
                 Logger.Information($"GSX GPU disconnected");
-                TaskTools.RunLogged(() => OnGpuConnection?.Invoke(false), Controller.Token);
+                _ = TaskTools.RunPool(() => OnGpuConnection?.Invoke(false), Controller.Token);
             }
+
+            return Task.CompletedTask;
         }
 
         protected override void DoReset()
@@ -77,14 +77,14 @@ namespace Any2GSX.GSX.Services
 
         public override void FreeResources()
         {
-            SubGpuConnect.OnReceived -= OnGpuChange;
-            SubGpuService.OnReceived -= OnStateChange;
+            SubGpuConnect?.OnReceived -= OnGpuChange;
+            SubGpuService?.OnReceived -= OnStateChange;
 
             SimStore.Remove(GsxConstants.VarServiceGpuConnect);
             SimStore.Remove(GsxConstants.VarServiceGpu);
         }
 
-        public override async Task Cancel(int option = -1)
+        public override async Task Cancel(GsxCancelService option = GsxCancelService.Complete)
         {
             WasCanceled = await DoCall();
         }

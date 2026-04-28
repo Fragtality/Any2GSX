@@ -1,0 +1,162 @@
+﻿<UserControl x:Class="Any2GSX.UI.Views.Settings.ControlAppServices"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Any2GSX.UI.Views.Settings"
+             d:DataContext="{d:DesignInstance Type=local:ModelSettings}"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../StyleResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    
+    <Grid HorizontalAlignment="Stretch">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Grid.Column="0" Grid.Row="0" Margin="8,0,8,8" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>UI &amp; Connectors</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="196"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <TextBlock Grid.Column="0" Grid.Row="0" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Open the UI when the App is started.">
+                    Open UI on Start:
+                </TextBlock>
+                <CheckBox Grid.Column="1" Grid.Row="0" IsChecked="{Binding OpenAppWindowOnStart}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="Open the UI when the App is started."/>
+
+                <TextBlock Grid.Column="0" Grid.Row="1" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The App will restore its last Position on your Screen(s) when started (regardless if the UI is opened).">
+                    Save Window Position:
+                </TextBlock>
+                <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{Binding AppWindowRestorePosition}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="The App will restore its last Position on your Screen(s) when started (regardless if the UI is opened)."/>
+
+                <TextBlock Grid.Column="0" Grid.Row="2" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="For MSFS2024 and the EFB App, Any2GSX will reopen the GSX Menu when it times out (when being at the Gate) or was cleared after a Selection.&#x0a;It's basically the same Behavior as the PilotsDeck Integration, but for the EFB App.&#x0a;The GSX Menu/Toolbar will still be enabled for Selections if configured in in the Profile.">
+                    Automatic Refresh for EFB App:
+                </TextBlock>
+                <CheckBox Grid.Column="1" Grid.Row="2" IsChecked="{Binding RefreshMenuForEfb}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="For MSFS2024 and the EFB App, Any2GSX will reopen the GSX Menu when it times out (when being at the Gate) or was cleared after a Selection.&#x0a;It's basically the same Behavior as the PilotsDeck Integration, but for the EFB App.&#x0a;The GSX Menu/Toolbar will still be enabled for Selections if configured in in the Profile."/>
+
+                <TextBlock Grid.Column="0" Grid.Row="3" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Any2GSX will reopen the GSX Menu when it times out (when being at the Gate) or was cleared after a Selection.">
+                    Automatic Refresh for PilotsDeck:
+                </TextBlock>
+                <CheckBox Grid.Column="1" Grid.Row="3" IsChecked="{Binding RefreshMenuForDeck}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="Any2GSX will reopen the GSX Menu when it times out (when being at the Gate) or was cleared after a Selection."/>
+
+                <TextBlock Grid.Column="0" Grid.Row="4" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The Time to wait after the last Timeout or Selection before the Menu is refreshed (opened).&#x0a;A Value of 0 means instant.">
+                    Automatic Refresh Delay:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="4" Orientation="Horizontal" Style="{StaticResource SettingItemPanel}"
+                            ToolTip="The Time to wait after the last Timeout or Selection before the Menu is refreshed (opened).&#x0a;A Value of 0 means instant.">
+                    <TextBox Name="InputClearDelay" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+    
+        <GroupBox Grid.Column="0" Grid.Row="1" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>Audio Control</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="196"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Column="0" Grid.Row="0" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Intervals at which the App will Scan for Changes in Audio Devices and running Processes.&#x0a;Lower Values may increase CPU/Device Usage but detect Changes faster.">
+                    Device Scan Interval:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Horizontal" Style="{StaticResource SettingItemPanel}"
+                            ToolTip="Interval in ms at which all Audio Devices in the System are queried.">
+                    <TextBox Name="InputAudioScanDevice" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">ms</TextBlock>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="1" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="Intervals at which the App will Scan for Changes in Audio Devices and running Processes.&#x0a;Lower Values may increase CPU/Device Usage but detect Changes faster.">
+                    Process Scan Interval:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Horizontal" Style="{StaticResource SettingItemPanel}"
+                            ToolTip="Interval in ms at which the Active Processes in the System are queried.">
+                    <TextBox Name="InputAudioScanProcess" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">ms</TextBlock>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+            
+        <GroupBox Grid.Column="0" Grid.Row="2" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>API Connections</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="196"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Column="0" Grid.Row="0" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The base Port to listen for CommBus Module Messages. If the Port can't be used, the next Port in the Range is tried.">
+                    CommBus Port:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="0" Style="{StaticResource SettingItemPanel}" ToolTip="The base Port to listen for CommBus Module Messages. If the Port can't be used, the next Port in the Range is tried.">
+                    <TextBlock Margin="0,0,4,0" Style="{StaticResource TextBlockDefault}">Base Port:</TextBlock>
+                    <TextBox Name="InputPortBase" Style="{StaticResource TextBoxCentered}" MinWidth="72"/>
+                    <TextBlock Margin="11,0,4,0" Style="{StaticResource TextBlockDefault}">Range:</TextBlock>
+                    <TextBox Name="InputPortRange" Style="{StaticResource TextBoxCentered}"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="1" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The Base URL used for connecting to the PilotsDeck API.">
+                    PilotsDeck URL:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="1" Style="{StaticResource SettingItemPanel}" ToolTip="The Base URL used for connecting to the PilotsDeck API.">
+                    <TextBox Name="InputDeckUrl" Style="{StaticResource TextBoxLeft}" MinWidth="228"/>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Column="0" Grid.Row="3" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>DEBUG</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="196"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Column="0" Grid.Row="0" Margin="6" Style="{StaticResource TextBlockDefault}" Foreground="OrangeRed" FontWeight="DemiBold" ToolTip="HANDLE WITH CARE.&#x0a;Start the Automation in the Flight Phase (switch directly from SessionStart to Flight, regardless of Ground State).">
+                    Debug Arrival:
+                </TextBlock>
+                <CheckBox Grid.Column="1" Grid.Row="0" IsChecked="{Binding DebugArrival}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="HANDLE WITH CARE.&#x0a;Start the Automation in the Flight Phase regardless of State."/>
+
+                <TextBlock Grid.Column="0" Grid.Row="1" Margin="6" Style="{StaticResource TextBlockDefault}" Foreground="OrangeRed" FontWeight="DemiBold" ToolTip="DO NOT ENABLE UNLESS ADVISED.">
+                    Verbose Logging:
+                </TextBlock>
+                <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{Binding VerboseLogging}" Style="{StaticResource CheckBoxSettingItem}" ToolTip="DO NOT ENABLE UNLESS ADVISED."/>
+            </Grid>
+        </GroupBox>
+    </Grid>
+</UserControl>

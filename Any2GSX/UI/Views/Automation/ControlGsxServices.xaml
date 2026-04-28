@@ -36,6 +36,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <CheckBox Grid.Column="0" Grid.Row="0" IsChecked="{Binding CallReposition}" Margin="6,8,6,6" Style="{StaticResource CheckBoxSettingItem}"
@@ -54,7 +55,7 @@
                 </CheckBox>
 
                 <CheckBox Grid.Column="0" Grid.Row="3" IsChecked="{Binding RunDepartureOnArrival}" Style="{StaticResource CheckBoxSettingItem}"
-                          ToolTip="Already start the Departure Services while Deboarding is active.&#x0a;Publish a new SimBrief OFP and ensure the Aircraft is in the Ready for Departure State (depends on Profile/Plugin) and Jetway or Stairs being reported as connected.&#x0a;When a new OFP ID is detected in this State, it will be imported and Departure Services are triggered&#x0a;The Departure Services will be called as configured - as long as the next Service is not Boarding!&#x0a;The Deboard Service will not be considered as previous Service.&#x0a;Note that GSX does not allow certain Services to active at the same Time.">
+                          ToolTip="Already start the Departure Services while Deboarding is active.&#x0a;Publish a new SimBrief OFP and ensure the Aircraft is in the Ready for Departure State (depends on Profile/Plugin - by default Power connected and Nav Lights on).&#x0a;Note: GSX does not allow certain Services to be active at the same Time (i.e. Cleaning and Deboarding).">
                     <TextBlock>Start <Underline>Departure</Underline> Services while <Underline>Deboarding</Underline> is active</TextBlock>
                 </CheckBox>
 
@@ -62,14 +63,16 @@
                     <TextBlock Style="{StaticResource TextBlockDefault}">
                         <Underline>Cancel</Underline> last Service on SmartButton Request:
                     </TextBlock>
-                    <ComboBox SelectedValue="{Binding SmartButtonAbortService}" SelectedValuePath="Tag" Margin="8,0,0,0" Style="{StaticResource ComboBoxDefault}">
-                        <ComboBoxItem Tag="0">Never</ComboBoxItem>
-                        <ComboBoxItem Tag="1">Gracefully</ComboBoxItem>
-                        <ComboBoxItem Tag="2">Forcefully</ComboBoxItem>
-                    </ComboBox>
+                    <ComboBox SelectedValue="{Binding SmartButtonAbortService}" DisplayMemberPath="Value" ItemsSource="{Binding AbortOptions}" SelectedValuePath="Key" Margin="8,0,0,0" Style="{StaticResource ComboBoxDefault}"/>
                 </StackPanel>
 
-                <Grid Grid.Column="0" Grid.Row="5">
+                <TextBlock Grid.Column="0" Grid.Row="5" Name="LabelQueueInUse" Style="{StaticResource TextBlockDefault}" Margin="6,8,0,0" Visibility="Collapsed">
+                    <Italic>
+                        <Bold>Note:</Bold> The Service Queue is currently in use. Some Changes (i.e. Order) may not apply until the next Departure Phase.
+                    </Italic>
+                </TextBlock>
+
+                <Grid Grid.Column="0" Grid.Row="6">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -84,50 +87,50 @@
                             <DataGridTemplateColumn Header="Service" MinWidth="64">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding ServiceType}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                        <TextBlock Text="{Binding ServiceType}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}" FontWeight="DemiBold"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="Activation" MinWidth="128">
+                            <DataGridTemplateColumn Header="Activation" MinWidth="136">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding ServiceActivationName}" Margin="5,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                        <TextBlock Text="{Binding ServiceActivationName}" Margin="5,0,16,0" Style="{StaticResource TextBlockDefault}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="Activate at" MinWidth="112">
+                            <DataGridTemplateColumn Header="Activate at" MinWidth="72">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="5,0,0,0">
-                                            <Label Content="{Binding MaxTimeBeforeDeparture, Converter={StaticResource TimeSpanConverter}}" HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="6,0,0,0" MinWidth="48"/>
-                                            <TextBlock Style="{StaticResource TextBlockDefault}" Margin="2,0,0,0">minutes</TextBlock>
+                                        <StackPanel Orientation="Horizontal" Margin="10,0,10,0" HorizontalAlignment="Center">
+                                            <Label Content="{Binding MaxTimeBeforeDeparture, Converter={StaticResource TimeSpanConverterMinutes}}" HorizontalAlignment="Left" HorizontalContentAlignment="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Width="36"/>
+                                            <TextBlock Style="{StaticResource TextBlockDefault}" Margin="3,0,0,0">min</TextBlock>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="Min. Flight Time" MinWidth="112">
+                            <DataGridTemplateColumn Header="Flight Time" MinWidth="72">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="5,0,0,0">
-                                            <Label Content="{Binding MinimumFlightDuration, Converter={StaticResource TimeSpanConverter}}" HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="6,0,0,0" MinWidth="48"/>
-                                            <TextBlock Style="{StaticResource TextBlockDefault}" Margin="2,0,0,0">minutes</TextBlock>
+                                        <StackPanel Orientation="Horizontal" Margin="10,0,20,0" HorizontalAlignment="Center">
+                                            <Label Content="{Binding MinimumFlightDuration, Converter={StaticResource TimeSpanConverterMinutes}}" HorizontalAlignment="Left" HorizontalContentAlignment="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Width="36"/>
+                                            <TextBlock Style="{StaticResource TextBlockDefault}" Margin="3,0,0,0">min</TextBlock>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="Constraint">
+                            <DataGridTemplateColumn Header="Constraint" MinWidth="124">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding ServiceConstraintName}" MinWidth="96" Margin="6,0,0,0" Style="{StaticResource TextBlockDefault}"/>
+                                        <TextBlock Text="{Binding ServiceConstraintName}" MinWidth="96" Margin="5,0,8,0" Style="{StaticResource TextBlockDefault}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="Call on Cargo">
+                            <DataGridTemplateColumn Header="Cargo" Width="48">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <CheckBox IsChecked="{Binding CallOnCargo}" IsHitTestVisible="False" HorizontalAlignment="Center" Style="{StaticResource CheckBoxDefault}"/>
@@ -135,12 +138,23 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="Max Run Time" MinWidth="112">
+                            <DataGridTemplateColumn Header="Run Time" MinWidth="64">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="5,0,0,0">
-                                            <Label Content="{Binding MaxRunTime, Converter={StaticResource TimeSpanConverter}}" HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="6,0,0,0" MinWidth="48"/>
-                                            <TextBlock Style="{StaticResource TextBlockDefault}" Margin="2,0,0,0">minutes</TextBlock>
+                                        <StackPanel Orientation="Horizontal" Margin="5,0,5,0" HorizontalAlignment="Center">
+                                            <Label Content="{Binding MaxRunTime, Converter={StaticResource TimeSpanConverterMinutes}}" HorizontalAlignment="Left" HorizontalContentAlignment="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Width="36"/>
+                                            <TextBlock Style="{StaticResource TextBlockDefault}" HorizontalAlignment="Left" Margin="3,0,0,0">min</TextBlock>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="Delay" MinWidth="64">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="5,0,5,0" HorizontalAlignment="Center">
+                                            <Label Content="{Binding CallDelay, Converter={StaticResource TimeSpanConverterSeconds}}" HorizontalAlignment="Left" HorizontalContentAlignment="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Width="36"/>
+                                            <TextBlock Style="{StaticResource TextBlockDefault}" HorizontalAlignment="Left" Margin="3,0,0,0">sec</TextBlock>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -157,8 +171,8 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Horizontal" Margin="6,6,0,0" Visibility="{Binding HasSelection, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type UserControl}}, Converter={StaticResource BoolVisibilityConverter}}">
-                        <TextBlock Name="LabelServiceName" Margin="5,0,0,0" Style="{StaticResource TextBlockDefault}"/>
-                        <ComboBox Name="SelectorActivation" ItemsSource="{Binding TextServiceActivations}" SelectedIndex="0" SelectedValuePath="Key" DisplayMemberPath="Value" Style="{StaticResource ComboBoxDefault}"
+                        <TextBlock Name="LabelServiceName" Margin="5,0,0,0" Style="{StaticResource TextBlockDefault}" FontWeight="DemiBold"/>
+                        <ComboBox Name="SelectorActivation" Margin="-4,0,0,0" ItemsSource="{Binding TextServiceActivations}" SelectedIndex="0" SelectedValuePath="Key" DisplayMemberPath="Value" Style="{StaticResource ComboBoxDefault}"
                                   ToolTip="Select if and how to activate the Service:&#x0a;
                                   Skip / Ignore: Service will neither be called nor monitored by Any2GSX&#x0a;
                                   Manual by User: Service will be called externally by the User or another App (but must be completed to end the Departure Phase)&#x0a;
@@ -168,11 +182,11 @@
                                   Previous completed: Service will be called as soon as the previous Service is reported as 'completed' by GSX&#x0a;
                                   All completed: Service will only be called after all previous Service are reported as 'completed' by GSX&#x0a;
                                   Note: The first Service will always be called directly (if not set to skipped or manual), as it has no previous Service!"/>
-                        <TextBox Name="InputActivateAt" Margin="7,0,0,0" Style="{StaticResource TextBoxCentered}" ToolTip="Call the Service X Minutes before Departure Time. A Value of 0 calls the Service without Delay.&#x0a;The current (Sim or System) UTC Time is compared to the SimBrief Departure Time. Note that this is full Comparison including the complete Date and Time."/>
-                        <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}" ToolTip="Call the Service X Minutes before Departure Time. A Value of 0 calls the Service without Delay.&#x0a;The current (Sim or System) UTC Time is compared to the SimBrief Departure Time. Note that this is full Comparison including the complete Date and Time.">minutes</TextBlock>
-                        <TextBox Name="InputDuration" Margin="20,0,0,0" Style="{StaticResource TextBoxCentered}" ToolTip="Only call/monitor the Service if the scheduled Flight Time is greater than the specified Value."/>
-                        <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}" ToolTip="Only call/monitor the Service if the scheduled Flight Time is greater than the specified Value.">minutes</TextBlock>
-                        <ComboBox Margin="10,0,0,0" Name="SelectorConstraint" ItemsSource="{Binding TextServiceConstraints}" SelectedIndex="0" SelectedValuePath="Key" DisplayMemberPath="Value" Style="{StaticResource ComboBoxDefault}"
+                        <TextBox Name="InputActivateAt" Margin="16,0,0,0" Style="{StaticResource TextBoxCentered}" MinWidth="28" HorizontalContentAlignment="Right" ToolTip="Call the Service X Minutes before Departure Time. A Value of 0 calls the Service without Delay.&#x0a;The current (Sim or System) UTC Time is compared to the SimBrief Departure Time. Note that this is full Comparison including the complete Date and Time."/>
+                        <TextBlock Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}" ToolTip="Call the Service X Minutes before Departure Time. A Value of 0 calls the Service without Delay.&#x0a;The current (Sim or System) UTC Time is compared to the SimBrief Departure Time. Note that this is full Comparison including the complete Date and Time.">min</TextBlock>
+                        <TextBox Name="InputDuration" Margin="26.5,0,0,0" Style="{StaticResource TextBoxCentered}" MinWidth="28" HorizontalContentAlignment="Right" ToolTip="Only call/monitor the Service if the scheduled Flight Time is greater than the specified Value."/>
+                        <TextBlock Margin="5,0,0,0" Style="{StaticResource TextBlockDefault}" ToolTip="Only call/monitor the Service if the scheduled Flight Time is greater than the specified Value.">min</TextBlock>
+                        <ComboBox Margin="19,0,0,0" Name="SelectorConstraint" ItemsSource="{Binding TextServiceConstraints}" HorizontalAlignment="Left" SelectedIndex="0" SelectedValuePath="Key" DisplayMemberPath="Value" Style="{StaticResource ComboBoxDefault}"
                                   ToolTip="Select a Constraint for calling the Service:&#x0a;
                                   None: No Constraint applied, the Service is called normally (according to the other Options)&#x0a;
                                   Only Departure: The Service is only called on the first Departure (resetted by App Restart or new Session)&#x0a;
@@ -180,10 +194,13 @@
                                   Only on Hub: The Service is only called when the Departure ICAO (as of SimBrief) has a Match in the Company Hub List&#x0a;
                                   Only on Non-Hub: The Service is only called when the Departure ICAO (as of SimBrief) has NO Match in the Company Hub List&#x0a;
                                   Turn on Hub: The Service is only called on Turn Arounds when the Arrival ICAO (as of SimBrief) has a Match in the Company Hub List&#x0a;
-                                  Turn on Non-Hub: The Service is only called on Turn Arounds when the Arrival ICAO (as of SimBrief) has NO Match in the Company Hub List&#x0a;"/>
-                        <CheckBox Margin="31,0,0,0" Name="CheckboxCallCargo" Style="{StaticResource CheckBoxDefault}" ToolTip="If the Service should be called also on Cargo Airplanes or on Passenger Airplanes only."/>
-                        <TextBox Name="InputRunTime" Margin="10,0,0,0" Style="{StaticResource TextBoxCentered}" ToolTip="The maximum Time the Service is allowed to run before it is canceled (gracefully). A Value of 0 means no Limitation."/>
-                        <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}" ToolTip="The maximum Time the Service is allowed to run before it is canceled (gracefully). A Value of 0 means no Limitation.">minutes</TextBlock>
+                                  Turn on Non-Hub: The Service is only called on Turn Arounds when the Arrival ICAO (as of SimBrief) has NO Match in the Company Hub List&#x0a;
+                                  Preferred Operator: The Service is only called if the already selected Handling Operator was on the preferred List"/>
+                        <CheckBox Margin="17.5,0,0,0" Name="CheckboxCallCargo" Style="{StaticResource CheckBoxDefault}" HorizontalContentAlignment="Center" MinWidth="24" MaxWidth="24" Padding="0" ToolTip="The Service can be called when the Aircraft is reported as Cargo."/>
+                        <TextBox Name="InputRunTime" Margin="20,0,0,0" Style="{StaticResource TextBoxCentered}" MinWidth="28" HorizontalContentAlignment="Right" ToolTip="The maximum Time the Service is allowed to run before it is canceled (gracefully). A Value of 0 means no Limitation."/>
+                        <TextBlock Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}" ToolTip="The maximum Time the Service is allowed to run before it is canceled (gracefully). A Value of 0 means no Limitation.">min</TextBlock>
+                        <TextBox Name="InputCallDelay" Margin="17,0,0,0" Style="{StaticResource TextBoxCentered}" MinWidth="28" HorizontalContentAlignment="Right" ToolTip="The Time to delay this Service's Call after the previous Service was called."/>
+                        <TextBlock Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}" ToolTip="The Time to delay this Service's Call after the previous Service was called.">sec</TextBlock>
                     </StackPanel>
 
                     <Button Grid.Column="1" Grid.Row="1" Name="ButtonEdit" Margin="0,6,0,0" Style="{StaticResource BtnSquareSmall}" Visibility="{Binding HasSelection, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type UserControl}}, Converter={StaticResource BoolVisibilityConverter}}"

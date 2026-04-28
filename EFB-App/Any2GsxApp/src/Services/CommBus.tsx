@@ -7,7 +7,9 @@ export const RequestTypeUnregisterAll = 4;
 export const RequestTypePing = 5;
 export const RequestTypeRelay = 6;
 export const RequestTypeEfb = 8;
+export const RequestTypeGsxMenu = 9;
 export const EventNameJs = "Any2GSX_RelayToJs";
+export const EventNameGsx = "Any2GSX_RelayToGsx";
 
 export const IsJsonString = (str: string): boolean => {
   try {
@@ -36,12 +38,12 @@ export const CommBusCallback = (evt: string, data: object) => {
   console.log(`Relayed Event: ${evt}`);
 };
 
-export const PingReply = (): void => {
+export const PingReply = (version: string): void => {
   try {
     fetch(`http://localhost:${CommBusService.portNumber}/v1/ping-reply`, {
       method: "POST",
       mode: "no-cors",
-      body: "",
+      body: `{ "event": "ping", "data": "${version}" }`,
       headers: {
         "Content-type": "application/json; charset=UTF-8",
       },
@@ -54,11 +56,23 @@ export const PingReply = (): void => {
 
 export const PublishEfbUpdate = (json: any): void => {
   try {
-    if (json.ConnectionState !== null) {
-      CommBusService.efbPublisher.pub("ConnectionState", json.ConnectionState);
+    if (json.AppConnectionState !== null) {
+      CommBusService.efbPublisher.pub(
+        "AppConnectionState",
+        json.AppConnectionState,
+      );
+    }
+    if (json.AircraftConnectionState !== null) {
+      CommBusService.efbPublisher.pub(
+        "AircraftConnectionState",
+        json.AircraftConnectionState,
+      );
     }
     if (json.ProfileName !== null) {
       CommBusService.efbPublisher.pub("ProfileName", json.ProfileName);
+    }
+    if (json.FlightPhase !== null) {
+      CommBusService.efbPublisher.pub("FlightPhase", json.FlightPhase);
     }
     if (json.PhaseStatus !== null) {
       CommBusService.efbPublisher.pub("PhaseStatus", json.PhaseStatus);
@@ -75,7 +89,7 @@ export const PublishEfbUpdate = (json: any): void => {
     if (json.DepartureServices !== null) {
       CommBusService.efbPublisher.pub(
         "DepartureServices",
-        json.DepartureServices
+        json.DepartureServices,
       );
     }
     if (json.SmartCall !== null) {
@@ -115,6 +129,7 @@ export class CommBusService {
     CommBusService.wasmListener = RegisterViewListener("JS_LISTENER_COMM_BUS");
     if (CommBusService.wasmListener !== undefined) {
       CommBusService.wasmListener.on(EventNameJs, this.AppCallback);
+      CommBusService.wasmListener.on(EventNameGsx, this.AppCallback);
       console.log("CommBus Listener registered");
       CommBusService.efbPublisher = eventBus.getPublisher<EfbUpdateEvents>();
     } else {
@@ -126,11 +141,11 @@ export class CommBusService {
     if (IsJsonString(data) == true) {
       var request = JSON.parse(data);
       console.log(
-        `Received Wasm Request - Type: ${request.type} | Event: ${request.event}`
+        `Received Wasm Request - Type: ${request.type} | Event: ${request.event}`,
       );
       if (request.type == RequestTypeRegister) {
         let evtStruct = new EventStruct(request.event, (data: object) =>
-          CommBusCallback(request.event, data)
+          CommBusCallback(request.event, data),
         );
         CommBusService.wasmListener.on(evtStruct.name, evtStruct.callback);
         CommBusService.RegisteredEvents.set(request.event, evtStruct);
@@ -151,7 +166,7 @@ export class CommBusService {
         console.log("All Events removed");
       } else if (request.type == RequestTypePing) {
         CommBusService.portNumber = request.data;
-        PingReply();
+        PingReply(request.event);
       } else if (request.type == RequestTypeRelay) {
         CommBusCallback(request.event, request.data);
       } else if (
@@ -160,6 +175,7 @@ export class CommBusService {
       ) {
         PublishEfbUpdate(JSON.parse(request.data));
         console.log("Received EFB Update");
+      } else if (request.type == RequestTypeGsxMenu) {
       } else console.error("Received type from Wasm Module is unknown!");
     } else {
       console.error("Received data from Wasm Module is not a Json!");

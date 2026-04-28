@@ -3300,7 +3300,9 @@
   var RequestTypePing = 5;
   var RequestTypeRelay = 6;
   var RequestTypeEfb = 8;
+  var RequestTypeGsxMenu = 9;
   var EventNameJs = "Any2GSX_RelayToJs";
+  var EventNameGsx = "Any2GSX_RelayToGsx";
   var IsJsonString = /* @__PURE__ */ __name((str) => {
     try {
       JSON.parse(str);
@@ -3325,12 +3327,12 @@
     });
     console.log(`Relayed Event: ${evt}`);
   }, "CommBusCallback");
-  var PingReply = /* @__PURE__ */ __name(() => {
+  var PingReply = /* @__PURE__ */ __name((version) => {
     try {
       fetch(`http://localhost:${CommBusService.portNumber}/v1/ping-reply`, {
         method: "POST",
         mode: "no-cors",
-        body: "",
+        body: `{ "event": "ping", "data": "${version}" }`,
         headers: {
           "Content-type": "application/json; charset=UTF-8"
         }
@@ -3342,11 +3344,23 @@
   }, "PingReply");
   var PublishEfbUpdate = /* @__PURE__ */ __name((json) => {
     try {
-      if (json.ConnectionState !== null) {
-        CommBusService.efbPublisher.pub("ConnectionState", json.ConnectionState);
+      if (json.AppConnectionState !== null) {
+        CommBusService.efbPublisher.pub(
+          "AppConnectionState",
+          json.AppConnectionState
+        );
+      }
+      if (json.AircraftConnectionState !== null) {
+        CommBusService.efbPublisher.pub(
+          "AircraftConnectionState",
+          json.AircraftConnectionState
+        );
       }
       if (json.ProfileName !== null) {
         CommBusService.efbPublisher.pub("ProfileName", json.ProfileName);
+      }
+      if (json.FlightPhase !== null) {
+        CommBusService.efbPublisher.pub("FlightPhase", json.FlightPhase);
       }
       if (json.PhaseStatus !== null) {
         CommBusService.efbPublisher.pub("PhaseStatus", json.PhaseStatus);
@@ -3393,6 +3407,7 @@
       _CommBusService.wasmListener = RegisterViewListener("JS_LISTENER_COMM_BUS");
       if (_CommBusService.wasmListener !== void 0) {
         _CommBusService.wasmListener.on(EventNameJs, this.AppCallback);
+        _CommBusService.wasmListener.on(EventNameGsx, this.AppCallback);
         console.log("CommBus Listener registered");
         _CommBusService.efbPublisher = eventBus.getPublisher();
       } else {
@@ -3429,12 +3444,13 @@
           console.log("All Events removed");
         } else if (request.type == RequestTypePing) {
           _CommBusService.portNumber = request.data;
-          PingReply();
+          PingReply(request.event);
         } else if (request.type == RequestTypeRelay) {
           CommBusCallback(request.event, request.data);
         } else if (request.type == RequestTypeEfb && IsJsonString(request.data) == true) {
           PublishEfbUpdate(JSON.parse(request.data));
           console.log("Received EFB Update");
+        } else if (request.type == RequestTypeGsxMenu) {
         } else console.error("Received type from Wasm Module is unknown!");
       } else {
         console.error("Received data from Wasm Module is not a Json!");
@@ -3455,14 +3471,21 @@
     constructor(props) {
       super();
       this.tabName = _MainPage.name;
+      this.MenuOpenText = "Open Menu ...";
       this.props = props;
       const subscriber = this.props.eventBus.getSubscriber();
-      this.ConnectionState = import_msfs_sdk2.ConsumerSubject.create(
-        subscriber.on("ConnectionState"),
+      this.AppConnectionState = import_msfs_sdk2.ConsumerSubject.create(
+        subscriber.on("AppConnectionState"),
         "Disconnected"
       );
-      this.ConnectionStateClass = import_msfs_sdk2.Subject.create("property-red");
+      this.AppConnectionStateClass = import_msfs_sdk2.Subject.create("property-red");
+      this.AircraftConnectionState = import_msfs_sdk2.ConsumerSubject.create(
+        subscriber.on("AircraftConnectionState"),
+        "Disconnected"
+      );
+      this.AircraftConnectionStateClass = import_msfs_sdk2.Subject.create("property-red");
       this.ProfileName = import_msfs_sdk2.ConsumerSubject.create(subscriber.on("ProfileName"), "");
+      this.FlightPhase = import_msfs_sdk2.ConsumerSubject.create(subscriber.on("FlightPhase"), "");
       this.PhaseStatus = import_msfs_sdk2.ConsumerSubject.create(subscriber.on("PhaseStatus"), "");
       this.DepartureServices = import_msfs_sdk2.ConsumerSubject.create(
         subscriber.on("DepartureServices"),
@@ -3480,8 +3503,8 @@
       this.ProgressVisibility = import_msfs_sdk2.Subject.create(StyleHidden);
       this.SmartCall = import_msfs_sdk2.ConsumerSubject.create(subscriber.on("SmartCall"), "");
       this.SmartCallVisibility = import_msfs_sdk2.Subject.create(StyleHidden);
-      subscriber.on("ConnectionState").whenChanged().handle((state) => {
-        typeof state !== null && state == "Disconnected" ? this.ConnectionStateClass.set("property-red") : this.ConnectionStateClass.set("property-green");
+      subscriber.on("AppConnectionState").whenChanged().handle((state) => {
+        this.SetConnectionState(state, this.AppConnectionStateClass);
         if (typeof state !== null && state == "Disconnected") {
           this.DepartureServicesVisibility.set(StyleHidden);
           this.SmartCallVisibility.set(StyleHidden);
@@ -3493,6 +3516,9 @@
           this.props.eventBus.getPublisher().pub("PhaseStatus", "");
         }
       });
+      subscriber.on("AircraftConnectionState").whenChanged().handle((state) => {
+        this.SetConnectionState(state, this.AircraftConnectionStateClass);
+      });
       subscriber.on("SmartCall").whenChanged().handle(
         (call) => typeof call !== null && call != "" ? this.SmartCallVisibility.set(StyleVisible) : this.SmartCallVisibility.set(StyleHidden)
       );
@@ -3502,14 +3528,9 @@
       subscriber.on("ProgressInfo").whenChanged().handle(
         (text) => typeof text !== null && text != "" ? this.ProgressVisibility.set(StyleVisible) : this.ProgressVisibility.set(StyleHidden)
       );
-      this.MenuTitleDisplay = import_msfs_sdk2.Subject.create("Open Menu ...");
+      this.MenuTitleDisplay = import_msfs_sdk2.Subject.create(this.MenuOpenText);
       this.MenuTitleVisibility = import_msfs_sdk2.Subject.create(StyleLineHidden);
-      subscriber.on("MenuTitle").whenChanged().handle((text) => {
-        typeof text !== null && text != "" ? this.MenuTitleDisplay.set(text) : this.MenuTitleDisplay.set("Open Menu ...");
-        if (typeof text !== null && text != "") {
-          this.MenuTitleVisibility.set(StyleVisible);
-        }
-      });
+      subscriber.on("MenuTitle").whenChanged().handle((text) => this.SetMenuTitle(text));
       let i = 0;
       this.MenuLinesDisplay = [];
       this.MenuLinesVisibility = [];
@@ -3531,9 +3552,9 @@
       });
       subscriber.on("CouatlVarsValid").whenChanged().handle((state) => {
         if (typeof state != null && state == "true") {
-          this.MenuTitleVisibility.set(StyleVisible);
+          this.SetMenuTitle(this.MenuOpenText);
           this.MenuLinesVisibility.forEach((line) => {
-            line.set(StyleVisible);
+            line.set(StyleLineHidden);
           });
         } else {
           this.MenuTitleVisibility.set(StyleLineHidden);
@@ -3543,20 +3564,33 @@
         }
       });
     }
+    SetConnectionState(state, classProperty) {
+      typeof state !== null && state == "Disconnected" ? classProperty.set("property-red") : classProperty.set("property-green");
+    }
+    SetMenuTitle(text) {
+      typeof text !== null && text != "" ? this.MenuTitleDisplay.set(text) : this.MenuTitleDisplay.set(this.MenuOpenText);
+      if (typeof text !== null && text != "") {
+        this.MenuTitleVisibility.set(StyleVisible);
+      }
+    }
     SmartButtonRequest() {
       console.log("Setting SmartButton Request");
       SimVar.SetSimVarValue("L:ANY2GSX_SMARTBUTTON_REQ", "number", 1);
     }
     OpenMenu() {
       console.log("Open GSX Menu");
-      SimVar.SetSimVarValue("L:FSDT_GSX_MENU_OPEN", "number", 1);
+      if (this.MenuTitleDisplay.get() == this.MenuOpenText) {
+        SimVar.SetSimVarValue("L:FSDT_GSX_MENU_OPEN", "number", 1);
+      } else {
+        SimVar.SetSimVarValue("L:FSDT_GSX_MENU_CHOICE", "number", -1);
+      }
     }
     SelectMenu(index2) {
       console.log(`Select GSX Index ${index2}`);
       SimVar.SetSimVarValue("L:FSDT_GSX_MENU_CHOICE", "number", index2);
     }
     render() {
-      return /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { ref: this.gamepadUiViewRef, class: "main-page" }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "content" }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "top-header" }, "App State"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "row" }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "label" }, "Connection State"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: this.ConnectionStateClass }, this.ConnectionState)), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "row" }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "label" }, "Profile Name"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "property" }, this.ProfileName)), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "row" }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "label" }, "Flight Phase & Status"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "property" }, this.PhaseStatus)), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "row", style: this.DepartureServicesVisibility }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "label" }, "Departure Services"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "property" }, this.DepartureServices)), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "row", style: this.ProgressVisibility }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "label" }, this.ProgressLabel), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "property" }, this.ProgressInfo)), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "row", style: this.SmartCallVisibility }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "label" }, "SmartButton Call"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent(Button, { class: "button", callback: () => this.SmartButtonRequest() }, this.SmartCall)), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "header" }, "GSX Menu"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "menuContent" }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent(
+      return /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { ref: this.gamepadUiViewRef, class: "main-page" }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "content" }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "top-header" }, "App State"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "row" }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "label" }, "App Connection"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: this.AppConnectionStateClass }, this.AppConnectionState)), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "row" }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "label" }, "Aircraft Connection"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: this.AircraftConnectionStateClass }, this.AircraftConnectionState)), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "row" }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "label" }, "Profile Name"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "property" }, this.ProfileName)), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "row" }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "label" }, "Flight Phase"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "property" }, this.FlightPhase)), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "row" }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "label" }, "Status"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "property" }, this.PhaseStatus)), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "row", style: this.DepartureServicesVisibility }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "label" }, "Departure Services"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "property" }, this.DepartureServices)), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "row", style: this.ProgressVisibility }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "label" }, this.ProgressLabel), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "property" }, this.ProgressInfo)), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "row", style: this.SmartCallVisibility }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("span", { class: "label" }, "SmartButton Call"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent(Button, { class: "button", callback: () => this.SmartButtonRequest() }, this.SmartCall)), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "header" }, "GSX Menu"), /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent("div", { class: "menuContent" }, /* @__PURE__ */ import_msfs_sdk2.FSComponent.buildComponent(
         Button,
         {
           class: "menuTitle",

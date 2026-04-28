@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Any2GSX.CommBus
 {
-    public class ModuleCommBus(SimConnectManager manager, object moduleParams) : SimConnectModule(manager, moduleParams), ICommBus
+    public class ModuleCommBus(SimConnectManager manager, object moduleParams, bool wasRegisteredBefore) : SimConnectModule(manager, moduleParams, wasRegisteredBefore), ICommBus
     {
         protected const string CDA_NAME_REQUEST = "Any2GSX_CommBus.Request";
         public const int AREA_SIZE = 8192;
@@ -35,14 +35,16 @@ namespace Any2GSX.CommBus
             return Task.FromResult(0);
         }
 
-        public override async Task CheckState()
+        public override Task CheckState()
         {
             if (!IsPingReceived && ClientDataAreaCreated && Manager.IsSessionRunning && Port > 0 && NextPing < DateTime.Now)
             {
                 Logger.Debug($"Sending Ping to CommBus Module (Port {Port})");
-                await PingModule(Port.ToString());
-                NextPing = DateTime.Now + TimeSpan.FromMilliseconds(2000);
+                NextPing = DateTime.Now + TimeSpan.FromMilliseconds(3000);
+                return PingModule(Port.ToString());
             }
+            else
+                return Task.CompletedTask;
         }
 
         public override Task ClearUnusedResources(bool clearAll)
@@ -50,14 +52,15 @@ namespace Any2GSX.CommBus
             return Task.CompletedTask;
         }
 
-        public virtual async Task ResetSmartButton()
+        public virtual Task ResetSmartButtonDefault()
         {
-            await ExecuteCalculatorCode($"0 (>{GenericSettings.VarSmartButtonDefault},number)");
+            return ExecuteCalculatorCode($"0 (>{GenericSettings.VarSmartButtonDefault},number)");
         }
 
         public virtual async Task Reset()
         {
-            await ResetSmartButton();
+            if (!AppService.Instance.Token.IsCancellationRequested && !AppService.Instance.RequestToken.IsCancellationRequested)
+                await ResetSmartButtonDefault();
             await UnregisterAll();
             IsPingReceived = false;
         }
@@ -71,14 +74,17 @@ namespace Any2GSX.CommBus
         public override void RegisterModule()
         {
             Manager.OnOpen += OnOpen;
+            ClientDataAreaCreated = WasRegisteredBefore;
         }
 
-        public override async Task UnregisterModule(bool disconnect)
+        public override Task UnregisterModule(bool disconnect)
         {
             if (disconnect && Manager.IsReceiveRunning)
             {
-                await UnregisterAll();
+                return UnregisterAll();
             }
+            else
+                return Task.CompletedTask;
         }
 
         protected virtual async Task CreateDataArea()
@@ -95,15 +101,15 @@ namespace Any2GSX.CommBus
         public virtual void PushEvent(string @event, string data)
         {
             if (EventCallbacks.TryGetValue(@event, out var callback))
-                TaskTools.RunLogged(() => callback.Invoke(@event, data));
+                _ = TaskTools.RunPool(() => callback?.Invoke(@event, data));
             else
                 Logger.Warning($"No Callback found for Event '{@event}'");
         }
 
-        public virtual async Task SendCommBus(string @event, string data, BroadcastFlag flag = BroadcastFlag.DEFAULT)
+        public virtual Task SendCommBus(string @event, string data, BroadcastFlag flag = BroadcastFlag.DEFAULT)
         {
             if (!Manager.IsReceiveRunning)
-                return;
+                return Task.CompletedTask;
 
             try
             {
@@ -113,7 +119,7 @@ namespace Any2GSX.CommBus
                     Data = request.Serialize()
                 };
 
-                await Call(sc => sc.SetClientData(ClientDataId.REQUEST,
+                return Call(sc => sc.SetClientData(ClientDataId.REQUEST,
                     ClientDataId.REQUEST,
                     SIMCONNECT_CLIENT_DATA_SET_FLAG.DEFAULT,
                     0,
@@ -124,6 +130,8 @@ namespace Any2GSX.CommBus
             {
                 Logger.LogException(ex);
             }
+
+            return Task.CompletedTask;
         }
 
         public virtual async Task RegisterCommBus(string @event, BroadcastFlag eventSource, Action<string, string> callback)
@@ -222,7 +230,12 @@ namespace Any2GSX.CommBus
             }
         }
 
-        public virtual async Task PingModule(string portNumber)
+        public virtual Task PingModule()
+        {
+            return PingModule(Port.ToString());
+        }
+
+        protected virtual Task PingModule(string portNumber)
         {
             try
             {
@@ -232,7 +245,7 @@ namespace Any2GSX.CommBus
                     Data = request.Serialize()
                 };
 
-                await Call(sc => sc.SetClientData(ClientDataId.REQUEST,
+                return Call(sc => sc.SetClientData(ClientDataId.REQUEST,
                     ClientDataId.REQUEST,
                     SIMCONNECT_CLIENT_DATA_SET_FLAG.DEFAULT,
                     0,
@@ -243,9 +256,11 @@ namespace Any2GSX.CommBus
             {
                 Logger.LogException(ex);
             }
+
+            return Task.CompletedTask;
         }
 
-        public virtual async Task ExecuteCalculatorCode(string code)
+        public virtual Task ExecuteCalculatorCode(string code)
         {
             try
             {
@@ -256,7 +271,7 @@ namespace Any2GSX.CommBus
                     Data = request.Serialize()
                 };
 
-                await Call(sc => sc.SetClientData(ClientDataId.REQUEST,
+                return Call(sc => sc.SetClientData(ClientDataId.REQUEST,
                     ClientDataId.REQUEST,
                     SIMCONNECT_CLIENT_DATA_SET_FLAG.DEFAULT,
                     0,
@@ -267,9 +282,11 @@ namespace Any2GSX.CommBus
             {
                 Logger.LogException(ex);
             }
+
+            return Task.CompletedTask;
         }
 
-        public virtual async Task SendEfbUpdate(EfbMessage message)
+        public virtual Task SendEfbUpdate(EfbMessage message)
         {
             try
             {
@@ -280,7 +297,7 @@ namespace Any2GSX.CommBus
                     Data = request.Serialize()
                 };
 
-                await Call(sc => sc.SetClientData(ClientDataId.REQUEST,
+                return Call(sc => sc.SetClientData(ClientDataId.REQUEST,
                     ClientDataId.REQUEST,
                     SIMCONNECT_CLIENT_DATA_SET_FLAG.DEFAULT,
                     0,
@@ -291,6 +308,34 @@ namespace Any2GSX.CommBus
             {
                 Logger.LogException(ex);
             }
+
+            return Task.CompletedTask;
+        }
+
+        public virtual Task SendGsxMenu(string command)
+        {
+            try
+            {
+                Logger.Verbose($"Sending GsxMenu Message {command}");
+                var request = MessageRequest.Create(RequestType.GSXMENU, "GsxMenu", command);
+                var msg = new ModuleMessage()
+                {
+                    Data = request.Serialize()
+                };
+
+                return Call(sc => sc.SetClientData(ClientDataId.REQUEST,
+                    ClientDataId.REQUEST,
+                    SIMCONNECT_CLIENT_DATA_SET_FLAG.DEFAULT,
+                    0,
+                    msg
+                ));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+
+            return Task.CompletedTask;
         }
     }
 }

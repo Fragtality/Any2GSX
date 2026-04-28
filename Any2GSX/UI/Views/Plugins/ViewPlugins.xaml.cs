@@ -1,5 +1,4 @@
 ﻿using Any2GSX.Aircraft;
-using Any2GSX.AppConfig;
 using Any2GSX.PluginInterface;
 using Any2GSX.Plugins;
 using CFIT.AppFramework.UI.ViewModels;
@@ -21,9 +20,9 @@ namespace Any2GSX.UI.Views.Plugins
         protected virtual ViewModelSelector<PluginManifest, PluginManifest> ViewModelRepoPlugins { get; }
         protected virtual ViewModelSelector<AircraftChannels, AircraftChannels> ViewModelRepoChannels { get; }
         protected virtual ViewModelSelector<ProfileManifest, ProfileManifest> ViewModelRepoProfiles { get; }
-        protected virtual CommandWrapper CommandInstallPluginFromRepo { get; }
-        protected virtual CommandWrapper CommandInstallChannelFromRepo { get; }
-        protected virtual CommandWrapper CommandImportProfileFromRepo { get; }
+        protected virtual CommandWrapperAsync CommandInstallPluginFromRepo { get; }
+        protected virtual CommandWrapperAsync CommandInstallChannelFromRepo { get; }
+        protected virtual CommandWrapperAsync CommandImportProfileFromRepo { get; }
         protected virtual CommandWrapper CommandDeletePlugin { get; }
         protected virtual CommandWrapper CommandDeleteChannel { get; }
         protected virtual AppWindow AppWindow { get; }
@@ -44,21 +43,20 @@ namespace Any2GSX.UI.Views.Plugins
             ViewModelRepoChannels = new(GridOnlineChannels, ViewModel.ModelRepoChannels, AppWindow.IconLoader);
             ViewModelRepoProfiles = new(GridOnlineProfiles, ViewModel.ModelRepoProfiles, AppWindow.IconLoader);
 
-            CommandInstallPluginFromRepo = new(async () => await InstallPluginSelected(), () => GridOnlinePlugin?.SelectedValue is PluginManifest);
+            CommandInstallPluginFromRepo = new(InstallPluginSelected, () => GridOnlinePlugin?.SelectedValue is PluginManifest);
             CommandInstallPluginFromRepo.Subscribe(GridOnlinePlugin);
-            CommandInstallPluginFromRepo.Executed += () => AppService.Instance?.Config?.NotifyPropertyChanged(nameof(Config.SettingProfiles));
             ButtonInstallPluginFromRepo.Command = CommandInstallPluginFromRepo;
 
-            CommandInstallChannelFromRepo = new(async () => await InstallChannelSelected(), () => GridOnlineChannels?.SelectedValue is AircraftChannels);
+            CommandInstallChannelFromRepo = new(InstallChannelSelected, () => GridOnlineChannels?.SelectedValue is AircraftChannels);
             CommandInstallChannelFromRepo.Subscribe(GridOnlineChannels);
             ButtonInstallChannelFromRepo.Command = CommandInstallChannelFromRepo;
 
-            CommandImportProfileFromRepo = new(async () => await InstallProfileSelected(), () => GridOnlineProfiles?.SelectedValue is ProfileManifest);
+            CommandImportProfileFromRepo = new(InstallProfileSelected, () => GridOnlineProfiles?.SelectedValue is ProfileManifest);
             CommandImportProfileFromRepo.Subscribe(GridOnlineProfiles);
-            CommandImportProfileFromRepo.Executed += () => AppService.Instance?.Config?.NotifyPropertyChanged(nameof(Config.SettingProfiles));
             ButtonImportProfileFromRepo.Command = CommandImportProfileFromRepo;
 
-            CommandDeletePlugin = new(() => {
+            CommandDeletePlugin = new(() =>
+            {
                 if (GridInstalledPlugin?.SelectedItem is not PluginManifest manifest)
                     return;
                 RemovePlugin(manifest);
@@ -66,7 +64,8 @@ namespace Any2GSX.UI.Views.Plugins
             CommandDeletePlugin.Subscribe(GridInstalledPlugin);
             ButtonRemovePlugin.Command = CommandDeletePlugin;
 
-            CommandDeleteChannel = new(() => {
+            CommandDeleteChannel = new(() =>
+            {
                 if (GridInstalledChannels?.SelectedItem is not AircraftChannels channel)
                     return;
                 RemoveChannel(channel);
@@ -75,48 +74,17 @@ namespace Any2GSX.UI.Views.Plugins
             ButtonRemoveChannel.Command = CommandDeleteChannel;
 
             ButtonUpdateAll.Click += async (_, _) => await UpdateAll();
-            _ = Refresh();
+            _ = ViewModel.Refresh();
         }
 
-        public virtual async void Start()
+        public virtual void Start()
         {
-            await Refresh();
+            _ = ViewModel.Refresh();
         }
 
         public virtual void Stop()
         {
 
-        }
-
-        protected virtual async Task Refresh()
-        {
-            try
-            {
-                await ViewModel.PluginRepo.Refresh();
-                ViewModel.ModelRepoPlugins.NotifyCollectionChanged();
-                ViewModel.ModelRepoChannels.NotifyCollectionChanged();
-                ViewModel.ModelRepoProfiles.NotifyCollectionChanged();
-                AppService.Instance.PluginController.RefreshVersions(ViewModel.PluginRepo);
-                ViewModel.ModelInstalledPlugins.NotifyCollectionChanged();
-                ViewModel.ModelInstalledChannels.NotifyCollectionChanged();
-                if (ViewModel.PluginRepo.HasUpdates())
-                {
-                    Any2GSX.Instance.NotifyIcon.SetIconUpdate();
-                    AppWindow.SetPluginUpdateNotice();
-                    ButtonUpdateAll.Visibility = Visibility.Visible;
-                }
-                else
-                {
-                    Any2GSX.Instance.NotifyIcon.SetIconNormal();
-                    AppWindow.RemovePluginUpdateNotice();
-                    ButtonUpdateAll.Visibility = Visibility.Collapsed;
-                }
-            }
-            catch (Exception ex)
-            {
-                if (ex is not TaskCanceledException)
-                    Logger.LogException(ex);
-            }
         }
 
         protected virtual async void ButtonInstallPluginFromFile_Click(object sender, RoutedEventArgs e)
@@ -135,20 +103,24 @@ namespace Any2GSX.UI.Views.Plugins
 
                 if (openFileDialog.ShowDialog() == true)
                 {
-                    if (await ViewModel.PluginRepo.InstallPluginFromFile(openFileDialog.FileName))
+                    var pluginManifest = await ViewModel.PluginRepo.InstallPluginFromFile(openFileDialog.FileName);
+                    if (pluginManifest != null)
                     {
-                        ViewModel.AppService.PluginController.Refresh();
+                        ViewModel.AppService.PluginController.RefreshPlugins();
+                        ViewModel.AppService.PluginController.RefreshChannels();
                         ViewModel.ModelInstalledPlugins.NotifyCollectionChanged();
                         ViewModel.ModelInstalledChannels.NotifyCollectionChanged();
+                        var dialog = new PluginCapabilityDialog(pluginManifest, true);
+                        dialog.ShowDialog();
                     }
                     else
-                        MessageBox.Show($"Failed to install Plugin", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(Any2GSX.Instance.AppWindow, $"Failed to install Plugin", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
                 Logger.LogException(ex);
-                MessageBox.Show($"Error while installing Plugin: {ex.Message}", ex.GetType().ToString(), MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Any2GSX.Instance.AppWindow, $"Error while installing Plugin: {ex.Message}", ex.GetType().ToString(), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -174,13 +146,13 @@ namespace Any2GSX.UI.Views.Plugins
                         ViewModel.ModelInstalledChannels.NotifyCollectionChanged();
                     }
                     else
-                        MessageBox.Show($"Failed to install Channel Definition", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(Any2GSX.Instance.AppWindow, $"Failed to install Channel Definition", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
                 Logger.LogException(ex);
-                MessageBox.Show($"Error while installing Channel: {ex.Message}", ex.GetType().ToString(), MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Any2GSX.Instance.AppWindow, $"Error while installing Channel: {ex.Message}", ex.GetType().ToString(), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -193,19 +165,22 @@ namespace Any2GSX.UI.Views.Plugins
                     var key = ViewModel.PluginRepo.Plugins.Where((kv) => kv.Value.Id == manifest.Id).FirstOrDefault().Key;
                     if (ViewModel.AppService.PluginController.LoadedPluginsBinary.Contains(key))
                     {
-                        MessageBox.Show($"The Plugin DLL is already loaded!\r\nPlease close Any2GSX and install/update the Plugin before it was loaded.", "Already loaded", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(Any2GSX.Instance.AppWindow, $"The Plugin DLL is already loaded!\r\nPlease close Any2GSX and install/update the Plugin before it was loaded.", "Already loaded", MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
-                    if (await ViewModel.PluginRepo.InstallPluginFromRepo(key))
+                    var pluginManifest = await ViewModel.PluginRepo.InstallPluginFromRepo(key);
+                    if (pluginManifest != null)
                     {
                         ViewModel.AppService.PluginController.RefreshPlugins();
                         ViewModel.AppService.PluginController.RefreshChannels();
                         ViewModel.ModelInstalledPlugins.NotifyCollectionChanged();
                         ViewModel.ModelInstalledChannels.NotifyCollectionChanged();
+                        var dialog = new PluginCapabilityDialog(pluginManifest, true);
+                        dialog.ShowDialog();
                     }
                     else
-                        MessageBox.Show($"Failed to install Plugin", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(Any2GSX.Instance.AppWindow, $"Failed to install Plugin", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
@@ -227,7 +202,7 @@ namespace Any2GSX.UI.Views.Plugins
                         ViewModel.ModelInstalledChannels.NotifyCollectionChanged();
                     }
                     else
-                        MessageBox.Show($"Failed to install Channel Definition", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(Any2GSX.Instance.AppWindow, $"Failed to install Channel Definition", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
@@ -251,10 +226,9 @@ namespace Any2GSX.UI.Views.Plugins
                     {
                         ViewModel.AppService.PluginController.RefreshChannels();
                         ViewModel.ModelInstalledChannels.NotifyCollectionChanged();
-                        ViewModel.Config.NotifyPropertyChanged(nameof(Config.SettingProfiles));
                     }
                     else
-                        MessageBox.Show($"Failed to install Channel Definition", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(Any2GSX.Instance.AppWindow, $"Failed to install Channel Definition", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
@@ -268,7 +242,7 @@ namespace Any2GSX.UI.Views.Plugins
             if (manifest is null)
                 return;
 
-            if (MessageBox.Show($"Do you want to delete the Aircraft Plugin '{manifest.Id}'?", $"Remove Plugin '{manifest.Id}'", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            if (MessageBox.Show(Any2GSX.Instance.AppWindow, $"Do you want to delete the Aircraft Plugin '{manifest.Id}'?", $"Remove Plugin '{manifest.Id}'", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 return;
 
             if (AppService.Instance.PluginController.DeleteInstalledPlugin(manifest))
@@ -283,7 +257,7 @@ namespace Any2GSX.UI.Views.Plugins
             if (channel is null)
                 return;
 
-            if (MessageBox.Show($"Do you want to delete the Aircraft Channel Definition '{channel.Id}'?", $"Remove Channel '{channel.Id}'", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            if (MessageBox.Show(Any2GSX.Instance.AppWindow, $"Do you want to delete the Aircraft Channel Definition '{channel.Id}'?", $"Remove Channel '{channel.Id}'", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 return;
 
             if (AppService.Instance.PluginController.DeleteInstalledChannel(channel))
@@ -303,26 +277,25 @@ namespace Any2GSX.UI.Views.Plugins
                 {
                     if (ViewModel.AppService.PluginController.LoadedPluginsBinary.Contains(plugin.Id))
                     {
-                        MessageBox.Show($"The Plugin DLL is already loaded!\r\nPlease close Any2GSX and install/update the Plugin before it was loaded.", "Already loaded", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(Any2GSX.Instance.AppWindow, $"The Plugin DLL is already loaded!\r\nPlease close Any2GSX and install/update the Plugin before it was loaded.", "Already loaded", MessageBoxButton.OK, MessageBoxImage.Error);
                         continue;
                     }
 
-                    if (await ViewModel.PluginRepo.InstallPluginFromRepo(ViewModel.PluginRepo.Plugins.Where((kv) => kv.Value.Id == plugin.Id).FirstOrDefault().Key) == false)
-                        MessageBox.Show($"Failed to install Plugin", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                    if (await ViewModel.PluginRepo.InstallPluginFromRepo(ViewModel.PluginRepo.Plugins.Where((kv) => kv.Value.Id == plugin.Id).FirstOrDefault().Key) == null)
+                        MessageBox.Show(Any2GSX.Instance.AppWindow, $"Failed to install Plugin", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
 
                 var updatedChannels = PluginController.Channels?.Values?.Where(p => p.HasUpdateAvail);
                 foreach (var channel in updatedChannels)
                 {
                     if (await ViewModel.PluginRepo.InstallChannelFromRepo(ViewModel.PluginRepo.Channels.Where((kv) => kv.Value.Id == channel.Id).FirstOrDefault().Key) == false)
-                        MessageBox.Show($"Failed to install Channel Definition", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(Any2GSX.Instance.AppWindow, $"Failed to install Channel Definition", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
 
                 ViewModel.AppService.PluginController.RefreshPlugins();
                 ViewModel.AppService.PluginController.RefreshChannels();
-                ViewModel.ModelInstalledPlugins.NotifyCollectionChanged();
-                ViewModel.ModelInstalledChannels.NotifyCollectionChanged();
-                await Refresh();
+                AppService.Instance.NotifyProfileCollectionChanged();
+                await ViewModel.Refresh();
             }
             catch (Exception ex)
             {

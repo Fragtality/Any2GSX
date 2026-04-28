@@ -8,15 +8,20 @@ using System.Linq;
 
 namespace Any2GSX.UI.Views.Profiles
 {
-    public partial class ModelProfileCollection() : ViewModelCollection<SettingProfile, ModelProfileItem>(AppService.Instance?.Config?.SettingProfiles ?? [], (i) => new(i), (p) => !string.IsNullOrWhiteSpace(p?.Name))
+    public partial class ModelProfileCollection() : ViewModelCollection<SettingProfile, ModelProfileItem>(AppService.Instance?.Config?.SettingProfiles ?? [], (i) => new(i))
     {
         public override ICollection<SettingProfile> Source => AppService.Instance?.Config?.SettingProfiles ?? [];
+        public override Func<SettingProfile, bool> Validator => Check;
+
+        protected bool Check(SettingProfile p)
+        {
+            return !string.IsNullOrWhiteSpace(p?.Name) && !Source.Any((s) => s.Name == p.Name);
+        }
 
         protected override void InitializeMemberBindings()
         {
             base.InitializeMemberBindings();
 
-            CreateMemberBinding<bool, bool>(nameof(ModelProfileItem.IsReadOnly), new NoneConverter());
             CreateMemberBinding<string, string>(nameof(ModelProfileItem.Name), new NoneConverter(), new ValidationRuleString());
             CreateMemberBinding<string, string>(nameof(ModelProfileItem.PluginId), new NoneConverter(), new ValidationRuleString());
             CreateMemberBinding<string, string>(nameof(ModelProfileItem.ChannelFileId), new NoneConverter(), new ValidationRuleString());
@@ -33,14 +38,12 @@ namespace Any2GSX.UI.Views.Profiles
                 {
                     if (oldItem.Name.Equals(newItem?.Name, StringComparison.InvariantCultureIgnoreCase))
                     {
-                        oldItem.Copy(newItem);
-                        AppService.Instance.Config?.SettingProfiles?.Sort((x, y) => x.Name.CompareTo(y.Name));
+                        AppService.Instance.UpdateSettingProfile(oldItem, newItem);
                         return true;
                     }
                     else if (!Source.Where(p => p.Name.Equals(newItem.Name, StringComparison.InvariantCultureIgnoreCase)).Any())
                     {
-                        oldItem.Copy(newItem);
-                        AppService.Instance.Config?.SettingProfiles?.Sort((x, y) => x.Name.CompareTo(y.Name));
+                        AppService.Instance.UpdateSettingProfile(oldItem, newItem);
                         return true;
                     }
                     else
@@ -57,8 +60,12 @@ namespace Any2GSX.UI.Views.Profiles
 
         protected override void AddSource(SettingProfile item)
         {
-            base.AddSource(item);
-            AppService.Instance.Config?.SettingProfiles?.Sort((x, y) => x.Name.CompareTo(y.Name));
+            AppService.Instance.AddSettingProfile(item);
+        }
+
+        protected override bool RemoveSource(SettingProfile item)
+        {
+            return AppService.Instance.RemoveSettingProfile(item);
         }
     }
 }

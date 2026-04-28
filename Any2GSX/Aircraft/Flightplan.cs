@@ -1,4 +1,6 @@
 ﻿using Any2GSX.AppConfig;
+using Any2GSX.GSX.Automation;
+using Any2GSX.PluginInterface;
 using Any2GSX.PluginInterface.Interfaces;
 using CFIT.AppLogger;
 using CFIT.AppTools;
@@ -16,13 +18,15 @@ namespace Any2GSX.Aircraft
     public class Flightplan : IFlightplan
     {
         public virtual Config Config => AppService.Instance.Config;
+        public virtual AircraftBase Aircraft => AppService.Instance.AircraftController.Aircraft;
+        public virtual GsxAutomationController AutomationController => AppService.Instance.GsxController.AutomationController;
         public virtual SettingProfile SettingProfile => AppService.Instance.SettingProfile;
         public virtual IWeightConverter WeightConverter => AppService.Instance.WeightConverter;
         public virtual CancellationToken Token => AppService.Instance.Token;
         protected virtual HttpClient HttpClient { get; }
 
-        public virtual int Id { get; set; } = 0;
-        public virtual int LastId { get; set; } = 0;
+        public virtual long Id { get; protected set; } = 0;
+        public virtual long LastId { get; protected set; } = 0;
         public virtual bool IsLoaded => Id != 0 && !string.IsNullOrWhiteSpace(Number);
         public virtual bool LastOnlineCheck { get; protected set; } = false;
         public virtual string SimbriefUser => AppService.Instance.Config.SimbriefUser;
@@ -37,18 +41,26 @@ namespace Any2GSX.Aircraft
         public virtual TimeSpan Duration { get; set; }
         public virtual DateTime ScheduledOutTime { get; protected set; } = DateTime.MinValue;
         public virtual double FuelRampKg { get; set; }
-        public virtual int CountPax { get; set; }
+        public virtual int CountPaxPlanned { get; set; }
+        public virtual int CountPax => CountPaxPlanned + DiffPax;
         public virtual int MaxPax { get; set; }
         public virtual int DiffPax { get; set; }
-        public virtual double DiffPayloadKg { get; set; }
-        public virtual int CountBags { get; set; }
-        public virtual double WeightPaxKg => CountPax * WeightPerPaxKg;
-        public virtual double WeightBagKg => CountBags * WeightPerBagKg;
+        public virtual int DiffBags { get; set; }
+        public virtual int CountBagsPlanned { get; set; }
+        public virtual int CountBags => CountBagsPlanned + DiffBags;
+        public virtual double WeightPaxKg => (CountPax) * WeightPerPaxKg;
+        public virtual double WeightBagKg => (CountBags) * WeightPerBagKg;
         public virtual double WeightFreightKg { get; set; }
-        public virtual double WeightCargoKg => WeightBagKg + WeightFreightKg;
+        public virtual double WeightCargoKg => WeightBagKg + WeightFreightKg + (SettingProfile.ApplyPaxToCargo && Aircraft.GetIsCargo().RunSync() ? WeightPaxKg : 0);
+        public virtual double WeightCargoPlannedKg => (CountBagsPlanned * WeightPerBagKg) + WeightFreightKg + (SettingProfile.ApplyPaxToCargo && Aircraft.GetIsCargo().RunSync() ? WeightPaxKg : 0);
         public virtual double WeightPayloadKg => WeightPaxKg + WeightCargoKg;
-        public virtual double ZeroFuelRampKg { get; set; }
-        public virtual double WeightTotalRampKg { get; set; }
+        public virtual double AircraftEmptyOewKg { get; set; }
+        public virtual double ZeroFuelRampKg => AircraftEmptyOewKg + WeightPayloadKg;
+        public virtual double WeightTotalRampKg => AircraftEmptyOewKg + WeightPayloadKg + FuelRampKg;
+        public virtual double DiffPayloadKg => (DiffPax * WeightPerPaxKg) + (DiffBags * WeightPerBagKg);
+
+        public event Func<IFlightplan, Task> OnImport;
+        public event Func<Task> OnUnload;
 
         public Flightplan()
         {
@@ -65,12 +77,12 @@ namespace Any2GSX.Aircraft
         {
             if (long.TryParse(SimbriefUser, out _))
             {
-                Logger.Debug($"Requesting SimBrief (via Userid) ...");
+                Logger.Verbose($"Requesting SimBrief (via Userid) ...");
                 return JsonNode.Parse(await HttpClient.GetStringAsync(string.Format(Config.SimbriefUrlPathId, SimbriefUser), Token));
             }
             else
             {
-                Logger.Debug($"Requesting SimBrief (via Username) ...");
+                Logger.Verbose($"Requesting SimBrief (via Username) ...");
                 return JsonNode.Parse(await HttpClient.GetStringAsync(string.Format(Config.SimbriefUrlPathName, SimbriefUser), Token));
             }
         }
@@ -79,6 +91,15 @@ namespace Any2GSX.Aircraft
         {
             value = 0;
             if (node!.GetValueKind() == System.Text.Json.JsonValueKind.String && int.TryParse(node!.GetValue<string>(), out value))
+                return true;
+            else
+                return false;
+        }
+
+        protected virtual bool GetJsonLong(JsonNode node, out long value)
+        {
+            value = 0;
+            if (node!.GetValueKind() == System.Text.Json.JsonValueKind.String && long.TryParse(node!.GetValue<string>(), out value))
                 return true;
             else
                 return false;
@@ -105,12 +126,12 @@ namespace Any2GSX.Aircraft
                 return false;
         }
 
-        public virtual async Task<int> CheckIdOnline()
+        public virtual async Task<long> CheckIdOnline()
         {
             try
             {
                 var json = await GetJsonNode();
-                if (GetJsonInt(json["params"]!["request_id"], out int id))
+                if (GetJsonLong(json["params"]!["request_id"], out long id))
                     return id;
             }
             catch
@@ -123,22 +144,28 @@ namespace Any2GSX.Aircraft
 
         public virtual async Task<bool> CheckNewOfp()
         {
-            int id = await CheckIdOnline();
+            long id = await CheckIdOnline();
             LastOnlineCheck = id > 0 && id != LastId;
+            Logger.Debug($"Simbrief OFP ID checked: {LastOnlineCheck} (id: {id} | last: {LastId})");
             return LastOnlineCheck;
         }
 
-        public virtual async Task<bool> Import()
+        public virtual async Task<bool> Import(bool notify = true)
         {
             try
             {
+                if (IsLoaded)
+                {
+                    Logger.Debug($"No Import - OFP already Loaded! ({Id})");
+                    return true;
+                }
+
                 Logger.Information($"Importing OFP from SimBrief ...");
-                Unload();
                 var json = await GetJsonNode();
 
-                if (GetJsonInt(json["params"]!["request_id"], out int id) && id == LastId)
+                if (GetJsonLong(json["params"]!["request_id"], out long id) && id == LastId)
                 {
-                    Logger.Information("No Import - same OFP ID.");
+                    Logger.Information($"No Import - same OFP ID: {id}");
                     return false;
                 }
 
@@ -175,22 +202,23 @@ namespace Any2GSX.Aircraft
                     return false;
 
                 if (GetJsonInt(json["weights"]!["pax_count"], out int pax))
-                    CountPax = pax;
+                {
+                    DiffPax = 0;
+                    CountPaxPlanned = pax;
+                }
                 else
                     return false;
 
                 if (GetJsonInt(json["weights"]!["bag_count"], out int bag))
-                    CountBags = bag;
+                {
+                    DiffBags = 0;
+                    CountBagsPlanned = bag;
+                }
                 else
                     return false;
 
-                if (GetJsonDouble(json["weights"]!["est_ramp"], out double estRamp))
-                    WeightTotalRampKg = ToKg(estRamp);
-                else
-                    return false;
-
-                if (GetJsonDouble(json["weights"]!["est_zfw"], out double estZfw))
-                    ZeroFuelRampKg = ToKg(estZfw);
+                if (GetJsonDouble(json["weights"]!["oew"], out double oew))
+                    AircraftEmptyOewKg = ToKg(oew);
                 else
                     return false;
 
@@ -198,7 +226,7 @@ namespace Any2GSX.Aircraft
                 {
                     if (SettingProfile.FuelRoundUp100)
                     {
-                        fuel = Math.Ceiling(fuel / 100.0) * 100.0;
+                        fuel = RoundUp100(fuel);
                         Logger.Debug($"Planned Fuel Round Up: {fuel}{json["params"]!["units"]}");
                     }
                     FuelRampKg = ToKg(fuel);
@@ -243,22 +271,17 @@ namespace Any2GSX.Aircraft
                 }
 
                 Id = id;
-                LastId = id;
 
-                DiffPax = 0;
-                if (SettingProfile.RandomizePax && AppService.Instance?.AircraftController?.Aircraft?.IsCargo == false)
+                if (SettingProfile.RandomizePax && !AutomationController.IsCargo)
                 {
                     DiffPax = Random.Shared.Next(SettingProfile.RandomizePaxMaxDiff * -1, SettingProfile.RandomizePaxMaxDiff);
-                    if (MaxPax > 0 && CountPax + DiffPax > MaxPax)
-                        DiffPax = MaxPax - CountPax;
+                    if (MaxPax > 0 && CountPaxPlanned + DiffPax > MaxPax)
+                        DiffPax = MaxPax - CountPaxPlanned;
+                    DiffBags = DiffPax;
 
                     if (CountPax + DiffPax > 0)
                     {
-                        CountPax += DiffPax;
-                        CountBags += DiffPax;
-                        DiffPayloadKg = (DiffPax * WeightPerPaxKg) + (DiffPax * WeightPerBagKg);
-                        ZeroFuelRampKg += DiffPayloadKg;
-                        WeightTotalRampKg += DiffPayloadKg;
+                        Logger.Debug($"Randomized Pax Count - Diff: {DiffPax}");
                     }
                 }
 
@@ -267,6 +290,9 @@ namespace Any2GSX.Aircraft
                     Logger.Debug($"Switching DisplayUnit to Simbrief Source");
                     Config.SetDisplayUnit(Unit);
                 }
+
+                if (notify)
+                    _ = TaskTools.RunPool(() => OnImport?.Invoke(this));
 
                 Logger.Information($"Flightplan imported from SimBrief:");
                 var strings = GetInfoStrings();
@@ -279,6 +305,11 @@ namespace Any2GSX.Aircraft
                 Logger.LogException(ex);
             }
             return false;
+        }
+
+        public virtual double RoundUp100(double value)
+        {
+            return Math.Ceiling(value / 100.0) * 100.0;
         }
 
         protected const int col0 = -20;
@@ -294,9 +325,9 @@ namespace Any2GSX.Aircraft
             infoStrings.Add($"{"Flight (Leg)",col0}{$"{Number} ({Origin} => {Destination})",colS}");
             infoStrings.Add($"{"STD",col0}{ScheduledOutTime,colS}");
             infoStrings.Add($"{"AC Type / Reg",col0}{$"{AircraftType} / {AircraftReg}",colS}");
-            if (SettingProfile.RandomizePax && AppService.Instance?.AircraftController?.Aircraft?.IsCargo == false)
+            if (SettingProfile.RandomizePax && !Aircraft.GetIsCargo().RunSync())
             {
-                infoStrings.Add($"{"Passenger (Diff)",col0}{$"{CountPax} ({DiffPax})",colS}");
+                infoStrings.Add($"{"Passenger (Diff)",col0}{$"{CountPaxPlanned} ({DiffPax})",colS}");
                 infoStrings.Add($"{"Payload Diff",col0}{GetDisplayNumber(DiffPayloadKg),colN} {Config.DisplayUnitCurrentString}");
             }
             else
@@ -306,6 +337,7 @@ namespace Any2GSX.Aircraft
             infoStrings.Add($"{"Bag",col0}{GetDisplayNumber(WeightBagKg),colN} {Config.DisplayUnitCurrentString}");
             infoStrings.Add($"{"Freight",col0}{GetDisplayNumber(WeightFreightKg),colN} {Config.DisplayUnitCurrentString}");
             infoStrings.Add($"{"Payload Total",col0}{GetDisplayNumber(WeightPayloadKg),colN} {Config.DisplayUnitCurrentString}");
+            infoStrings.Add($"{"OEW",col0}{GetDisplayNumber(AircraftEmptyOewKg),colN} {Config.DisplayUnitCurrentString}");
             infoStrings.Add($"{"ZFW",col0}{GetDisplayNumber(ZeroFuelRampKg),colN} {Config.DisplayUnitCurrentString}");
             infoStrings.Add($"{"GW Ramp",col0}{GetDisplayNumber(WeightTotalRampKg),colN} {Config.DisplayUnitCurrentString}");
 
@@ -325,20 +357,31 @@ namespace Any2GSX.Aircraft
                 return WeightConverter.ToKg(value);
         }
 
-        public virtual void Unload()
+        public virtual Task Unload()
         {
+            if (Id != 0)
+            {
+                LastId = Id;
+                if (OnUnload != null)
+                    _ = TaskTools.RunPool(() => OnUnload?.Invoke());
+            }
             Id = 0;
             Number = "";
-            DiffPax = 0;
-            DiffPayloadKg = 0;
             LastOnlineCheck = false;
             ScheduledOutTime = DateTime.MinValue;
+            return Task.CompletedTask;
         }
 
-        public virtual void Reset()
+        public virtual Task Reset()
         {
-            Unload();
             LastId = 0;
+            Id = 0;
+            return Unload();
+        }
+
+        public virtual Task<bool> ImportOfp()
+        {
+            return Import(false);
         }
 
         public virtual void UpdatePlannedFuelKg(double fuelRampKg)
@@ -346,15 +389,31 @@ namespace Any2GSX.Aircraft
             FuelRampKg = fuelRampKg;
         }
 
-        public virtual void UpdatePassengerCount(int count)
+        public virtual void UpdatePassengerMax(int count)
         {
-            CountPax = count;
-            DiffPax = 0;
+            MaxPax = count;
+        }
+
+        public virtual void UpdatePassengerCount(int count, int diff = 0)
+        {
+            CountPaxPlanned = count;
+            DiffPax = diff;
+        }
+
+        public virtual void UpdateBagCount(int count, int diff = 0)
+        {
+            CountBagsPlanned = count;
+            DiffBags = diff;
         }
 
         public virtual void UpdateFreightKg(double freightKg)
         {
             WeightFreightKg = freightKg;
+        }
+
+        public virtual void UpdateScheduledOut(DateTime outTime)
+        {
+            ScheduledOutTime = outTime;
         }
     }
 }

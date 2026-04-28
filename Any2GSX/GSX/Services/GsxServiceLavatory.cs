@@ -14,30 +14,29 @@ namespace Any2GSX.GSX.Services
         protected override GsxMenuSequence InitCallSequence()
         {
             var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(new(8, GsxConstants.MenuGate, true));
-            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
-            sequence.Commands.Add(new(3, GsxConstants.MenuAdditionalServices) { WaitReady = true });
-            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
-            sequence.Commands.Add(GsxMenuCommand.CreateOperator());
-            sequence.Commands.Add(GsxMenuCommand.CreateReset());
-
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            sequence.Commands.Add(GsxMenuCommand.Select(8, GsxConstants.MenuGate));
+            sequence.Commands.Add(GsxMenuCommand.Select(3, GsxConstants.MenuAdditionalServices));
+            sequence.Commands.Add(GsxMenuCommand.Operator());
             return sequence;
         }
 
         protected override GsxMenuSequence InitCancelSequence()
         {
             var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(new(8, GsxConstants.MenuGate, true));
-            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
-            sequence.Commands.Add(new(3, GsxConstants.MenuAdditionalServices) { WaitReady = true });
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            sequence.Commands.Add(GsxMenuCommand.Select(8, GsxConstants.MenuGate));
+            sequence.Commands.Add(GsxMenuCommand.Select(3, GsxConstants.MenuAdditionalServices));
+            sequence.Commands.Add(GsxMenuCommand.Wait());
+            sequence.Commands.Add(GsxMenuCommand.Open());
 
             return sequence;
         }
 
-        protected override void InitSubscriptions()
+        public override void InitSubscriptions()
         {
             SubLavatoryService = SimStore.AddVariable(GsxConstants.VarServiceLavatory);
-            SubLavatoryService.OnReceived += OnStateChange;
+            SubLavatoryService?.OnReceived += OnStateChange;
         }
 
         protected override void DoReset()
@@ -47,7 +46,7 @@ namespace Any2GSX.GSX.Services
 
         public override void FreeResources()
         {
-            SubLavatoryService.OnReceived -= OnStateChange;
+            SubLavatoryService?.OnReceived -= OnStateChange;
 
             SimStore.Remove(GsxConstants.VarServiceLavatory);
         }

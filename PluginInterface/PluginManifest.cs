@@ -10,8 +10,8 @@ namespace Any2GSX.PluginInterface
     public class PluginManifest
     {
         public virtual string Id { get; set; }
+        public virtual string SettingId { get; set; }
         public virtual PluginType Type { get; set; }
-        public virtual PluginStartMode StartMode { get; set; } = PluginStartMode.WaitConnected;
         [JsonIgnore]
         public virtual string Directory { get; set; }
         public virtual string Filename { get; set; }
@@ -36,6 +36,8 @@ namespace Any2GSX.PluginInterface
         {
             var manifest = JsonSerializer.Deserialize<PluginManifest>(File.ReadAllText(manifestFile));
             manifest.Directory = new DirectoryInfo(Path.GetDirectoryName(manifestFile)).Name;
+            if (string.IsNullOrWhiteSpace(manifest.SettingId))
+                manifest.SettingId = manifest.Id;
             return manifest;
         }
 

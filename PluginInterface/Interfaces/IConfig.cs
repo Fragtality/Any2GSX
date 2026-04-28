@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using CFIT.AppLogger;
+using System.Collections.Generic;
 using System.ComponentModel;
 
 namespace Any2GSX.PluginInterface.Interfaces
 {
     public interface IConfig
     {
+        public LogLevel LogLevel { get; }
         public bool OpenAppWindowOnStart { get; }
         public double WeightConversion { get; }
         public string BinaryGsx2020 { get; }
@@ -13,6 +15,7 @@ namespace Any2GSX.PluginInterface.Interfaces
         public string SimbriefUrlPathName { get; }
         public string SimbriefUrlPathId { get; }
         public string SimbriefUser { get; }
+        public int HttpRequestTimeoutMs { get; }
         public int UiRefreshInterval { get; }
         public double FuelCompareVariance { get; }
         public int TimerGsxCheck { get; }
@@ -32,10 +35,19 @@ namespace Any2GSX.PluginInterface.Interfaces
         public bool DebugArrival { get; }
         public int StateMachineInterval { get; }
         public int DelayServiceStateChange { get; }
+        public bool DisableUserEnabledMenu { get; }
         public int SpeedTresholdTaxiOut { get; }
         public int SpeedTresholdTaxiIn { get; }
+        public int DelayOpenTaxiInMenu { get; }
         public Dictionary<string, double> FuelFobSaved { get; }
         public double FuelResetPercent { get; }
+        public int CargoPercentChangePerSec { get; }
+        public int PanelRefuelOpenDelayUnderground { get; }
+        public int PanelRefuelCloseDelayUnderground { get; }
+        public int PanelRefuelOpenDelayTanker { get; }
+        public int PanelRefuelCloseDelayTanker { get; }
+        public int PanelLavatoryOpenDelay { get; }
+        public int PanelWaterOpenDelay { get; }
 
 
         public event PropertyChangedEventHandler? PropertyChanged;

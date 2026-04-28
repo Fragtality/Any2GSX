@@ -31,10 +31,10 @@
   </Target>
 
   <ItemGroup>
-    <PackageReference Include="CFIT.AppFramework" Version="2026.71.19.406" />
-    <PackageReference Include="CFIT.AppLogger" Version="2026.71.18.3281" />
-    <PackageReference Include="CFIT.AppTools" Version="2026.71.18.3292" />
-    <PackageReference Include="CFIT.SimConnectLib" Version="2026.71.19.393" />
+    <PackageReference Include="CFIT.AppFramework" Version="2026.118.1.1837" />
+    <PackageReference Include="CFIT.AppLogger" Version="2026.111.20.1067" />
+    <PackageReference Include="CFIT.AppTools" Version="2026.111.20.1078" />
+    <PackageReference Include="CFIT.SimConnectLib" Version="2026.111.20.1101" />
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">

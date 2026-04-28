@@ -18,12 +18,15 @@
         BinaryV1 = 0,
         LuaV1 = 1,
     }
-    public enum PluginStartMode
-    {
-        WaitConnected = 0,
-        PreWalkaround = 1,
-    }
 
+    public enum CockpitNotification
+    {
+        None = 0,
+        PrepFinished = 1,
+        FinalReceived = 2,
+        ChocksPlaced = 4,
+        TurnReady = 8,
+    }
 
     public enum AutomationState
     {
@@ -45,7 +48,19 @@
         READY = 1,
         HIDE = 2,
         TIMEOUT = 3,
-        DISABLED = 4
+        DISABLED = 4,
+        NUM5ALIVE = 5,
+        SIXFEETUNDER = 6,
+        LUCKYSEVEN = 7
+    }
+
+    public enum GsxMenuCommandType
+    {
+        Open = 0,
+        State = 1,
+        Select = 2,
+        Wait = 3,
+        Operator = 4,
     }
 
     public enum GsxServiceType
@@ -86,6 +101,7 @@
         NonCompanyHub = 4,
         TurnOnHub = 5,
         TurnOnNonHub = 6,
+        PreferredOp = 7,
     }
 
     public enum GsxServiceState
@@ -118,6 +134,53 @@
         CargoDoor1 = 7,
         CargoDoor2 = 8,
         CargoDoor3Main = 9,
+    }
+
+    public enum GsxChangePark
+    {
+        ChangeFacility = 1,
+        FollowMe = 2,
+        ProgTaxi = 3,
+        TowIn = 4,
+        Revoke = 5,
+        ClearAI = 6,
+        Warp = 7,
+        ShowMe = 8,
+        Map = 9,
+    }
+
+    public enum GsxStopPush
+    {
+        Pause = 1,
+        Stop = 2,
+        Abort = 3,
+    }
+
+    public enum GsxCancelService
+    {
+        Never = 0,
+        Complete = 1,
+        Abort = 2,
+    }
+
+    public enum GsxVehicleStair
+    {
+        Front = 0,
+        Middle = 1,
+        Rear = 2,
+    }
+
+    public enum GsxVehicleStairState
+    {
+        Unknown = 0,
+        Idle = 1,
+        Approaching = 2,
+        InPosition = 3,
+        Leaving = 4,
+        Extending = 5,
+        Completing = 6,
+        WaitingDoor = 7,
+        Retracting = 8,
     }
 
     public enum BroadcastFlag

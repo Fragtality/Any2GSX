@@ -5,12 +5,12 @@ namespace Any2GSX.PluginInterface.Interfaces
 {
     public interface IGsxService
     {
-        public GsxServiceType Type { get; }        
+        public GsxServiceType Type { get; }
         public bool IsCalled { get; }
         public GsxServiceState State { get; }
+        public string TextState { get; }
         public GsxServiceState StateOverride { get; set; }
         public bool IsStateOverridden { get; }
-        public bool IsCalling { get; }
         public bool IsRunning { get; }
         public bool IsActive { get; }
         public bool IsCompleted { get; }

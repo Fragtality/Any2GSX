@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:Any2GSX.UI.Views.Automation"
              d:DataContext="{d:DesignInstance Type=local:ModelAutomation}"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="800" d:DesignWidth="800">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -36,34 +36,71 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Label Grid.Column="0" Grid.Row="0" Margin="4,0,0,6">
+                <Label Grid.Column="0" Grid.Row="0" Margin="4,0,0,6" Visibility="{Binding PluginCapabilities.HasDoorSync, Converter={StaticResource BoolVisibilityInverseConverter}}">
                     <Italic>
-                        <Bold>Note:</Bold> Door Handling is either directly handled by GSX or through the configured Aircraft Plugin.
-                        <LineBreak/>
-                        The Settings below only direct the configured Aircraft Plugin (if it implemented these Settings).
+                        <Bold>Note:</Bold> These Settings are only available to Aircraft Plugins implementing Door-Sync.
                     </Italic>
                 </Label>
 
-                <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding CloseDoorsOnFinal}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}"
-                          ToolTip="Calls the 'DoorAllClose' Function of the Plugin (if it reports open Doors) after the Final Loadsheet Delay expired.">
-                    <TextBlock>Close Doors when <Underline>Final Loadsheet</Underline> is transmitted</TextBlock>
+                <Label Grid.Column="0" Grid.Row="0" Margin="4,0,0,6" Visibility="{Binding PluginCapabilities.HasDoorSync, Converter={StaticResource BoolVisibilityConverter}}">
+                    <Italic>
+                        <Bold>Note:</Bold> Some of the Settings depend on what the Plugin has implemented for Door-Sync.
+                    </Italic>
+                </Label>
+
+                <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding CloseDoorsOnFinal}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}" Visibility="{Binding PluginCapabilities.DoorsCloseAll, Converter={StaticResource BoolVisibilityConverter}}"
+                          ToolTip="Calls the 'DoorAllClose' Function of the Plugin (if it reports open Doors) after the Final Loadsheet Delay expired.&#x0a;The DoorAllClose Function should always close the Doors, regardless of the other Options.">
+                    <TextBlock>Close all Doors when <Underline>Final Loadsheet</Underline> is transmitted</TextBlock>
                 </CheckBox>
-                
-                <CheckBox Grid.Column="0" Grid.Row="2" IsChecked="{Binding DoorStairHandling}" Style="{StaticResource CheckBoxSettingItem}"
+
+                <CheckBox Grid.Column="0" Grid.Row="2" IsChecked="{Binding DoorPaxHandling}" Style="{StaticResource CheckBoxSettingItem}" Visibility="{Binding PluginCapabilities.HasDoorSyncPax, Converter={StaticResource BoolVisibilityConverter}}"
+                          ToolTip="Open and Close the Passenger Doors as required for GSX. Uncheck to disable automatic Handling of the Passenger Doors.">
+                    <TextBlock>Operate <Underline>Passenger Doors</Underline> for GSX Services</TextBlock>
+                </CheckBox>
+
+                <CheckBox Grid.Column="0" Grid.Row="3" IsChecked="{Binding DoorStairHandling}" IsEnabled="{Binding DoorPaxHandling}" Style="{StaticResource CheckBoxSettingItemIndented}" Visibility="{Binding PluginCapabilities.HasDoorSyncPaxStair, Converter={StaticResource BoolVisibilityConverter}}"
                           ToolTip="Open the Passenger Doors when the Stairs have finished moving and close the Doors as soon as they begin to move again.">
-                    <TextBlock>Open / Close <Underline>Passenger Doors</Underline> when GSX <Underline>Stairs</Underline> are connected / removed</TextBlock>
+                    <TextBlock><Underline>Open / Close</Underline> Passenger Doors when GSX <Underline>Stairs</Underline> are connected / removed</TextBlock>
                 </CheckBox>
 
-                <CheckBox Grid.Column="0" Grid.Row="3" IsChecked="{Binding DoorServiceHandling}" Style="{StaticResource CheckBoxSettingItem}"
-                          ToolTip="Open and Close the Service Doors for GSX Catering (unrelated to who called the GSX Service).">
-                    <TextBlock>Open / Close <Underline>Service Doors</Underline> for GSX Catering</TextBlock>
+                <CheckBox Grid.Column="0" Grid.Row="4" IsChecked="{Binding DoorServiceHandling}" Style="{StaticResource CheckBoxSettingItem}" Visibility="{Binding PluginCapabilities.HasDoorSyncService, Converter={StaticResource BoolVisibilityConverter}}"
+                          ToolTip="Open and Close the Service Doors as required for GSX. Uncheck to disable automatic Handling of the Service Doors.">
+                    <TextBlock>Operate <Underline>Service Doors</Underline> for Catering</TextBlock>
                 </CheckBox>
 
-                <CheckBox Grid.Column="0" Grid.Row="4" IsChecked="{Binding DoorCargoHandling}" Style="{StaticResource CheckBoxSettingItem}"
-                          ToolTip="Open and Close the Cargo Door for GSX Boarding and Deboarding (unrelated to who called the GSX Service).">
-                    <TextBlock>Open / Close <Underline>Cargo Doors</Underline> for GSX Boarding &amp; Deboarding</TextBlock>
+                <CheckBox Grid.Column="0" Grid.Row="5" IsChecked="{Binding DoorCargoHandling}" Style="{StaticResource CheckBoxSettingItem}" Visibility="{Binding PluginCapabilities.HasDoorSyncCargo, Converter={StaticResource BoolVisibilityConverter}}"
+                          ToolTip="Open and Close the Cargo Door as required for GSX. Uncheck to disable automatic Handling of the Cargo Doors.&#x0a;If supported by the Aircraft Plugin, the Cargo Doors will be operated based on Loaders attached or GSX sending a Trigger.">
+                    <TextBlock>Operate <Underline>Cargo Doors</Underline> for Boarding &amp; Deboarding</TextBlock>
+                </CheckBox>
+
+                <StackPanel Grid.Column="0" Grid.Row="6" Style="{StaticResource SettingItemPanel}" Margin="22,0,0,0" Visibility="{Binding PluginCapabilities.HasDoorSyncCargo, Converter={StaticResource BoolVisibilityConverter}}">
+                    <CheckBox IsChecked="{Binding DoorCargoOpenOnActive}" IsEnabled="{Binding DoorCargoHandling}" Style="{StaticResource CheckBoxSettingItem}"
+                              ToolTip="Open the Cargo Doors after the configured Delay when GSX Boarding/Deboarding Service is requested.&#x0a;Close the Cargo Doors after the configured Delay when the Service is completed.">
+                        <TextBlock>Open / Close Doors on GSX <Underline>Service State</Underline> change. Delay:</TextBlock>
+                    </CheckBox>
+                    <TextBox Name="InputDelayCargoDoors" Style="{StaticResource TextBoxCentered}" ToolTip="Open the Cargo Doors after the configured Delay when GSX Boarding/Deboarding Service is requested.&#x0a;Close the Cargo Doors after the configured Delay when the Service is completed."/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
+                </StackPanel>
+
+                <CheckBox Grid.Column="0" Grid.Row="7" IsChecked="{Binding DoorsCargoKeepOpenOnDetachBoard}" IsEnabled="{Binding DoorCargoHandling}" Style="{StaticResource CheckBoxSettingItemIndented}" Visibility="{Binding PluginCapabilities.HasDoorSyncCargo, Converter={StaticResource BoolVisibilityConverter}}"
+                          ToolTip="Do not close the Cargo Doors when the GSX Cargo/Belt Loader is detached on Boarding.">
+                    <TextBlock>Keep Cargo Doors <Underline>open after Boarding</Underline></TextBlock>
+                </CheckBox>
+
+                <CheckBox Grid.Column="0" Grid.Row="8" IsChecked="{Binding DoorsCargoKeepOpenOnDetachDeboard}" IsEnabled="{Binding DoorCargoHandling}" Style="{StaticResource CheckBoxSettingItemIndented}" Visibility="{Binding PluginCapabilities.HasDoorSyncCargo, Converter={StaticResource BoolVisibilityConverter}}"
+                          ToolTip="Do not close the Cargo Doors when the GSX Cargo/Belt Loader is detached on Deboarding.">
+                    <TextBlock>Keep Cargo Doors <Underline>open after Deboarding</Underline></TextBlock>
+                </CheckBox>
+
+                <CheckBox Grid.Column="0" Grid.Row="9" IsChecked="{Binding DoorPanelHandling}" Style="{StaticResource CheckBoxSettingItem}" Visibility="{Binding PluginCapabilities.HasPanelSync, Converter={StaticResource BoolVisibilityConverter}}"
+                          ToolTip="Open and Close Service Panels on the Aircraft used for Refuel, Lavatory &amp; Water.">
+                    <TextBlock>Operate <Underline>Service Panels</Underline> for Refuel, Lavatory &amp; Water</TextBlock>
                 </CheckBox>
             </Grid>
         </GroupBox>
@@ -81,29 +118,36 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <CheckBox Grid.Column="0" Grid.Row="0" IsChecked="{Binding CallJetwayStairsOnPrep}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}"
+                <CheckBox Grid.Column="0" Grid.Row="0" IsChecked="{Binding CallJetwayStairsInWalkaround}" Margin="6,6,6,9" Style="{StaticResource CheckBoxSettingItem}"
+                    ToolTip="When the Walkaround is not skipped by the App, it will already call Reposition and GSX Stairs (if available).&#x0a;If supported by the Plugin, the Aircrafts own Stairs (or other Equipment) is also called/placed.">
+                    <TextBlock>Connect <Underline>Stairs</Underline> (and Reposition) while in <Underline>Walkaround</Underline> Mode (not skipped)</TextBlock>
+                </CheckBox>
+
+                <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding CallJetwayStairsOnPrep}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}"
                           ToolTip="Automatically call Jetway and/or Stairs (which ever is available) on Session Start.&#x0a;If not called automatically, you can use the Smart-Button (if implemented by the Aircraft Plugin) to call the Jetway/Stairs in the Preparation Phase.&#x0a;NOTE: When the Aircraft Plugin reports refueling on the Port/Left Side, the Stairs are not connected.">
                     <TextBlock>Connect Jetway and Stairs on <Underline>Session Start</Underline></TextBlock>
                 </CheckBox>
 
-                <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Horizontal">
-                    <CheckBox IsChecked="{Binding AttemptConnectStairRefuel}" Style="{StaticResource CheckBoxSettingItem}"
-                          ToolTip="When the Aircraft Plugin reports refueling on the Port/Left Side, Any2GSX calls the Stairs with a certain Timing before Refuel is called.&#x0a;It is an Attempt to Workaround the GSX 'Feature' to prevent Vehicle Collisions - it can crash GSX from time to time.">
-                        <TextBlock>Attempt to connect <Underline>Stairs while Refuel</Underline> is active. Delay before Refuel Call: </TextBlock>
+                
+                <StackPanel Grid.Column="0" Grid.Row="2" Style="{StaticResource SettingItemPanel}">
+                    <CheckBox IsChecked="{Binding AttemptConnectStairRefuel}" Style="{StaticResource CheckBoxSettingItem}" Margin="0,6,6,6"
+                              ToolTip="The App attempts to Call/Reset/Override Services in a special Way so that Stairs and Refuel are active at the same Time.&#x0a;Only relevant for Aircrafts that are reported/configured to have refueling on the Port/Left Side.&#x0a;Calling Refuel after Stairs is done when all Stairs are extending or the Call Timeout has passed.&#x0a;Note: The Service-Calls for Cleaning, Lavatory &amp; Water are also altered as needed.">
+                        <TextBlock>Attempt to connect <Underline>Stairs while Refuel</Underline> is active. Call Timeout: </TextBlock>
                     </CheckBox>
-                    <TextBox Name="InputDelayRefuel" Style="{StaticResource TextBoxCentered}" ToolTip="Minimum Delay in Seconds after Engine Shutdown &amp; Beacon off before the Chocks are placed."/>
+                    <TextBox Name="InputDelayCallRefuel" Style="{StaticResource TextBoxCentered}" ToolTip="The App attempts to Call/Reset/Override Services in a special Way so that Stairs and Refuel are active at the same Time.&#x0a;Only relevant for Aircrafts that are reported/configured to have refueling on the Port/Left Side.&#x0a;Calling Refuel after Stairs is done when all Stairs are extending or the Call Timeout has passed.&#x0a;Note: The Service-Calls for Cleaning, Lavatory &amp; Water are also altered as needed."/>
                     <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
+                    <TextBlock Margin="6,0,0,0" Style="{StaticResource TextBlockDefault}"><Italic>(Hack/Workaround)</Italic></TextBlock>
                 </StackPanel>
 
-
-                <CheckBox Grid.Column="0" Grid.Row="2" IsChecked="{Binding CallJetwayStairsDuringDeparture}" Style="{StaticResource CheckBoxSettingItem}"
+                <CheckBox Grid.Column="0" Grid.Row="3" IsChecked="{Binding CallJetwayStairsDuringDeparture}" Style="{StaticResource CheckBoxSettingItem}"
                           ToolTip="Automatically call Jetway and/or Stairs (which ever is available) if they are not already connected when the Departure Phase begins.">
                     <TextBlock>Connect Jetway and Stairs when <Underline>Departure Services</Underline> are started</TextBlock>
                 </CheckBox>
 
-                <StackPanel Grid.Column="0" Grid.Row="3" Style="{StaticResource SettingItemPanel}" ToolTip="Remove all Stairs after all Departure Services have finished (so typically after GSX Boarding completed).">
+                <StackPanel Grid.Column="0" Grid.Row="4" Style="{StaticResource SettingItemPanel}" ToolTip="Remove all Stairs after all Departure Services have finished (so typically after GSX Boarding completed).">
                     <TextBlock Style="{StaticResource TextBlockDefault}">Remove <Italic>Stairs</Italic> when <Underline>Departure Services</Underline> have finished</TextBlock>
                     <ComboBox SelectedValue="{Binding RemoveStairsAfterDepature}" SelectedValuePath="Tag" Margin="8,0,0,0" Style="{StaticResource ComboBoxDefault}">
                         <ComboBoxItem Tag="0">Never</ComboBoxItem>
@@ -112,12 +156,12 @@
                     </ComboBox>
                 </StackPanel>
 
-                <CheckBox Grid.Column="0" Grid.Row="4" IsChecked="{Binding RemoveJetwayStairsOnFinal}" Style="{StaticResource CheckBoxSettingItem}"
+                <CheckBox Grid.Column="0" Grid.Row="5" IsChecked="{Binding RemoveJetwayStairsOnFinal}" Margin="6,6,6,9" Style="{StaticResource CheckBoxSettingItem}"
                           ToolTip="Remove both Jetway and Stairs as soon as the Final Loadsheet Delay has expired.">
                     <TextBlock>Remove Jetway and Stairs when <Underline>Final Loadsheet</Underline> is transmitted</TextBlock>
                 </CheckBox>
                 
-                <CheckBox Grid.Column="0" Grid.Row="5" IsChecked="{Binding CallJetwayStairsOnArrival}" Style="{StaticResource CheckBoxSettingItem}"
+                <CheckBox Grid.Column="0" Grid.Row="6" IsChecked="{Binding CallJetwayStairsOnArrival}" Style="{StaticResource CheckBoxSettingItem}"
                           ToolTip="Automatically call Jetway and/or Stairs (which ever is available) on Arrival (= Engines off, Beacon off and Brake set)">
                     <TextBlock>Connect Jetway and Stairs on <Underline>Arrival</Underline></TextBlock>
                 </CheckBox>

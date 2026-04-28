@@ -27,10 +27,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Horizontal" Margin="12,6,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" ToolTip="The active Profile to which the displayed Settings belong.">
-            <TextBlock Style="{StaticResource TextBlockDefault}" FontWeight="DemiBold" FontSize="14">Profile:</TextBlock>
-            <TextBlock Style="{StaticResource TextBlockDefault}" FontWeight="DemiBold" FontSize="14" Margin="4,0,0,0" Text="{Binding ProfileName}"/>
-        </StackPanel>
+        <ContentControl Grid.Column="0" Grid.Row="0" Name="ViewProfileSelector" Margin="12,6,6,6" ToolTip="Select the active Profile."/>
 
         <GroupBox Grid.Column="0" Grid.Row="1" Style="{StaticResource GroupBoxDefault}" Visibility="{Binding ChannelVisibility}">
             <GroupBox.Header>Audio Channel</GroupBox.Header>
@@ -71,13 +68,24 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <DataGrid Grid.Column="0" Grid.Row="0" Name="GridAudioMappings" Margin="6,6,6,6" SelectionUnit="FullRow" SelectionMode="Single">
+                <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0" HorizontalAlignment="Stretch" Orientation="Horizontal">
+                    <Button  Command="{Binding SwapChannelsCommand}" IsEnabled="{Binding SwapEnabled}" MinHeight="22" Width="96" VerticalContentAlignment="Center" HorizontalAlignment="Left" Margin="6">
+                        Swap Channels
+                    </Button>
+                    <TextBox Name="InputSwap1" Style="{StaticResource TextBoxCentered}" Text="{Binding SwapName1}" IsEnabled="{Binding SwapEnabled}" Margin="6,6,2,6"/>
+                    <TextBlock Style="{StaticResource TextBlockDefault}">&lt;&gt;</TextBlock>
+                    <TextBox Name="InputSwap2" Style="{StaticResource TextBoxCentered}" Text="{Binding SwapName2}" IsEnabled="{Binding SwapEnabled}" Margin="2,6,6,6"/>
+                </StackPanel>
+                
+
+                <DataGrid Grid.Column="0" Grid.Row="1" Name="GridAudioMappings" Margin="6,6,6,6" SelectionUnit="FullRow" SelectionMode="Single" MinHeight="128">
                     <DataGrid.Columns>
                         <DataGridTemplateColumn Header="Channel" MinWidth="112">
                             <DataGridTemplateColumn.CellTemplate>
@@ -121,22 +129,22 @@
                     </DataGrid.Columns>
                 </DataGrid>
 
-                <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Horizontal" Margin="6,6,0,0">
+                <StackPanel Grid.Column="0" Grid.Row="2" Orientation="Horizontal" Margin="6,6,0,0">
                     <ComboBox Name="SelectorMappingChannel" SelectedIndex="0" HorizontalContentAlignment="Center" VerticalAlignment="Top" Style="{StaticResource ComboBoxDefault}" ToolTip="Select the Audio Channel to control the App."/>
                     <StackPanel Orientation="Vertical" Margin="6,0.5,0,0" ToolTip="Enter the Binary Name of the App without .exe Extension or select it from the List.">
-                        <TextBox Name="InputMappingApp" Style="{StaticResource TextBoxLeft}" VerticalAlignment="Top"/>
+                        <TextBox Name="InputMappingApp" Style="{StaticResource TextBoxLeft}" MinHeight="22.5" Margin="0,-1,0,0"/>
                         <ListView Name="ListActiveProcesses" Panel.ZIndex="99" Visibility="Collapsed" VerticalAlignment="Center" MaxHeight="128" ScrollViewer.HorizontalScrollBarVisibility="Hidden" HorizontalAlignment="Left" MinWidth="48" MinHeight="22"/>
                     </StackPanel>
                     <ComboBox Name="SelectorMappingDevice" SelectedIndex="0" Margin="6,0,0,0" Style="{StaticResource ComboBoxDefault}" VerticalAlignment="Top" ToolTip="Restrict the Volume Control to a specific Windows Audio Device."/>
                     <Grid Name="PanelMute" HorizontalAlignment="Stretch">
-                        <CheckBox Name="CheckboxMappingMute" Margin="4,3.5,0,0" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Style="{StaticResource CheckBoxDefault}" VerticalAlignment="Top" ToolTip="Mute the App when the Audio Knob is pushed/pulled (if supported by the Channel Definition)."/>
+                        <CheckBox Name="CheckboxMappingMute" IsChecked="True" Margin="4,3.5,0,0" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Style="{StaticResource CheckBoxDefault}" VerticalAlignment="Top" ToolTip="Mute the App when the Audio Knob is pushed/pulled (if supported by the Channel Definition)."/>
                     </Grid>
                     <Grid Name="PanelActive" HorizontalAlignment="Stretch">
-                        <CheckBox Name="CheckboxOnlyActive" Margin="4,3.5,0,0" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Style="{StaticResource CheckBoxDefault}" VerticalAlignment="Top" ToolTip="Only control App Audio Sessions flagged as active."/>
+                        <CheckBox Name="CheckboxOnlyActive" IsChecked="True" Margin="4,3.5,0,0" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Style="{StaticResource CheckBoxDefault}" VerticalAlignment="Top" ToolTip="Only control App Audio Sessions flagged as active."/>
                     </Grid>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Horizontal" Margin="0,6,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                <StackPanel Grid.Column="1" Grid.Row="2" Orientation="Horizontal" Margin="0,6,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
                     <Button Name="ButtonAddMapping" Margin="0,0,0,0" Style="{StaticResource BtnSquareSmall}" ToolTip="Add/Update App Mapping">
                         <Image Name="ImageAddMapping" Source="../../Icons/add.png" Style="{StaticResource ImgSquareSmall}"/>
                     </Button>

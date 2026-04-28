@@ -20,7 +20,7 @@ namespace Installer.Worker
         protected override async Task<bool> DoRun()
         {
             bool result;
-            
+
             CheckSimulators();
             if (ModuleItems.Count > 0)
             {
@@ -38,7 +38,7 @@ namespace Installer.Worker
 
         protected virtual void CheckSimulators()
         {
-            var list = WorkerModuleInstall<Config>.FindInstalledModules();
+            var list = WorkerModuleInstall<Config>.FindInstalledModules(Config);
             Logger.Debug($"Found {list.Count} Modules");
             ModuleItems.AddRange(list);
         }

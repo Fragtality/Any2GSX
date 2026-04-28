@@ -13,11 +13,11 @@ namespace Installer.Worker
         public WorkerInstallUpdate(Config config) : base(config)
         {
             SetPropertyFromOption<bool>(Config.OptionResetConfiguration);
-        }        
+        }
 
         protected override void CreateFileExclusions()
         {
-            
+
         }
 
         protected override bool DeleteOldFiles()

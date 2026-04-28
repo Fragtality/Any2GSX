@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Any2GSX.UI"
         mc:Ignorable="d"
-        Title="Any2GSX" MinWidth="780" SizeToContent="WidthAndHeight" WindowStartupLocation="CenterOwner">
+        Title="Any2GSX" MinWidth="780" SizeToContent="WidthAndHeight" WindowStartupLocation="CenterOwner" ResizeMode="CanMinimize">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>

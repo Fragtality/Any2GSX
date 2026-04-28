@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<SimBase.Document Type="InGamePanels" version="1,0">
+
+	<Filename>fragtality_commbus_module_injected.spb</Filename>
+
+	<InGamePanels.InGamePanelDefinition
+  		id="PANEL_ANY2GSX_COMMBUS"
+		Name="Any2GSX CommBus Panel"
+		url="HTML_UI/InGamePanels/Any2GSX-Panel/index.html"
+		icon="ANY2GSX_COMMBUS_ICON">
+	</InGamePanels.InGamePanelDefinition>
+
+</SimBase.Document>

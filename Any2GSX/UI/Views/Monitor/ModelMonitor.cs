@@ -26,7 +26,6 @@ namespace Any2GSX.UI.Views.Monitor
         protected static SolidColorBrush ColorValid { get; } = new(Colors.Green);
         protected static SolidColorBrush ColorInvalid { get; } = new(Colors.Red);
         public virtual ObservableCollection<string> MessageLog { get; } = [];
-        protected virtual GsxAutomationController AutomationController => GsxController?.AutomationController;
         protected virtual ConcurrentDictionary<GsxServiceType, GsxService> GsxServices => GsxController?.GsxServices;
         protected virtual GsxServiceBoarding GsxServiceBoard => GsxServices[GsxServiceType.Boarding] as GsxServiceBoarding;
         protected virtual GsxServiceDeboarding GsxServiceDeboard => GsxServices[GsxServiceType.Deboarding] as GsxServiceDeboarding;
@@ -115,7 +114,7 @@ namespace Any2GSX.UI.Views.Monitor
             try { UpdateGsx(); } catch { }
             try { UpdateApp(); } catch (Exception ex) { Logger.LogException(ex); }
             try { UpdateLog(); } catch { }
-            try { UpdateAircraftPlugin(); } catch { }            
+            try { UpdateAircraftPlugin(); } catch { }
             ForceRefresh = false;
         }
 
@@ -130,43 +129,43 @@ namespace Any2GSX.UI.Views.Monitor
             UpdateState<long>(nameof(CameraState), SimConnect.CameraState);
 
             UpdateState<string>(nameof(SimVersion), SimConnect.SimVersionString);
-
-            UpdateState<string>(nameof(AircraftString), SimConnect.AircraftString);
         }
 
         [ObservableProperty]
-        protected bool _SimRunning = false;
-        [ObservableProperty]
-        protected SolidColorBrush _SimRunningColor = ColorInvalid;
+        public partial bool SimRunning { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _SimConnected = false;
-        [ObservableProperty]
-        protected SolidColorBrush _SimConnectedColor = ColorInvalid;
+        public partial SolidColorBrush SimRunningColor { get; set; } = ColorInvalid;
 
         [ObservableProperty]
-        protected bool _SimSession = false;
-        [ObservableProperty]
-        protected SolidColorBrush _SimSessionColor = ColorInvalid;
+        public partial bool SimConnected { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _SimPaused = false;
-        [ObservableProperty]
-        protected SolidColorBrush _SimPausedColor = ColorInvalid;
+        public partial SolidColorBrush SimConnectedColor { get; set; } = ColorInvalid;
 
         [ObservableProperty]
-        protected bool _SimWalkaround = false;
-        [ObservableProperty]
-        protected SolidColorBrush _SimWalkaroundColor = ColorInvalid;
+        public partial bool SimSession { get; set; } = false;
 
         [ObservableProperty]
-        protected long _CameraState = 0;
+        public partial SolidColorBrush SimSessionColor { get; set; } = ColorInvalid;
 
         [ObservableProperty]
-        protected string _SimVersion = "";
+        public partial bool SimPaused { get; set; } = false;
 
         [ObservableProperty]
-        protected string _AircraftString = "";
+        public partial SolidColorBrush SimPausedColor { get; set; } = ColorInvalid;
+
+        [ObservableProperty]
+        public partial bool SimWalkaround { get; set; } = false;
+
+        [ObservableProperty]
+        public partial SolidColorBrush SimWalkaroundColor { get; set; } = ColorInvalid;
+
+        [ObservableProperty]
+        public partial long CameraState { get; set; } = 0;
+
+        [ObservableProperty]
+        public partial string SimVersion { get; set; } = "";
 
         protected virtual void UpdateGsx()
         {
@@ -188,68 +187,69 @@ namespace Any2GSX.UI.Views.Monitor
 
             UpdateState<GsxServiceState>(nameof(ServiceBoarding), GsxServices[GsxServiceType.Boarding].State);
             UpdateState<GsxServiceState>(nameof(ServiceDeboarding), GsxServices[GsxServiceType.Deboarding].State);
-            UpdateState<string>(nameof(ServicePushback), $"{GsxServicePushBack.State} ({GsxServicePushBack.PushStatus})");
-            UpdateState<string>(nameof(ServiceJetway), $"{GsxController.ServiceJetway.State} ({GsxController.ServiceJetway.SubOperating.GetNumber()})");
-            UpdateState<string>(nameof(ServiceStairs), $"{GsxController.ServiceStairs.State} ({GsxController.ServiceStairs.SubOperating.GetNumber()})");
+            UpdateState<string>(nameof(ServicePushback), $"{GsxServicePushBack.TextState} ({GsxServicePushBack.PushStatus})");
+            UpdateState<string>(nameof(ServiceJetway), $"{GsxController.ServiceJetway.TextState} ({(int)GsxController.ServiceJetway.OperatingState})");
+            UpdateState<string>(nameof(ServiceStairs), $"{GsxController.ServiceStairs.TextState} ({(int)GsxController.ServiceStairs.OperatingState})");
         }
 
         [ObservableProperty]
-        protected bool _GsxRunning = false;
-        [ObservableProperty]
-        protected SolidColorBrush _GsxRunningColor = ColorInvalid;
+        public partial bool GsxRunning { get; set; } = false;
 
         [ObservableProperty]
-        protected string _GsxStarted = "";
-        [ObservableProperty]
-        protected SolidColorBrush _GsxStartedColor = ColorInvalid;
+        public partial SolidColorBrush GsxRunningColor { get; set; } = ColorInvalid;
 
         [ObservableProperty]
-        protected GsxMenuState _GsxMenu = GsxMenuState.UNKNOWN;
+        public partial string GsxStarted { get; set; } = "";
 
         [ObservableProperty]
-        protected string _GsxPaxTarget = "0 (0 | 0)";
+        public partial SolidColorBrush GsxStartedColor { get; set; } = ColorInvalid;
 
         [ObservableProperty]
-        protected string _GsxPaxTotal = "0 | 0";
+        public partial GsxMenuState GsxMenu { get; set; } = GsxMenuState.UNKNOWN;
 
         [ObservableProperty]
-        protected string _GsxCargoProgress = "0 | 0";
+        public partial string GsxPaxTarget { get; set; } = "0 (0 | 0)";
 
         [ObservableProperty]
-        protected GsxServiceState _ServiceReposition = GsxServiceState.Unknown;
+        public partial string GsxPaxTotal { get; set; } = "0 | 0";
 
         [ObservableProperty]
-        protected GsxServiceState _ServiceRefuel = GsxServiceState.Unknown;
+        public partial string GsxCargoProgress { get; set; } = "0 | 0";
 
         [ObservableProperty]
-        protected GsxServiceState _ServiceCatering = GsxServiceState.Unknown;
+        public partial GsxServiceState ServiceReposition { get; set; } = GsxServiceState.Unknown;
 
         [ObservableProperty]
-        protected GsxServiceState _ServiceLavatory = GsxServiceState.Unknown;
+        public partial GsxServiceState ServiceRefuel { get; set; } = GsxServiceState.Unknown;
 
         [ObservableProperty]
-        protected GsxServiceState _ServiceWater = GsxServiceState.Unknown;
+        public partial GsxServiceState ServiceCatering { get; set; } = GsxServiceState.Unknown;
 
         [ObservableProperty]
-        protected GsxServiceState _ServiceCleaning = GsxServiceState.Unknown;
+        public partial GsxServiceState ServiceLavatory { get; set; } = GsxServiceState.Unknown;
+        [ObservableProperty]
+        public partial GsxServiceState ServiceWater { get; set; } = GsxServiceState.Unknown;
 
         [ObservableProperty]
-        protected GsxServiceState _ServiceGpu = GsxServiceState.Unknown;
+        public partial GsxServiceState ServiceCleaning { get; set; } = GsxServiceState.Unknown;
 
         [ObservableProperty]
-        protected GsxServiceState _ServiceBoarding = GsxServiceState.Unknown;
+        public partial GsxServiceState ServiceGpu { get; set; } = GsxServiceState.Unknown;
 
         [ObservableProperty]
-        protected GsxServiceState _ServiceDeboarding = GsxServiceState.Unknown;
+        public partial GsxServiceState ServiceBoarding { get; set; } = GsxServiceState.Unknown;
 
         [ObservableProperty]
-        protected string _ServicePushback = $"{GsxServiceState.Unknown} (0)";
+        public partial GsxServiceState ServiceDeboarding { get; set; } = GsxServiceState.Unknown;
 
         [ObservableProperty]
-        protected string _ServiceJetway = GsxServiceState.Unknown.ToString();
+        public partial string ServicePushback { get; set; } = $"{GsxServiceState.Unknown} (0)";
 
         [ObservableProperty]
-        protected string _ServiceStairs = GsxServiceState.Unknown.ToString();
+        public partial string ServiceJetway { get; set; } = GsxServiceState.Unknown.ToString();
+
+        [ObservableProperty]
+        public partial string ServiceStairs { get; set; } = GsxServiceState.Unknown.ToString();
 
         protected virtual void UpdateApp()
         {
@@ -260,10 +260,11 @@ namespace Any2GSX.UI.Views.Monitor
             UpdateBoolState(nameof(AppDeckController), nameof(AppDeckControllerColor), Source.NotificationManager.IsRunning);
 
             UpdateState<AutomationState>(nameof(AppAutomationState), AutomationController?.State ?? AutomationState.SessionStart);
-            UpdateState<string>(nameof(AppSmartCall), $"{Source?.NotificationManager?.ReportedCall ?? SmartButtonCall.None}{(!string.IsNullOrWhiteSpace(Source?.NotificationManager?.ReportedCallInfo) ? $" ({Source?.NotificationManager?.ReportedCallInfo})" : "")}");
-            UpdateState<string>(nameof(AppAutomationDepartureServices), $"{Source?.NotificationManager?.ReportedServicesCompleted ?? 0} / {Source?.NotificationManager?.ReportedServicesRunning ?? 0} / {Source?.NotificationManager?.ReportedServicesTotal ?? 0}" ?? "0 / 0 / 0");
-            if (AutomationController?.DepartureServicesEnumerator?.CheckEnumeratorValid() == true)
-                UpdateState<string>(nameof(AppAutomationNextService), $"{AutomationController?.DepartureServicesCurrent?.ServiceType ?? GsxServiceType.Unknown}");
+            UpdateState<string>(nameof(AppSmartCall), $"{Source?.NotificationTracker?.SmartButton ?? SmartButtonCall.None}");
+            var queue = Source?.GsxController?.AutomationController?.DepartureQueue;
+            UpdateState<string>(nameof(AppAutomationDepartureServices), $"{queue?.CountCompleted ?? 0} / {queue?.CountRunning ?? 0} / {queue?.CountTotal ?? 0}" ?? "0 / 0 / 0");
+            if (queue?.HasNext == true)
+                UpdateState<string>(nameof(AppAutomationNextService), $"{queue?.NextType ?? GsxServiceType.Unknown}");
             else
                 UpdateState<string>(nameof(AppAutomationNextService), "");
             UpdateState<string>(nameof(AppFlightPlan), $"{AppService.Instance?.Flightplan?.Id ?? 0}");
@@ -273,140 +274,144 @@ namespace Any2GSX.UI.Views.Monitor
         }
 
         [ObservableProperty]
-        protected bool _AppGsxController = false;
-        [ObservableProperty]
-        protected SolidColorBrush _AppGsxControllerColor = ColorInvalid;
+        public partial bool AppGsxController { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _AppAircraftInterface = false;
-        [ObservableProperty]
-        protected SolidColorBrush _AppAircraftInterfaceColor = ColorInvalid;
+        public partial SolidColorBrush AppGsxControllerColor { get; set; } = ColorInvalid;
 
         [ObservableProperty]
-        protected bool _AppAutomationController = false;
-        [ObservableProperty]
-        protected SolidColorBrush _AppAutomationControllerColor = ColorInvalid;
+        public partial bool AppAircraftInterface { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _AppAudioController = false;
-        [ObservableProperty]
-        protected SolidColorBrush _AppAudioControllerColor = ColorInvalid;
+        public partial SolidColorBrush AppAircraftInterfaceColor { get; set; } = ColorInvalid;
 
         [ObservableProperty]
-        protected bool _AppDeckController = false;
-        [ObservableProperty]
-        protected SolidColorBrush _AppDeckControllerColor = ColorInvalid;
+        public partial bool AppAutomationController { get; set; } = false;
 
         [ObservableProperty]
-        protected AutomationState _AppAutomationState = AutomationState.SessionStart;
+        public partial SolidColorBrush AppAutomationControllerColor { get; set; } = ColorInvalid;
 
         [ObservableProperty]
-        protected string _AppSmartCall = "";
+        public partial bool AppAudioController { get; set; } = false;
 
         [ObservableProperty]
-        protected string _AppAutomationDepartureServices = "0 / 0 / 0";
+        public partial SolidColorBrush AppAudioControllerColor { get; set; } = ColorInvalid;
 
         [ObservableProperty]
-        protected string _AppAutomationNextService = GsxServiceType.Unknown.ToString();
+        public partial bool AppDeckController { get; set; } = false;
 
         [ObservableProperty]
-        protected string _AppFlightPlan = "0";
-
-
-        [ObservableProperty]
-        protected string _AppProfile = "";
+        public partial SolidColorBrush AppDeckControllerColor { get; set; } = ColorInvalid;
 
         [ObservableProperty]
-        protected string _AppPlugin = "";
+        public partial AutomationState AppAutomationState { get; set; } = AutomationState.SessionStart;
+
+        [ObservableProperty]
+        public partial string AppSmartCall { get; set; } = "";
+
+        [ObservableProperty]
+        public partial string AppAutomationDepartureServices { get; set; } = "0 / 0 / 0";
+
+        [ObservableProperty]
+        public partial string AppAutomationNextService { get; set; } = GsxServiceType.Unknown.ToString();
+
+        [ObservableProperty]
+        public partial string AppFlightPlan { get; set; } = "0";
+
+        [ObservableProperty]
+        public partial string AppProfile { get; set; } = "";
+
+        [ObservableProperty]
+        public partial string AppPlugin { get; set; } = "";
 
         protected virtual void UpdateAircraftPlugin()
         {
             try
             {
                 UpdateState<bool>(nameof(AppOnGround), GsxController?.IsOnGround ?? true);
-                UpdateState<bool>(nameof(PluginAvionics), AircraftController?.Aircraft?.IsAvionicPowered ?? false);
-                UpdateState<bool>(nameof(PluginExtCon), AircraftController?.Aircraft?.IsExternalPowerConnected ?? false);
-                UpdateState<bool>(nameof(PluginGpu), AircraftController?.Aircraft?.EquipmentPower ?? false);
-                UpdateState<bool>(nameof(PluginChocks), AircraftController?.Aircraft?.EquipmentChocks ?? false);
-                UpdateState<bool>(nameof(PluginCones), AircraftController?.Aircraft?.EquipmentCones ?? false);
-                UpdateState<bool>(nameof(PluginPca), AircraftController?.Aircraft?.EquipmentPca ?? false);
-                UpdateState<bool>(nameof(PluginApuRun), AircraftController?.Aircraft?.IsApuRunning ?? false);
-                UpdateState<bool>(nameof(PluginApuBleed), AircraftController?.Aircraft?.IsApuBleedOn ?? false);
-                UpdateState<bool>(nameof(PluginBrake), AircraftController?.Aircraft?.IsBrakeSet ?? false);
-                UpdateState<bool>(nameof(PluginBeacon), AircraftController?.Aircraft?.LightBeacon ?? false);
-                UpdateState<bool>(nameof(PluginNav), AircraftController?.Aircraft?.LightNav ?? false);
-                UpdateState<bool>(nameof(PluginEngineRunning), AircraftController?.Aircraft?.IsEngineRunning ?? false);
-                UpdateState<bool>(nameof(PluginSmartButton), AircraftController?.Aircraft?.SmartButtonRequest ?? false);
-                UpdateState<int>(nameof(PluginSpeed), AircraftController?.Aircraft?.GroundSpeed ?? 0);
-                UpdateState<bool>(nameof(PluginCargo), AircraftController?.Aircraft?.IsCargo ?? false);
-                UpdateState<bool>(nameof(PluginReadyDeparture), AircraftController?.Aircraft?.ReadyForDepartureServices ?? false);
+                UpdateState<bool>(nameof(PluginAvionics), AutomationController?.EquipManager?.AvionicsPowered ?? false);
+                UpdateState<bool>(nameof(PluginExtCon), AutomationController?.EquipManager?.PowerConnected ?? false);
+                UpdateState<bool>(nameof(PluginGpu), AutomationController?.EquipManager?.EquipmentGpu ?? false);
+                UpdateState<bool>(nameof(PluginChocks), AutomationController?.EquipManager?.EquipmentChocks ?? false);
+                UpdateState<bool>(nameof(PluginCones), AutomationController?.EquipManager?.EquipmentCones ?? false);
+                UpdateState<bool>(nameof(PluginPca), AutomationController?.EquipManager?.EquipmentPca ?? false);
+                UpdateState<bool>(nameof(PluginApuRun), AutomationController?.EquipManager?.ApuRunning ?? false);
+                UpdateState<bool>(nameof(PluginApuBleed), AutomationController?.EquipManager?.ApuBleed ?? false);
+                UpdateState<bool>(nameof(PluginBrake), AutomationController?.EquipManager?.BrakeSet ?? false);
+                UpdateState<bool>(nameof(PluginBeacon), AutomationController?.LightBeacon ?? false);
+                UpdateState<bool>(nameof(PluginNav), AutomationController?.LightNav ?? false);
+                UpdateState<bool>(nameof(PluginEngineRunning), AutomationController?.EnginesRunning ?? false);
+                UpdateState<bool>(nameof(PluginSmartButton), AutomationController?.HasSmartButtonRequest ?? false);
+                UpdateState<int>(nameof(PluginSpeed), (int)(AutomationController?.Speed ?? 0));
+                UpdateState<bool>(nameof(PluginCargo), AutomationController?.IsCargo ?? false);
+                UpdateState<bool>(nameof(PluginReadyDeparture), AutomationController?.ReadyDepartureServices ?? false);
 
-                UpdateState<string>(nameof(PluginFuelCapacity), $"{Math.Round(Config.ConvertKgToDisplayUnit(AircraftController?.FuelCapacityKg ?? 0), 1)} {Config.DisplayUnitCurrentString}");
-                UpdateState<string>(nameof(PluginFuelOnBoard), $"{Math.Round(Config.ConvertKgToDisplayUnit(AircraftController?.Aircraft?.FuelOnBoardKg ?? 0), 1)} {Config.DisplayUnitCurrentString}");
-                UpdateState<string>(nameof(PluginTotalWeight), $"{Math.Round(Config.ConvertKgToDisplayUnit(AircraftController?.Aircraft?.WeightTotalKg ?? 0), 1)} {Config.DisplayUnitCurrentString}");
+                UpdateState<string>(nameof(PluginZeroFuel), $"{Math.Round(Config.ConvertKgToDisplayUnit(AutomationController?.ZeroFuel ?? 0), 1)} {Config.DisplayUnitCurrentString}");
+                UpdateState<string>(nameof(PluginFuelOnBoard), $"{Math.Round(Config.ConvertKgToDisplayUnit(AutomationController?.FuelOnBoard ?? 0), 1)} {Config.DisplayUnitCurrentString}");
+                UpdateState<string>(nameof(PluginTotalWeight), $"{Math.Round(Config.ConvertKgToDisplayUnit(AutomationController?.WeightTotal ?? 0), 1)} {Config.DisplayUnitCurrentString}");
             }
             catch { }
         }
 
         [ObservableProperty]
-        protected bool _AppOnGround = true;
+        public partial bool AppOnGround { get; set; } = true;
 
         [ObservableProperty]
-        protected bool _PluginAvionics = false;
+        public partial bool PluginAvionics { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _PluginExtCon = false;
+        public partial bool PluginExtCon { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _PluginCones = false;
+        public partial bool PluginCones { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _PluginChocks = false;
+        public partial bool PluginChocks { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _PluginGpu = false;
+        public partial bool PluginGpu { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _PluginPca = false;
+        public partial bool PluginPca { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _PluginApuRun = false;
+        public partial bool PluginApuRun { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _PluginApuBleed = false;
+        public partial bool PluginApuBleed { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _PluginBrake = false;
+        public partial bool PluginBrake { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _PluginBeacon = false;
+        public partial bool PluginBeacon { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _PluginNav = false;
+        public partial bool PluginNav { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _PluginEngineRunning = false;
+        public partial bool PluginEngineRunning { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _PluginSmartButton = false;
+        public partial bool PluginSmartButton { get; set; } = false;
 
         [ObservableProperty]
-        protected int _PluginSpeed = 0;
+        public partial int PluginSpeed { get; set; } = 0;
 
         [ObservableProperty]
-        protected bool _PluginCargo = false;
+        public partial bool PluginCargo { get; set; } = false;
 
         [ObservableProperty]
-        protected bool _PluginReadyDeparture = false;
+        public partial bool PluginReadyDeparture { get; set; } = false;
 
         [ObservableProperty]
-        protected string _PluginFuelCapacity = "0.0";
+        public partial string PluginZeroFuel { get; set; } = "0.0";
 
         [ObservableProperty]
-        protected string _PluginFuelOnBoard = "0.0";
+        public partial string PluginFuelOnBoard { get; set; } = "0.0";
 
         [ObservableProperty]
-        protected string _PluginTotalWeight = "0.0";
+        public partial string PluginTotalWeight { get; set; } = "0.0";
 
         protected virtual void UpdateLog()
         {

@@ -25,25 +25,22 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Horizontal" Margin="12,6,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="The active Profile to which the displayed Settings belong.">
-            <TextBlock Style="{StaticResource TextBlockDefault}" FontWeight="DemiBold" FontSize="14">Profile: </TextBlock>
-            <TextBlock Style="{StaticResource TextBlockDefault}" FontWeight="DemiBold" FontSize="14" Margin="4,0,0,0" Text="{Binding ProfileName}"/>
-        </StackPanel>
+        <ContentControl Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0" Name="ViewProfileSelector" Margin="10,6,6,6" ToolTip="Select the active Profile."/>
 
-        <ListView Grid.Column="0" Grid.Row="1" Margin="12,4,12,12" MinWidth="164" MinHeight="148" Name="SelectorSettingGroup" SelectedValuePath="Key" BorderThickness="0" ToolTip="Select a Setting Category.">
+        <ListView Grid.Column="0" Grid.Row="1" Margin="12,4,12,12" MinWidth="164" MinHeight="148" Name="SelectorSettingGroup" SelectedValuePath="Key" BorderThickness="0">
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Border>
+                    <Border ToolTip="{Binding Value.ToolTip}">
                         <StackPanel Orientation="Horizontal" Margin="2">
                             <Image Source="../../Icons/cursor.png" Width="16" Height="16"/>
-                            <Label Content="{Binding Value}" FontSize="12" FontWeight="DemiBold"/>
+                            <Label Content="{Binding Value.Tag}" FontSize="12" FontWeight="DemiBold"/>
                         </StackPanel>
                     </Border>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
 
-        <ContentControl Grid.Column="1" Grid.Row="0" Grid.RowSpan="2" Name="ViewSettingGroup" Margin="2,6,6,6"/>
+        <ContentControl Grid.Column="1" Grid.Row="1" Name="ViewSettingGroup" Margin="2,6,6,6"/>
     </Grid>
 </UserControl>
 

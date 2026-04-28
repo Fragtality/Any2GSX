@@ -16,8 +16,9 @@ namespace Any2GSX.UI.Views.Automation
 
             ViewModel.BindElement(nameof(ViewModel.ChockDelayMin), InputChockMinimum, new RealInvariantConverter("10"), new ValidationRuleRange<int>(1, 30));
             ViewModel.BindElement(nameof(ViewModel.ChockDelayMax), InputChockMaximum, new RealInvariantConverter("20"), new ValidationRuleRange<int>(2, 120));
-            ViewModel.BindElement(nameof(ViewModel.FinalDelayMin), InputFinalMinimum, new RealInvariantConverter("90"), new ValidationRuleRange<int>(1, 30));
-            ViewModel.BindElement(nameof(ViewModel.FinalDelayMax), InputFinalMaximum, new RealInvariantConverter("150"), new ValidationRuleRange<int>(2, 180));
+
+            Tag = "Ground Equipment";
+            ToolTip = "Configure how Ground Equipment like Chocks, GPU and PCA is handled.";
         }
     }
 }

@@ -30,5 +30,28 @@ namespace Installer
             this.PanelFooter.Children.Add(label);
             Window.AddHandler(Hyperlink.RequestNavigateEvent, new RequestNavigateEventHandler(Nav.RequestNavigateHandler));
         }
+
+        protected override void SetActions()
+        {
+            if (BaseWorker?.IsSuccess == true)
+            {
+                Window.ActionLeft = null;
+            }
+            else
+            {
+                Window.ActionLeft = (w) =>
+                {
+                    LogAction();
+                };
+            }
+
+            Window.ActionRight = (w) =>
+            {
+                w.SetPage();
+                if (BaseConfig.GetOption<bool>(Config.OptionOpenApp) == true && !BaseDefinition.IsRunning)
+                    Sys.StartProcess(BaseConfig.ProductExePath, BaseConfig.ProductPath);
+                w.Close();
+            };
+        }
     }
 }

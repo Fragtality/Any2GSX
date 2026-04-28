@@ -12,85 +12,60 @@ namespace Any2GSX.PluginInterface
 {
     public abstract class AircraftBase(IAppResources appResources)
     {
-        public virtual IAppResources AppResources => appResources;
-        public virtual IConfig Config => AppResources.AppConfig;
-        public virtual ISettingProfile ISettingProfile => AppResources.ISettingProfile;
-        public virtual IProductDefinition ProductDefinition => AppResources.ProductDefinition;
-        public virtual ReceiverStore ReceiverStore => AppResources.ReceiverStore;
-        public virtual SimStore SimStore => AppResources.SimStore;
-        public virtual string AircraftString => AppResources.AircraftString;
-        public virtual IGsxController GsxController => AppResources.IGsxController;
-        public virtual CancellationToken Token => AppResources.Token;
-        public virtual ICommBus CommBus => AppResources.ICommBus;
-        public virtual IFlightplan Flightplan => AppResources.IFlightplan;
-        public virtual bool IsInitialized { get; protected set; } = false;
-        public virtual bool IsExecutionAllowed { get; protected set; } = true;
+        public IAppResources AppResources => appResources;
+        public IConfig Config => AppResources.AppConfig;
+        public ISettingProfile ISettingProfile => AppResources.ISettingProfile;
+        public IProductDefinition ProductDefinition => AppResources.ProductDefinition;
+        public SimStore SimStore => AppResources.SimStore;
+        public string AircraftString => AppResources.AircraftString;
+        public IGsxController GsxController => AppResources.IGsxController;
+        public CancellationToken Token => AppResources.Token;
+        public ICommBus CommBus => AppResources.ICommBus;
+        public IFlightplan Flightplan => AppResources.IFlightplan;
+        public bool IsInitialized { get; protected set; } = false;
+        public bool IsExecutionAllowed { get; protected set; } = true;
         public abstract bool IsConnected { get; }
+        public int InitDelay => ISettingProfile.HasSetting<int>(GenericSettings.OptionAircraftInitDelay, out int delay) ? delay : 0;
         public virtual int RunIntervalMs { get; protected set; } = 1000;
         public virtual int RefuelIntervalMs { get; protected set; } = 1000;
-        protected virtual List<string> SettingVariables { get; } = [];
+        protected List<string> SettingVariables { get; } = [];
 
-        public virtual bool IsCargo => GetIsCargo().Result;
-        protected virtual ISimResourceSubscription SubSpeed { get; set; }
-        public virtual int GroundSpeed => GetSpeed().Result;
-        protected virtual ISimResourceSubscription SubEngine1 { get; set; }
-        protected virtual bool Engine1 => GetEngine1().Result;
-        protected virtual ISimResourceSubscription SubEngine2 { get; set; }
-        protected virtual bool Engine2 => GetEngine2().Result;
-        public virtual bool IsEngineRunning => GetEngineRunning().Result;
-        public virtual bool ReadyForDepartureServices => GetReadyDepartureServices().Result;
-        public virtual bool SmartButtonRequest => GetSmartButtonRequest().Result;
-        protected virtual ISimResourceSubscription SubSmartButton { get; set; }
-        protected virtual bool SmartButtonReceived { get; set; } = false;
-        protected virtual ISimResourceSubscription SubDepartureTrigger { get; set; }
-        public virtual DisplayUnit UnitAircraft => GetAircraftUnits().Result;
-        protected virtual ISimResourceSubscription SubFuelOnBoardKg { get; set; }
-        public virtual double FuelOnBoardKg => GetFuelOnBoardKg().Result;
-        protected virtual ISimResourceSubscription SubFuelCapacityGallon { get; set; }
-        public virtual double FuelCapacityGallon => SubFuelCapacityGallon?.GetNumber() ?? 0;
-        protected virtual ISimResourceSubscription SubWeightTotalKg { get; set; }
-        public virtual double WeightTotalKg => GetWeightTotalKg().Result;
-        public virtual double WeightZeroFuelKg => GetWeightZeroFuelKg().Result;
-        public virtual int PaxOnBoard { get; protected set; } = 0;
-        public virtual bool IsBoardingCompleted => GetIsBoardingCompleted().Result;
-        protected virtual ISimResourceSubscription SubMsfsAvionicPowered { get; set; }
-        public virtual bool IsAvionicPowered => GetAvionicPowered().Result;
-        protected virtual ISimResourceSubscription SubMsfsApuRunning { get; set; }
-        public virtual bool IsApuRunning => GetApuRunning().Result;
-        protected virtual ISimResourceSubscription SubMsfsApuBleedOn { get; set; }
-        public virtual bool IsApuBleedOn => GetApuBleedOn().Result;
-        protected virtual ISimResourceSubscription SubMsfsPowerConnected { get; set; }
-        public virtual bool IsExternalPowerConnected => GetExternalPowerConnected().Result;
+        protected ISimResourceSubscription SubSpeed { get; set; }
+        public double Speed => SubSpeed?.GetNumber() ?? 0.0;
+        protected ISimResourceSubscription SubEngine1 { get; set; }
+        public bool Engine1 => SubEngine1?.GetNumber() > 0;
+        protected ISimResourceSubscription SubEngine2 { get; set; }
+        public bool Engine2 => SubEngine2?.GetNumber() > 0;
+        protected ISimResourceSubscription SubSmartButton { get; set; }
+        protected bool SmartButtonReceived { get; set; } = false;
+        protected ISimResourceSubscription SubDepartureTrigger { get; set; }
+        public double DepartureTrigger => SubDepartureTrigger?.GetNumber() ?? 0.0;
+        protected ISimResourceSubscription SubFuelOnBoardKg { get; set; }
+        public double FuelOnBoardKg => SubFuelOnBoardKg?.GetNumber() ?? 0.0;
+        protected ISimResourceSubscription SubFuelCapacityGallon { get; set; }
+        public double FuelCapacityGallon => SubFuelCapacityGallon?.GetNumber() ?? 0;
+        protected ISimResourceSubscription SubWeightTotalKg { get; set; }
+        public double WeightTotalKg => SubWeightTotalKg?.GetNumber() ?? 0.0;
+        public double WeightZeroFuelKg => WeightTotalKg - FuelOnBoardKg;
+        protected ISimResourceSubscription SubMsfsAvionicPowered { get; set; }
+        public bool AvionicPowered => SubMsfsAvionicPowered?.GetNumber() > 0;
+        protected ISimResourceSubscription SubMsfsApuRunning { get; set; }
+        public bool ApuRunning => SubMsfsApuRunning?.GetNumber() > 0;
+        protected ISimResourceSubscription SubMsfsApuBleedOn { get; set; }
+        public bool ApuBleedOn => SubMsfsApuBleedOn?.GetNumber() > 0;
+        protected ISimResourceSubscription SubMsfsPowerConnected { get; set; }
+        public bool PowerConnected => SubMsfsPowerConnected?.GetNumber() > 0;
+        protected ISimResourceSubscription SubMsfsPowerAvail { get; set; }
+        public bool PowerAvail => SubMsfsPowerAvail?.GetNumber() > 0;
+        protected ISimResourceSubscription SubMsfsParkingBrake { get; set; }
+        public bool ParkingBrake => SubMsfsParkingBrake?.GetNumber() > 0;
+        protected ISimResourceSubscription SubMsfsParkingBrakeSetCommand { get; set; }
+        protected ISimResourceSubscription SubMsfsLightNav { get; set; }
+        public bool LightNav => SubMsfsLightNav?.GetNumber() > 0;
+        protected ISimResourceSubscription SubMsfsLightBeacon { get; set; }
+        public bool LightBeacon => SubMsfsLightBeacon?.GetNumber() > 0;
 
-        public virtual bool HasFuelSynch => GetHasFuelSynch().Result;
-        public virtual bool CanSetPayload => GetCanSetPayload().Result;
-        public virtual bool HasFobSaveRestore => GetHasFobSaveRestore().Result;
-        public virtual bool IsFuelOnStairSide => GetIsFuelOnStairSide().Result;
-        public virtual bool HasGpuInternal => GetHasGpuInternal().Result;
-        public virtual GsxGpuUsage UseGpuGsx => GetUseGpuGsx().Result; // 0 => Never | 1 => Always | 2 => Stairs only
-        public virtual bool HasChocks => GetHasChocks().Result;
-        public virtual bool HasCones => GetHasCones().Result;
-        public virtual bool HasPca => GetHasPca().Result;
-
-        protected virtual ISimResourceSubscription SubMsfsPowerAvail { get; set; }
-        public virtual bool EquipmentPower => GetExternalPowerAvailable().Result;
-        public virtual bool EquipmentChocks => GetEquipmentChocks().Result;
-        public virtual bool EquipmentCones => GetEquipmentCones().Result;
-        public virtual bool EquipmentPca => GetEquipmentPca().Result;
-
-        public virtual bool HasOpenDoors => GetHasOpenDoors().Result;
-        public virtual bool HasAirStairForward => GetHasAirStairForward().Result;
-        public virtual bool HasAirStairAft => GetHasAirStairAft().Result;
-        protected virtual ISimResourceSubscription SubMsfsParkingBrake { get; set; }
-        public virtual bool IsBrakeSet => GetBrakeSet().Result;
-        protected virtual ISimResourceSubscription SubMsfsParkingBrakeSet { get; set; }
-
-        protected virtual ISimResourceSubscription SubMsfsLightNav { get; set; }
-        public virtual bool LightNav => GetLightNav().Result;
-        protected virtual ISimResourceSubscription SubMsfsLightBeacon { get; set; }
-        public virtual bool LightBeacon => GetLightBeacon().Result;
-
-        public virtual async Task Init()
+        public async Task Init()
         {
             if (!IsInitialized)
             {
@@ -101,19 +76,19 @@ namespace Any2GSX.PluginInterface
                 RegisterVariables();
 
                 await DoInit();
-                if (ISettingProfile.HasSetting<int>(GenericSettings.OptionAircraftInitDelay, out int delay))
+                if (InitDelay > 0)
                 {
-                    Logger.Debug($"Waiting {delay}ms for Aircraft to intialize");
-                    await Task.Delay(delay, AppResources.RequestToken);
+                    Logger.Debug($"Waiting {InitDelay}ms for Aircraft to intialize");
+                    await Task.Delay(InitDelay, AppResources.RequestToken);
                 }
 
-                SubMsfsParkingBrakeSet ??= SimStore.AddEvent("PARKING_BRAKE_SET");
+                SubMsfsParkingBrakeSetCommand ??= SimStore.AddEvent("PARKING_BRAKE_SET");
             }
 
             IsExecutionAllowed = true;
         }
 
-        protected virtual ISimResourceSubscription AddVariableFromSettings(string keyName, string keyUnit = "")
+        protected ISimResourceSubscription AddVariableFromSettings(string keyName, string keyUnit = "")
         {
             ISimResourceSubscription sub = null;
             try
@@ -134,13 +109,11 @@ namespace Any2GSX.PluginInterface
                             SettingVariables.Add(sub.Name);
                         }
                     }
-                    else if (keyName != GenericSettings.VarDepartTriggerName)
-                        Logger.Warning($"Could not get Name for Setting Variable of Key '{keyName}'");
                     else
                         Logger.Debug($"Could not get Name for Setting Variable of Key '{keyName}'");
                 }
                 else
-                    Logger.Warning($"Could not get Variable for Setting Key '{keyName}'");
+                    Logger.Debug($"Could not get Variable for Setting Key '{keyName}'");
             }
             catch (Exception ex)
             {
@@ -149,7 +122,7 @@ namespace Any2GSX.PluginInterface
             return sub;
         }
 
-        protected virtual void RegisterVariables()
+        protected void RegisterVariables()
         {
             SubEngine1 = AddVariableFromSettings(GenericSettings.VarEngine1Name, GenericSettings.VarEngine1Unit);
             SubEngine2 = AddVariableFromSettings(GenericSettings.VarEngine2Name, GenericSettings.VarEngine2Unit);
@@ -171,14 +144,17 @@ namespace Any2GSX.PluginInterface
             SubDepartureTrigger = AddVariableFromSettings(GenericSettings.VarDepartTriggerName, GenericSettings.VarDepartTriggerUnit);
         }
 
-        protected virtual void RegisterSmartButton()
+        protected void RegisterSmartButton()
         {
-            SubSmartButton = AddVariableFromSettings(GenericSettings.VarSmartButtonName, GenericSettings.VarSmartButtonUnit);
-            if (SubSmartButton != null)
-                SubSmartButton.OnReceived += OnSmartButtonValue;
+            string name = ISettingProfile.GetSetting<string>(GenericSettings.VarSmartButtonName) ?? "";
+            if (name != GenericSettings.VarSmartButtonDefault)
+            {
+                SubSmartButton = AddVariableFromSettings(GenericSettings.VarSmartButtonName, GenericSettings.VarSmartButtonUnit);
+                SubSmartButton?.OnReceived += OnSmartButtonValue;
+            }
         }
 
-        protected virtual void UnregisterVariables()
+        protected void UnregisterVariables()
         {
             try
             {
@@ -197,19 +173,21 @@ namespace Any2GSX.PluginInterface
 
         protected abstract Task DoInit();
 
-        public virtual Task Stop()
+        public async Task Stop()
         {
             IsExecutionAllowed = false;
-            DoStop();
+            SubSmartButton?.OnReceived -= OnSmartButtonValue;
+            await DoStop();
             UnregisterVariables();
             FreeSubscriptions();
             Logger.Debug($"Aircraft Interface {this.GetType().Name} stopped");
-            return Task.CompletedTask;
+            IsInitialized = false;
+
         }
 
         protected abstract Task DoStop();
 
-        protected virtual void FreeSubscriptions()
+        protected void FreeSubscriptions()
         {
             SimStore?.Remove("GPS GROUND SPEED");
             SimStore?.Remove("FUEL TOTAL CAPACITY");
@@ -228,39 +206,36 @@ namespace Any2GSX.PluginInterface
             return Task.CompletedTask;
         }
 
-        public virtual Task CheckConnection()
-        {
-            return Task.CompletedTask;
-        }
+        public abstract Task CheckConnection();
 
         public abstract Task RunInterval();
 
-        protected virtual Task<bool> GetIsCargo()
+        public virtual Task<bool> GetIsCargo()
         {
-            return Task.FromResult(ISettingProfile.GetSetting<bool>(GenericSettings.OptionAircraftIsCargo));
+            return Task.FromResult(ISettingProfile?.GetSetting<bool>(GenericSettings.OptionAircraftIsCargo) ?? false);
         }
 
-        protected virtual Task<int> GetSpeed()
+        public virtual Task<int> GetSpeed()
         {
-            return Task.FromResult((int)(SubSpeed?.GetNumber() ?? 0));
+            return Task.FromResult((int)Speed);
         }
 
-        protected virtual Task<bool> GetEngine1()
+        public virtual Task<bool> GetEngine1()
         {
             return Task.FromResult(SubEngine1?.IsActive != null && SubEngine1.GetNumber() > 0);
         }
 
-        protected virtual Task<bool> GetEngine2()
+        public virtual Task<bool> GetEngine2()
         {
             return Task.FromResult(SubEngine2?.IsActive != null && SubEngine2.GetNumber() > 0);
         }
 
-        protected virtual Task<bool> GetEngineRunning()
+        public virtual async Task<bool> GetEngineRunning()
         {
-            return Task.FromResult(Engine1 || Engine2);
+            return await GetEngine1() || await GetEngine2();
         }
 
-        protected virtual Task<bool> GetReadyDepartureServices()
+        public virtual async Task<bool> GetReadyDepartureServices()
         {
             bool trigger = true;
             if (SubDepartureTrigger != null)
@@ -271,7 +246,7 @@ namespace Any2GSX.PluginInterface
                 trigger = CompareValues(comp, value, target);
             }
 
-            return Task.FromResult(IsAvionicPowered && IsExternalPowerConnected && LightNav && trigger);
+            return await GetAvionicPowered() && await GetExternalPowerConnected() && await GetLightNav() && trigger;
         }
 
         public virtual Task<bool> GetSmartButtonRequest()
@@ -279,12 +254,12 @@ namespace Any2GSX.PluginInterface
             return Task.FromResult(SmartButtonReceived);
         }
 
-        protected virtual void OnSmartButtonValue(ISimResourceSubscription sub, object data)
+        public virtual Task OnSmartButtonValue(ISimResourceSubscription sub, object data)
         {
             try
             {
                 if (SmartButtonReceived)
-                    return;
+                    return Task.CompletedTask;
 
                 double value = sub.GetNumber();
                 Comparison comp = (Comparison)ISettingProfile.GetSetting<int>(GenericSettings.VarSmartButtonComp);
@@ -296,6 +271,8 @@ namespace Any2GSX.PluginInterface
             {
                 Logger.LogException(ex);
             }
+
+            return Task.CompletedTask;
         }
 
         public static bool CompareValues(Comparison comp, double value, double target)
@@ -312,22 +289,28 @@ namespace Any2GSX.PluginInterface
             };
         }
 
-        public virtual async Task ResetSmartButton()
+        public virtual Task ResetSmartButton()
         {
             try
             {
-                SmartButtonReceived = false;
-                string code = ISettingProfile.GetSetting<string>(GenericSettings.VarSmartButtonReset);
-                if (!string.IsNullOrWhiteSpace(code))
+
+                if (SmartButtonReceived)
                 {
-                    Logger.Debug($"Executing Reset Code '{code}'");
-                    await CommBus.ExecuteCalculatorCode(code);
+                    string code = ISettingProfile.GetSetting<string>(GenericSettings.VarSmartButtonReset);
+                    if (!string.IsNullOrWhiteSpace(code))
+                    {
+                        Logger.Debug($"Executing Reset Code '{code}'");
+                        return CommBus.ExecuteCalculatorCode(code);
+                    }
                 }
+                SmartButtonReceived = false;
             }
             catch (Exception ex)
             {
                 Logger.LogException(ex);
             }
+
+            return Task.CompletedTask;
         }
 
         public virtual Task<DisplayUnit> GetAircraftUnits()
@@ -335,44 +318,49 @@ namespace Any2GSX.PluginInterface
             return Task.FromResult(AppResources.IFlightplan.Unit);
         }
 
-        protected virtual Task<double> GetFuelOnBoardKg()
+        public virtual Task NotifyCockpit(CockpitNotification notification)
         {
-            return Task.FromResult(SubFuelOnBoardKg?.GetNumber() ?? 0);
+            return Task.CompletedTask;
         }
 
-        protected virtual Task<double> GetWeightTotalKg()
+        public virtual Task<double> GetFuelOnBoardKg()
         {
-            return Task.FromResult(SubWeightTotalKg?.GetNumber() ?? 0);
+            return Task.FromResult(FuelOnBoardKg);
         }
 
-        protected virtual Task<double> GetWeightZeroFuelKg()
+        public virtual Task<double> GetWeightTotalKg()
         {
-            return Task.FromResult(WeightTotalKg - FuelOnBoardKg);
+            return Task.FromResult(WeightTotalKg);
         }
 
-        protected virtual Task<bool> GetAvionicPowered()
+        public virtual async Task<double> GetWeightZeroFuelKg()
         {
-            return Task.FromResult(SubMsfsAvionicPowered?.GetNumber() > 0);
+            return await GetWeightTotalKg() - await GetFuelOnBoardKg();
         }
 
-        protected virtual Task<bool> GetApuRunning()
+        public virtual Task<bool> GetAvionicPowered()
         {
-            return Task.FromResult(SubMsfsApuRunning?.GetNumber() > 0);
+            return Task.FromResult(AvionicPowered || ApuRunning);
         }
 
-        protected virtual Task<bool> GetApuBleedOn()
+        public virtual Task<bool> GetApuRunning()
         {
-            return Task.FromResult(SubMsfsApuBleedOn?.GetNumber() > 0);
+            return Task.FromResult(ApuRunning);
         }
 
-        protected virtual Task<bool> GetExternalPowerConnected()
+        public virtual Task<bool> GetApuBleedOn()
         {
-            return Task.FromResult(SubMsfsPowerConnected?.GetNumber() > 0);
+            return Task.FromResult(ApuRunning && ApuBleedOn);
         }
 
-        protected virtual Task<bool> GetExternalPowerAvailable()
+        public virtual Task<bool> GetExternalPowerConnected()
         {
-            return Task.FromResult(SubMsfsPowerAvail?.GetNumber() > 0);
+            return Task.FromResult(PowerConnected);
+        }
+
+        public virtual Task<bool> GetExternalPowerAvailable()
+        {
+            return Task.FromResult(PowerAvail);
         }
 
         public virtual Task<bool> GetHasFobSaveRestore()
@@ -380,7 +368,7 @@ namespace Any2GSX.PluginInterface
             return Task.FromResult(false);
         }
 
-        public virtual Task<bool> GetHasFuelSynch()
+        public virtual Task<bool> GetHasFuelSync()
         {
             return Task.FromResult(false);
         }
@@ -403,12 +391,45 @@ namespace Any2GSX.PluginInterface
             return Task.FromResult(false);
         }
 
+        public virtual Task<bool> GetGpuRequireChocks()
+        {
+            return Task.FromResult(false);
+        }
+
         public virtual Task<GsxGpuUsage> GetUseGpuGsx()
         {
             if (ISettingProfile.HasSetting<GsxGpuUsage>(GenericSettings.OptionAircraftGsxGpu, out GsxGpuUsage value))
                 return Task.FromResult(value);
             else
                 return Task.FromResult(GsxGpuUsage.Never);
+        }
+
+        public virtual Task<bool> GetSettingAutoMode()
+        {
+            return Task.FromResult(false);
+        }
+
+        public virtual Task<bool> GetSettingProgRefuel()
+        {
+            return Task.FromResult(false);
+        }
+
+        public virtual Task<bool> GetSettingDetectCustFuel()
+        {
+            return Task.FromResult(false);
+        }
+
+        public virtual Task<bool> GetSettingAdvAutomation()
+        {
+            return Task.FromResult(true);
+        }
+
+        public virtual Task<bool> GetSettingFuelDialog()
+        {
+            if (ISettingProfile.HasSetting<bool>(GenericSettings.OptionAircraftFuelDialog, out bool value))
+                return Task.FromResult(value);
+            else
+                return Task.FromResult(false);
         }
 
         public virtual Task<bool> GetHasChocks()
@@ -426,39 +447,59 @@ namespace Any2GSX.PluginInterface
             return Task.FromResult(false);
         }
 
-        protected virtual Task<bool> GetEquipmentChocks()
+        public virtual Task<bool> GetPcaRequirePower()
         {
             return Task.FromResult(false);
         }
 
-        protected virtual Task<bool> GetEquipmentCones()
+        public virtual Task<bool> GetEquipmentChocks()
         {
             return Task.FromResult(false);
         }
 
-        protected virtual Task<bool> GetEquipmentPca()
+        public virtual Task<bool> GetEquipmentCones()
         {
             return Task.FromResult(false);
         }
 
-        protected virtual Task<bool> GetBrakeSet()
+        public virtual Task<bool> GetEquipmentPca()
         {
-            return Task.FromResult(SubMsfsParkingBrake?.GetNumber() > 0);
+            return Task.FromResult(false);
         }
 
-        protected virtual Task<bool> GetLightNav()
+        public virtual Task BeforeWalkaroundSkip()
         {
-            return Task.FromResult(IsAvionicPowered && SubMsfsLightNav?.GetNumber() > 0);
+            return Task.CompletedTask;
         }
 
-        protected virtual Task<bool> GetLightBeacon()
+        public virtual Task AfterWalkaroundSkip()
         {
-            return Task.FromResult(IsAvionicPowered && SubMsfsLightBeacon?.GetNumber() > 0);
+            return Task.CompletedTask;
         }
 
-        public virtual async Task SetParkingBrake(bool state)
+        public virtual Task HandleWalkaroundEquipment()
         {
-            await SubMsfsParkingBrakeSet.WriteValue(state);
+            return Task.CompletedTask;
+        }
+
+        public virtual Task<bool> GetBrakeSet()
+        {
+            return Task.FromResult(ParkingBrake);
+        }
+
+        public virtual async Task<bool> GetLightNav()
+        {
+            return LightNav && await GetAvionicPowered();
+        }
+
+        public virtual async Task<bool> GetLightBeacon()
+        {
+            return LightBeacon && await GetAvionicPowered();
+        }
+
+        public virtual Task SetParkingBrake(bool state)
+        {
+            return SubMsfsParkingBrakeSetCommand?.WriteValue(state);
         }
 
         public virtual Task SetExternalPowerAvailable(bool state)
@@ -486,14 +527,22 @@ namespace Any2GSX.PluginInterface
             return Task.CompletedTask;
         }
 
-        protected virtual Task<bool> GetHasOpenDoors()
+        public virtual Task<bool> GetHasOpenDoors()
         {
             return Task.FromResult(false);
         }
 
-        public virtual Task DoorsAllClose()
+        public virtual Task SetCargoDoors(bool state, bool force = false)
         {
             return Task.CompletedTask;
+        }
+
+        public virtual async Task DoorsAllClose()
+        {
+            await SetCargoDoors(false, true);
+            await SetPanelRefuel(false);
+            await SetPanelLavatory(false);
+            await SetPanelWater(false);
         }
 
         public virtual Task<bool> GetHasAirStairForward()
@@ -511,22 +560,47 @@ namespace Any2GSX.PluginInterface
             return Task.CompletedTask;
         }
 
-        public virtual Task OnLoaderAttached(GsxDoor door, bool trigger)
+        public virtual Task SetPanelLavatory(bool target)
         {
             return Task.CompletedTask;
         }
 
-        public virtual Task OnJetwayChange(GsxServiceState state)
+        public virtual Task SetPanelWater(bool target)
         {
             return Task.CompletedTask;
         }
 
-        public virtual Task OnStairChange(GsxServiceState state)
+        public virtual Task OnLoaderAttached(GsxDoor door, bool attached)
         {
             return Task.CompletedTask;
         }
 
-        public virtual Task OnStairOperationChange(GsxServiceState state)
+        public virtual Task OnJetwayStateChange(GsxServiceState state, bool paxDoorAllowed)
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task OnJetwayOperationChange(GsxServiceState state, bool paxDoorAllowed)
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task OnStairStateChange(GsxServiceState state, bool paxDoorAllowed)
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task OnStairOperationChange(GsxServiceState state, bool paxDoorAllowed)
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task OnStairVerhicleChange(GsxVehicleStair stair, GsxVehicleStairState state, bool paxDoorAllowed)
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task SetPanelRefuel(bool target)
         {
             return Task.CompletedTask;
         }
@@ -536,7 +610,7 @@ namespace Any2GSX.PluginInterface
             return Task.CompletedTask;
         }
 
-        public virtual Task SetFuelOnBoardKg(double fuelKg)
+        public virtual Task SetFuelOnBoardKg(double fuelOnBoardKg, double targetKg)
         {
             return Task.CompletedTask;
         }
@@ -546,16 +620,17 @@ namespace Any2GSX.PluginInterface
             return Task.CompletedTask;
         }
 
-        public virtual async Task RefuelTick(double stepKg, double fuelOnBoardKg)
+        public virtual Task RefuelTick(bool isFuelInc, double stepKg, double fuelOnBoardKg, double fuelTargetKg)
         {
-            await SetFuelOnBoardKg(fuelOnBoardKg);
+            return SetFuelOnBoardKg(fuelOnBoardKg, fuelTargetKg);
         }
 
-        public virtual async Task RefuelStop(double fuelTargetKg, bool setTarget)
+        public virtual Task RefuelStop(double fuelTargetKg, bool setTarget)
         {
-            Logger.Debug($"RefuelStop: setTarget {setTarget}");
             if (setTarget)
-                await SetFuelOnBoardKg(fuelTargetKg);
+                return SetFuelOnBoardKg(fuelTargetKg, fuelTargetKg);
+            else
+                return Task.CompletedTask;
         }
 
         public virtual Task RefuelCompleted()
@@ -563,9 +638,10 @@ namespace Any2GSX.PluginInterface
             return Task.CompletedTask;
         }
 
-        public virtual Task SetPayloadEmpty()
+        public virtual async Task SetPayloadEmpty()
         {
-            return Task.CompletedTask;
+            await SetPaxOnBoard(0, Flightplan.WeightPerPaxKg, 0);
+            await SetCargoOnBoard(0, 0);
         }
 
         public virtual Task PushStateChange(GsxServiceState state)
@@ -578,42 +654,64 @@ namespace Any2GSX.PluginInterface
             return Task.CompletedTask;
         }
 
+        public virtual Task<int> GetPaxOnBoard()
+        {
+            return Task.FromResult(Flightplan.CountPax);
+        }
+
+        public virtual Task<int> GetBagsOnBoard()
+        {
+            return Task.FromResult(Flightplan.CountBags);
+        }
+
+        public virtual Task SetPaxOnBoard(int paxOnBoard, double weightPerPaxKg, int paxTarget)
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task<double> GetCargoOnBoard()
+        {
+            return Task.FromResult(Flightplan.WeightCargoKg);
+        }
+
+        public virtual Task SetCargoOnBoard(double cargoOnBoardKg, double cargoTargetKg)
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task BoardRequested(int paxTarget, double cargoTargetKg)
+        {
+            return Task.CompletedTask;
+        }
+
         public virtual Task BoardActive(int paxTarget, double cargoTargetKg)
         {
             return Task.CompletedTask;
         }
 
-        public virtual Task BoardChangePax(int paxOnBoard, double weightPerPaxKg)
+        public virtual Task BoardChangePax(int paxOnBoard, double weightPerPaxKg, int paxTarget)
         {
-            PaxOnBoard = paxOnBoard;
-            return Task.CompletedTask;
+            return SetPaxOnBoard(paxOnBoard, weightPerPaxKg, paxTarget);
         }
 
-        public virtual Task BoardChangeCargo(int progressLoad, double cargoOnBoardKg)
+        public virtual Task BoardChangeCargo(int progressLoad, double cargoOnBoardKg, double cargoPlannedKg)
         {
-            return Task.CompletedTask;
+            return SetCargoOnBoard(cargoOnBoardKg, cargoPlannedKg);
         }
 
-        public virtual Task BoardLoadingChange(GsxDoor door, bool state)
+        public virtual async Task<bool> GetIsBoardingCompleted()
         {
-            return Task.CompletedTask;
+            return Flightplan?.IsLoaded == true && await GetReadyDepartureServices() && (await GetWeightTotalKg() - await GetFuelOnBoardKg()) >= Flightplan.ZeroFuelRampKg - Config.FuelCompareVariance;
         }
 
-        protected virtual Task<bool> GetIsBoardingCompleted()
+        public virtual async Task BoardCompleted(int paxTarget, double weightPerPaxKg, double cargoTargetKg)
         {
-            return Task.FromResult(Flightplan?.IsLoaded == true && ReadyForDepartureServices && GetWeightTotalKg().Result >= Flightplan.WeightTotalRampKg - Config.FuelCompareVariance);
+            await SetPaxOnBoard(paxTarget, weightPerPaxKg, paxTarget);
+            await SetCargoOnBoard(cargoTargetKg, cargoTargetKg);
         }
 
-        public virtual Task SetCargoCrew(int paxOnBoard, double weightPerPaxKg)
+        public virtual Task DeboardRequested()
         {
-            PaxOnBoard = paxOnBoard;
-            Logger.Debug($"PaxOnBoard changed to {PaxOnBoard}");
-            return Task.CompletedTask;
-        }
-
-        public virtual Task BoardCompleted(int paxTarget, double weightPerPaxKg, double cargoTargetKg)
-        {
-            PaxOnBoard = paxTarget;
             return Task.CompletedTask;
         }
 
@@ -624,24 +722,48 @@ namespace Any2GSX.PluginInterface
 
         public virtual Task DeboardChangePax(int paxOnBoard, int gsxTotal, double weightPerPaxKg)
         {
-            PaxOnBoard = paxOnBoard;
-            return Task.CompletedTask;
+            return SetPaxOnBoard(paxOnBoard, weightPerPaxKg, 0);
         }
 
         public virtual Task DeboardChangeCargo(int progressUnload, double cargoOnBoardKg)
         {
-            return Task.CompletedTask;
+            return SetCargoOnBoard(cargoOnBoardKg, 0);
         }
 
-        public virtual Task DeboardUnloadingChange(GsxDoor door, bool state)
+        public virtual async Task DeboardCompleted()
+        {
+            await SetPaxOnBoard(0, Flightplan.WeightPerPaxKg, 0);
+            await SetCargoOnBoard(0, 0);
+        }
+
+        public virtual Task OnFlightplanImport(IFlightplan ofp)
         {
             return Task.CompletedTask;
         }
 
-        public virtual Task DeboardCompleted()
+        public virtual Task OnFlightplanUnload()
         {
-            PaxOnBoard = 0;
             return Task.CompletedTask;
+        }
+
+        public virtual Task GenerateLoadsheetPrelim()
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task GenerateLoadsheetFinal()
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual async Task<PayloadReport> GetPayload()
+        {
+            return new(Flightplan.Id)
+            {
+                CountPax = await GetPaxOnBoard(),
+                CountBags = await GetBagsOnBoard(),
+                WeightCargoKg = await GetCargoOnBoard(),
+            };
         }
     }
 }

@@ -5,7 +5,6 @@ using CFIT.AppLogger;
 using CFIT.AppTools;
 using CFIT.SimConnectLib.SimResources;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Any2GSX.GSX.Services
@@ -23,23 +22,18 @@ namespace Any2GSX.GSX.Services
         public virtual int CargoPercent => (int)SubCargoPercent.GetNumber();
         public virtual ISimResourceSubscription SubCargoPercent { get; protected set; }
         public virtual double CargoScalar => CargoPercent / 100.0;
-        public virtual Dictionary<GsxDoor, bool> CargoLoadingState { get; } = new()
-        {
-            { GsxDoor.CargoDoor1, false },
-            { GsxDoor.CargoDoor2, false },
-            { GsxDoor.CargoDoor3Main, false },
-        };
 
         public event Func<GsxServiceBoarding, Task> OnPaxChange;
         public event Func<GsxServiceBoarding, Task> OnCargoChange;
-        public event Func<GsxDoor, bool, Task> OnLoadingChange;
 
         protected override GsxMenuSequence InitCallSequence()
         {
             var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(new(4, GsxConstants.MenuGate, true));
-            sequence.Commands.Add(GsxMenuCommand.CreateOperator());
-            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            sequence.Commands.Add(GsxMenuCommand.Select(4, GsxConstants.MenuGate));
+            sequence.Commands.Add(GsxMenuCommand.Operator());
+            sequence.EnableMenuCheck = () => Profile.EnableMenuForSelection && ((!Profile.SkipCrewBoardQuestion && Profile.AnswerCrewBoardQuestion == 0) || Profile.AttachTugDuringBoarding == 0);
+            sequence.ResetMenuCheck = () => false;
 
             return sequence;
         }
@@ -47,67 +41,52 @@ namespace Any2GSX.GSX.Services
         protected override GsxMenuSequence InitCancelSequence()
         {
             var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(new(4, GsxConstants.MenuGate, true) { WaitReady = true });
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            sequence.Commands.Add(GsxMenuCommand.Select(4, GsxConstants.MenuGate));
 
             return sequence;
         }
 
-        protected override void InitSubscriptions()
+        public override void InitSubscriptions()
         {
             SubBoardService = SimStore.AddVariable(GsxConstants.VarServiceBoarding);
-            SubBoardService.OnReceived += OnStateChange;
+            SubBoardService?.OnReceived += OnStateChange;
 
             SubPaxTarget = SimStore.AddVariable(GsxConstants.VarPaxTarget);
             SubPaxTotal = SimStore.AddVariable(GsxConstants.VarPaxTotalBoard);
-            SubPaxTotal.OnReceived += NotifyPaxChange;
+            SubPaxTotal?.OnReceived += NotifyPaxChange;
             SubCargoPercent = SimStore.AddVariable(GsxConstants.VarCargoPercentBoard);
-            SubCargoPercent.OnReceived += NotifyCargoChange;
-
-            SimStore.AddVariable(GsxConstants.VarCargoLoading1).OnReceived += NotifyLoadingChange;
-            SimStore.AddVariable(GsxConstants.VarCargoLoading2).OnReceived += NotifyLoadingChange;
-            SimStore.AddVariable(GsxConstants.VarCargoLoading3).OnReceived += NotifyLoadingChange;
+            SubCargoPercent?.OnReceived += NotifyCargoChange;
 
             SimStore.AddVariable(GsxConstants.VarNoCrewBoard);
             SimStore.AddVariable(GsxConstants.VarNoPilotsBoard);
 
-            ReceiverStore.Get<MsgGsxCouatlStarted>().OnMessage += OnCouatlStarted;
+            Controller.OnCouatlStarted += OnCouatlStarted;
         }
 
-        protected virtual async void OnCouatlStarted(MsgGsxCouatlStarted msg)
+        protected virtual Task OnCouatlStarted(IGsxController gsxController)
         {
             if (WasTargetSet && Controller.AutomationController.State > AutomationState.SessionStart && Controller.AutomationController.State < AutomationState.Flight)
-                await SetPaxTarget(Flightplan.CountPax);
+                return SetPaxTarget(Flightplan.CountPax);
+
+            return Task.CompletedTask;
         }
 
         protected override void DoReset()
         {
-            foreach (var door in CargoLoadingState)
-                CargoLoadingState[door.Key] = false;
-
             WasTargetSet = false;
         }
 
         public override void FreeResources()
         {
-            SubBoardService.OnReceived -= OnStateChange;
-            SubPaxTotal.OnReceived -= NotifyPaxChange;
-            SubCargoPercent.OnReceived -= NotifyCargoChange;
-
-            try
-            {
-                SimStore[GsxConstants.VarCargoLoading1].OnReceived -= NotifyLoadingChange;
-                SimStore[GsxConstants.VarCargoLoading2].OnReceived -= NotifyLoadingChange;
-                SimStore[GsxConstants.VarCargoLoading3].OnReceived -= NotifyLoadingChange;
-            }
-            catch { }
+            SubBoardService?.OnReceived -= OnStateChange;
+            SubPaxTotal?.OnReceived -= NotifyPaxChange;
+            SubCargoPercent?.OnReceived -= NotifyCargoChange;
 
             SimStore.Remove(GsxConstants.VarServiceBoarding);
             SimStore.Remove(GsxConstants.VarPaxTarget);
             SimStore.Remove(GsxConstants.VarPaxTotalBoard);
             SimStore.Remove(GsxConstants.VarCargoPercentBoard);
-            SimStore.Remove(GsxConstants.VarCargoLoading1);
-            SimStore.Remove(GsxConstants.VarCargoLoading2);
-            SimStore.Remove(GsxConstants.VarCargoLoading3);
             SimStore.Remove(GsxConstants.VarNoCrewBoard);
             SimStore.Remove(GsxConstants.VarNoPilotsBoard);
         }
@@ -132,7 +111,7 @@ namespace Any2GSX.GSX.Services
                 await Controller?.SubCrewTarget?.WriteValue(Controller.Profile.DefaultCrewTarget);
             }
 
-            if (Controller?.AircraftController?.Aircraft?.IsCargo == false && Profile?.PluginId != SettingProfile.GenericId)
+            if (!await Controller.AircraftController.GetIsCargo() && Profile?.PluginId != SettingProfile.GenericId)
             {
                 WasTargetSet = true;
                 Logger.Debug($"Setting Pax Target to {num}");
@@ -146,86 +125,43 @@ namespace Any2GSX.GSX.Services
             }
         }
 
-        protected virtual void NotifyPaxChange(ISimResourceSubscription sub, object data)
+        protected virtual Task NotifyPaxChange(ISimResourceSubscription sub, object data)
         {
-            if (State != GsxServiceState.Active)
+            if (!IsRunning)
             {
-                Logger.Debug($"Ignoring Pax Change - Service not active");
-                return;
+                Logger.Debug($"Ignoring Pax Change - Service not running");
+                return Task.CompletedTask;
             }
 
-            var pax = sub.GetNumber();
-            var target = Flightplan.CountPax;
-            if (target <= 0 && PaxTarget > 0)
-                target = PaxTarget;
-            if (pax < 0 || pax > target)
-            {
-                if (Profile.RunAutomationService)
-                    Logger.Warning($"Ignoring Pax Change - Value received: {pax} (Targets: {PaxTarget} | {Flightplan.CountPax})");
-                return;
-            }
-
-            TaskTools.RunLogged(() => OnPaxChange?.Invoke(this), Controller.Token);
+            _ = TaskTools.RunPool(() => OnPaxChange?.Invoke(this), Controller.Token);
+            return Task.CompletedTask;
         }
 
-        protected virtual void NotifyCargoChange(ISimResourceSubscription sub, object data)
+        protected virtual Task NotifyCargoChange(ISimResourceSubscription sub, object data)
         {
-            if (State != GsxServiceState.Active)
+            if (!IsRunning)
             {
-                Logger.Debug($"Ignoring Cargo Change - Service not active");
-                return;
+                Logger.Debug($"Ignoring Cargo Change - Service not running");
+                return Task.CompletedTask;
             }
 
             var cargo = sub.GetNumber();
-            if (cargo < 0 || cargo > 100)
-            {
-                if (Profile.RunAutomationService)
-                    Logger.Warning($"Ignoring Cargo Change - Value received: {cargo}");
-                return;
-            }
-            
-            if (Controller.Menu.SuppressMenuRefresh && cargo > 0)
-                Controller.Menu.SuppressMenuRefresh = false;
+            if (cargo > 0)
+                Controller.Menu.BlockMenuUpdates(false);
 
-            TaskTools.RunLogged(() => OnCargoChange?.Invoke(this), Controller.Token);
+            _ = TaskTools.RunPool(() => OnCargoChange?.Invoke(this), Controller.Token);
             Logger.Information($"Cargo Loading Progress {(int)cargo}%");
-        }
-
-        protected virtual void NotifyLoadingChange(ISimResourceSubscription sub, object data)
-        {
-            Logger.Debug($"Received Cargo Loading Var '{sub.Name}': {sub.GetNumber()}");
-            bool state = sub.GetNumber() > 0;
-            GsxDoor door;
-            if (sub.Name == GsxConstants.VarCargoLoading1)
-                door = GsxDoor.CargoDoor1;
-            else if (sub.Name == GsxConstants.VarCargoLoading2)
-                door = GsxDoor.CargoDoor2;
-            else
-                door = GsxDoor.CargoDoor3Main;
-
-            if ((state && !CargoLoadingState[door])
-                || (!state && (SubCargoPercent.GetNumber() > 0 || State < GsxServiceState.Active)))
-            {
-                CargoLoadingState[door] = state;
-                if (State >= GsxServiceState.Active)
-                {
-                    Logger.Debug($"Notify CargoLoadingState {state} on Door {door}");
-                    TaskTools.RunLogged(() => OnLoadingChange?.Invoke(door, state), Controller.Token);
-                }
-            }
+            return Task.CompletedTask;
         }
 
         protected override void NotifyStateChange()
         {
             base.NotifyStateChange();
 
-            if (State == GsxServiceState.Active || State == GsxServiceState.Requested)
-            {
-                Logger.Debug($"Supressing Menu Refresh");
-                Controller.Menu.SuppressMenuRefresh = true;
-            }
-            else if (State == GsxServiceState.Callable || State == GsxServiceState.Completed)
-                Controller.Menu.SuppressMenuRefresh = false;
+            if (State == GsxServiceState.Requested)
+                Controller.Menu.BlockMenuUpdates(true, "Tug Question");
+            else if (State < GsxServiceState.Requested || State >= GsxServiceState.Completed)
+                Controller.Menu.BlockMenuUpdates(false);
         }
     }
 }

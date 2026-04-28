@@ -35,7 +35,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <Button Grid.Column="0" Grid.Row="0" Name="ButtonUpdateAll" Style="{StaticResource BtnDefault}" Visibility="Collapsed" HorizontalAlignment="Left" Padding="4,0,4,0" Margin="2,8,8,8">
+                <Button Grid.Column="0" Grid.Row="0" Name="ButtonUpdateAll" Style="{StaticResource BtnDefault}" Visibility="{Binding HasUpdates, Converter={StaticResource BoolVisibilityConverter}}" HorizontalAlignment="Left" Padding="4,0,4,0" Margin="2,8,8,8">
                     <StackPanel Orientation="Horizontal">
                         <Image Source="../../Icons/install-repo.png" Style="{StaticResource ImgSquareSmall}"/>
                         <Label FontWeight="DemiBold">Update All</Label>
@@ -76,7 +76,7 @@
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
 
-                                    <DataGridTemplateColumn Header="Aircraft" MinWidth="224">
+                                    <DataGridTemplateColumn Header="Aircraft" MinWidth="296">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding Aircraft}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"
@@ -85,7 +85,7 @@
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
 
-                                    <DataGridTemplateColumn Header="Author" MinWidth="142">
+                                    <DataGridTemplateColumn Header="Author" MinWidth="160">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding Author}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"
@@ -164,7 +164,7 @@
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
 
-                                    <DataGridTemplateColumn Header="Author" MinWidth="142">
+                                    <DataGridTemplateColumn Header="Author" MinWidth="160">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding Author}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"
@@ -246,7 +246,7 @@
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
 
-                                    <DataGridTemplateColumn Header="Aircraft" MinWidth="224">
+                                    <DataGridTemplateColumn Header="Aircraft" MinWidth="296">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding Aircraft}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}"/>

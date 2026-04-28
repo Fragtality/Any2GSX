@@ -1,6 +1,7 @@
 ﻿using Any2GSX.AppConfig;
 using Any2GSX.Audio;
 using Any2GSX.GSX;
+using Any2GSX.GSX.Automation;
 using Any2GSX.PluginInterface;
 using CFIT.AppLogger;
 using CFIT.AppTools;
@@ -14,7 +15,6 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
 
 namespace Any2GSX.Plugins
 {
@@ -23,83 +23,31 @@ namespace Any2GSX.Plugins
         protected virtual Config Config => AppService.Instance.Config;
         protected virtual CancellationToken Token => AppService.Instance.Token;
         public virtual string PluginUrl { get; } = pluginUrl;
-        protected virtual string FilePath { get; set; } 
-        protected virtual PluginManifest Manifest {  get; set; } = null;
+        protected virtual string FilePath { get; set; }
+        protected virtual PluginManifest Manifest { get; set; } = null;
         protected virtual string FileName => Path.GetFileNameWithoutExtension(FilePath);
         protected virtual string PluginFolder => Config.Definition.PluginFolder;
 
-        protected static void ShowDialog(string title, string content)
+        public virtual async Task<PluginManifest> Install()
         {
-            if (string.IsNullOrWhiteSpace(content))
-                return;
-
-            var scrollView = new ScrollViewer
-            {
-                Content = content,
-                FontSize = 12.5,
-                FontWeight = FontWeights.Normal,
-                Padding = new Thickness(10),
-                VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            };
-            var panel = new StackPanel()
-            {
-                Orientation = Orientation.Vertical
-            };
-            var button = new Button()
-            {
-                Content = "Close",
-                FontWeight = FontWeights.DemiBold,
-                FontSize = 12,
-                Margin = new Thickness(16, 0, 0, 12),
-                Padding = new Thickness(6),
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-
-            panel.Children.Add(scrollView);
-            panel.Children.Add(button);
-            var appWindow = AppService.Instance.App.AppWindow;
-            var window = new Window
-            {
-                Title = title,
-                Content = panel,
-                SizeToContent = SizeToContent.WidthAndHeight,
-                MaxHeight = SystemParameters.PrimaryScreenHeight - 256,
-                MinWidth = 256,
-                WindowStyle = WindowStyle.None,
-                ResizeMode = ResizeMode.NoResize,
-                BorderBrush = SystemColors.ActiveBorderBrush,
-                BorderThickness = new Thickness(2)
-            };
-            button.Click += (_, _) => window.Close();
-            window.Activated += (_, _) => {
-                window.Top = appWindow.Top + (appWindow.ActualHeight / 2.0) - (window.ActualHeight / 2.0);
-                window.Left = appWindow.Left + (appWindow.ActualWidth / 2.0) - (window.ActualWidth / 2.0);
-            };
-
-            window.ShowDialog();
-        }
-
-        public virtual async Task<bool> Install()
-        {
-            bool result = false;
+            PluginManifest result = null;
             try
             {
                 if (!await CheckUrl())
                     return result;
-                result = ExtractPlugin();
-                if (result && !string.IsNullOrWhiteSpace(Manifest?.Id))
+
+                if (ExtractPlugin() && !string.IsNullOrWhiteSpace(Manifest?.Id))
                 {
                     if (Manifest?.PluginDefaultProfile is JsonElement element)
                         SetPluginProfile(element);
-                    if (!string.IsNullOrWhiteSpace(Manifest?.InstallUsageNotes))
-                        ShowDialog($"Installation and Usage Notes", Manifest.InstallUsageNotes);
+                    result = Manifest;
                 }
             }
             catch (Exception ex)
             {
                 if (ex is not TaskCanceledException)
                     Logger.LogException(ex);
-                result = false;
+                result = null;
             }
 
             return result;
@@ -142,9 +90,7 @@ namespace Any2GSX.Plugins
             if (count > 0 && !Config.SettingProfiles.Any(p => p.Name.Equals(profile.Name, StringComparison.InvariantCultureIgnoreCase)))
             {
                 Logger.Debug($"Adding Default Plugin Profile");
-                Config.SettingProfiles.Add(profile);
-                Config.SaveConfiguration();
-                Config.NotifyPropertyChanged(nameof(Config.SettingProfiles));
+                AppService.Instance.AddSettingProfile(profile);
             }
         }
 
@@ -251,24 +197,24 @@ namespace Any2GSX.Plugins
             if (manifest == null || entryManifest == null)
             {
                 Logger.Error("Manifest not found!");
-                MessageBox.Show("Manifest not found!", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Any2GSX.Instance.AppWindow, "Manifest not found!", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             if (string.IsNullOrWhiteSpace(manifest.Id))
             {
                 Logger.Error("PluginID is empty!");
-                MessageBox.Show("PluginID is empty!", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Any2GSX.Instance.AppWindow, "PluginID is empty!", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             if (manifest.VersionApp > Version.Parse(Config.Definition.ProductVersion.ToString(3)))
             {
                 Logger.Error($"Plugin '{manifest}' requires Any2GSX Version '{manifest.VersionApp}'");
-                MessageBox.Show($"Plugin '{manifest}' requires Any2GSX Version '{manifest.VersionApp}'", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Any2GSX.Instance.AppWindow, $"Plugin '{manifest}' requires Any2GSX Version '{manifest.VersionApp}'", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             if (AppService.Instance.PluginController.LoadedPluginsBinary.Contains(manifest.Id))
             {
-                MessageBox.Show($"The Plugin DLL is already loaded!\r\nPlease close Any2GSX and install/update the Plugin before it was loaded.", "Already loaded", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Any2GSX.Instance.AppWindow, $"The Plugin DLL is already loaded!\r\nPlease close Any2GSX and install/update the Plugin before it was loaded.", "Already loaded", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
@@ -299,7 +245,7 @@ namespace Any2GSX.Plugins
             if (entryPluginFile == null)
             {
                 Logger.Error("Plugin File not found!");
-                MessageBox.Show("Plugin File not found!", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Any2GSX.Instance.AppWindow, "Plugin File not found!", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
@@ -322,13 +268,13 @@ namespace Any2GSX.Plugins
             {
                 Logger.Debug($"Extracting Channel File ...");
                 string pathChannel = Path.Join(Config.Definition.ChannelFolder, entryChannelFile.Name);
-                entryChannelFile.ExtractToFile(pathChannel,true);
+                entryChannelFile.ExtractToFile(pathChannel, true);
             }
 
             if (hasAircraftProfiles && foundProfiles == manifest.AircraftProfileEntries?.Count)
             {
                 Logger.Debug($"Installing Aircraft Profiles ...");
-                if (Config.AutoInstallGsxProfiles || MessageBox.Show($"The Plugin {manifest.Id} wants to install GSX Aircraft Profile(s) for:\r\n- {string.Join("\r\n- ", manifest.AircraftProfileEntries)}\r\nAny existing Profiles will be overwritten.\r\nDo you want to install these Profile(s)?", "Install GSX Aircraft Profile", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                if (Config.AutoInstallGsxProfiles || MessageBox.Show(Any2GSX.Instance.AppWindow, $"The Plugin {manifest.Id} wants to install GSX Aircraft Profile(s) for:\r\n- {string.Join("\r\n- ", manifest.AircraftProfileEntries)}\r\nAny existing Profiles will be overwritten.\r\nDo you want to install these Profile(s)?", "Install GSX Aircraft Profile", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
                 {
                     foreach (var profile in manifest.AircraftProfileEntries)
                     {

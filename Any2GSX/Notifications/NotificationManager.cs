@@ -1,6 +1,7 @@
 ﻿using Any2GSX.Aircraft;
 using Any2GSX.AppConfig;
 using Any2GSX.GSX;
+using Any2GSX.GSX.Automation;
 using Any2GSX.GSX.Menu;
 using Any2GSX.GSX.Services;
 using Any2GSX.PluginInterface;
@@ -11,26 +12,13 @@ using CFIT.AppTools;
 using CFIT.SimConnectLib;
 using CFIT.SimConnectLib.Definitions;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Any2GSX.Notifications
 {
-    public enum SmartButtonCall
-    {
-        None = 0,
-        Connect = 1,
-        NextService = 2,
-        PushCall = 3,
-        PushStop = 4,
-        PushConfirm = 5,
-        Deice = 6,
-        ClearGate = 7,
-        Deboard = 8,
-        SkipTurn = 9,
-    }
-
     public class NotificationManager() : ServiceController<Any2GSX, AppService, Config, Definition>(AppService.Instance.Config)
     {
         public virtual SettingProfile Profile => AppService.Instance?.SettingProfile;
@@ -38,55 +26,107 @@ namespace Any2GSX.Notifications
         public virtual bool HasEfbApp => SimConnect?.GetSimVersion() == SimVersion.MSFS2024;
         public virtual GsxController GsxController => AppService.Instance?.GsxController;
         public virtual GsxMenu GsxMenu => GsxController?.Menu;
+        public virtual NotificationTracker Tracker => AppService.Instance?.NotificationTracker;
         public virtual AircraftController AircraftController => AppService.Instance?.AircraftController;
         public virtual AircraftBase Aircraft => AppService.Instance?.AircraftController?.Aircraft;
         public virtual GsxAutomationController AutomationController => AppService.Instance?.GsxController?.AutomationController;
+        public virtual DepartureServiceQueue DepartureQueue => AutomationController?.DepartureQueue;
         public virtual AutomationState AutomationState => AutomationController.State;
+        protected virtual GsxServiceJetway ServiceJetway => GsxController.ServiceJetway;
+        protected virtual GsxServiceStairs ServiceStairs => GsxController.ServiceStairs;
+        protected virtual GsxServicePushback ServicePushBack => GsxController.ServicePushBack;
+        protected virtual GsxServiceBoarding ServiceBoard => GsxController.ServiceBoard;
+        protected virtual GsxServiceDeboarding ServiceDeboard => GsxController.ServiceDeboard;
+        protected virtual GsxServiceRefuel ServiceRefuel => GsxController.ServiceRefuel;
+        protected virtual GsxServiceDeice ServiceDeice => GsxController.ServiceDeice;
 
-        public virtual List<ExternalConnector> Connectors { get; protected set; } = [];
+        public virtual ConcurrentDictionary<ExternalConnector, bool> Connectors { get; protected set; } = [];
         public virtual PilotsDeckConnector DeckConnector { get; protected set; } = null;
-        protected virtual bool NotifyUpdates => SimConnect?.IsSessionRunning == true && GsxController?.IsActive == true;
-        public virtual DateTime ClearInhibitTime { get; protected set; } = DateTime.MinValue;
+        protected virtual bool IsSessionRunning => SimConnect?.IsSessionRunning == true;
+        protected virtual bool NotifyUpdates => IsSessionRunning && GsxController?.IsGsxRunning == true;
+        public virtual bool MenuOpenQueued => MenuOpenDelayed != DateTime.MaxValue;
+        public virtual DateTime MenuOpenDelayed { get; set; } = DateTime.MaxValue;
+
+        public virtual bool ReportedAircraftConnected { get; protected set; } = false;
         public virtual string ReportedProfile { get; protected set; } = "";
-        public virtual SmartButtonCall ReportedCall { get; protected set; } = SmartButtonCall.None;
-        public virtual string ReportedCallInfo { get; protected set; } = "";
-        public virtual AutomationState ReportedPhase { get; protected set; } = AutomationState.Unknown;
-        public virtual string ReportedStatus { get; protected set; } = "";
-        public virtual string LastCapturedGate { get; protected set; } = "";
         public virtual string ReportedCouatlVars { get; protected set; } = "false";
         public virtual int ReportedServicesCompleted { get; protected set; } = 0;
         public virtual int ReportedServicesRunning { get; protected set; } = 0;
         public virtual int ReportedServicesTotal { get; protected set; } = 0;
-        public virtual bool LastServiceCount { get; protected set; } = false;
+        public virtual string LastPushInfo { get; set; } = "";
 
-        protected override Task InitReceivers()
+        public static readonly Dictionary<GsxChangePark, string> ClearGateOptions = new()
         {
-            GsxController.ServiceBoard.OnStateChanged += BoardingOnStateChanged;
-            GsxController.ServiceBoard.OnPaxChange += BoardingOnPaxChange;
-            GsxController.ServiceBoard.OnCargoChange += BoardingOnCargoChange;
-            GsxController.ServiceDeboard.OnStateChanged += DeboardingOnStateChanged;
-            GsxController.ServiceDeboard.OnPaxChange += DeboardingOnPaxChange;
-            GsxController.ServiceDeboard.OnCargoChange += DeboardingOnCargoChange;
-            GsxController.ServiceDeice.OnStateChanged += DeiceOnStateChanged;
+            { GsxChangePark.ChangeFacility, "Change Facility" },
+            { GsxChangePark.FollowMe, "Request FollowMe" },
+            { GsxChangePark.ProgTaxi, "Progressive Taxi" },
+            { GsxChangePark.TowIn, "Push-In Towing" },
+            { GsxChangePark.Revoke, "Revoke Services" },
+            { GsxChangePark.ClearAI, "Remove AI" },
+            { GsxChangePark.Warp, "Warp to Gate" },
+            { GsxChangePark.ShowMe, "Show Gate" },
+            { GsxChangePark.Map, "Moving Map" },
+        };
+
+        public static readonly Dictionary<GsxStopPush, string> StopPushOptions = new()
+        {
+            { GsxStopPush.Pause, "Pause" },
+            { GsxStopPush.Stop, "Stop" },
+            { GsxStopPush.Abort, "Abort" },
+        };
+
+        protected override Task DoInit()
+        {
+            ServiceBoard.OnStateChanged += OnBoardingStateChanged;
+            ServiceBoard.OnPaxChange += OnBoardingPaxChanged;
+            ServiceBoard.OnCargoChange += OnBoardingCargoChanged;
+            ServiceDeboard.OnStateChanged += OnDeboardingStateChanged;
+            ServiceDeboard.OnPaxChange += OnDeboardingPaxChanged;
+            ServiceDeboard.OnCargoChange += OnDeboardingCargoChanged;
+            ServiceDeice.OnStateChanged += OnDeiceStateChanged;
+            ServicePushBack.OnStateChanged += OnPushbackStateChanged;
+            ServicePushBack.OnPushStatus += OnPushStatusChanged;
+            ServicePushBack.OnBypassPin += OnPushPinChanged;
+            ServiceJetway.OnStateChanged += OnJetwayStateChanged;
+            ServiceJetway.OnOperationChanged += OnJetwayOperationChanged;
+            ServiceStairs.OnStateChanged += OnStairsStateChanged;
+            ServiceStairs.OnOperationChanged += OnStairsOperationChanged;
+            ServiceRefuel.OnStateChanged += OnRefuelStateChanged;
+            ServiceRefuel.OnHoseConnection += OnRefuelHoseConnection;
 
             GsxMenu.OnMenuReceived += OnMenuReceived;
-            GsxController.AutomationController.OnStateChange += OnAutomationStateChange;
+            GsxController.AutomationController.OnStateChange += OnAutomationStateChanged;
 
             return Task.CompletedTask;
         }
 
-        protected override Task FreeResources()
+        protected override Task DoCleanup()
         {
-            GsxController.AutomationController.OnStateChange -= OnAutomationStateChange;
-            GsxMenu.OnMenuReceived -= OnMenuReceived;
+            try
+            {
+                MenuOpenDelayed = DateTime.MaxValue;
 
-            GsxController.ServiceBoard.OnStateChanged -= BoardingOnStateChanged;
-            GsxController.ServiceBoard.OnPaxChange -= BoardingOnPaxChange;
-            GsxController.ServiceBoard.OnCargoChange -= BoardingOnCargoChange;
-            GsxController.ServiceDeboard.OnStateChanged -= DeboardingOnStateChanged;
-            GsxController.ServiceDeboard.OnPaxChange -= DeboardingOnPaxChange;
-            GsxController.ServiceDeboard.OnCargoChange -= DeboardingOnCargoChange;
-            GsxController.ServiceDeice.OnStateChanged -= DeiceOnStateChanged;
+                GsxController.AutomationController.OnStateChange -= OnAutomationStateChanged;
+                GsxMenu.OnMenuReceived -= OnMenuReceived;
+
+                ServiceBoard.OnStateChanged -= OnBoardingStateChanged;
+                ServiceBoard.OnPaxChange -= OnBoardingPaxChanged;
+                ServiceBoard.OnCargoChange -= OnBoardingCargoChanged;
+                ServiceDeboard.OnStateChanged -= OnDeboardingStateChanged;
+                ServiceDeboard.OnPaxChange -= OnDeboardingPaxChanged;
+                ServiceDeboard.OnCargoChange -= OnDeboardingCargoChanged;
+                ServiceDeice.OnStateChanged -= OnDeiceStateChanged;
+                ServicePushBack.OnStateChanged -= OnPushbackStateChanged;
+                ServicePushBack.OnPushStatus -= OnPushStatusChanged;
+                ServicePushBack.OnBypassPin -= OnPushPinChanged;
+                ServiceJetway.OnStateChanged -= OnJetwayStateChanged;
+                ServiceJetway.OnOperationChanged -= OnJetwayOperationChanged;
+                ServiceStairs.OnStateChanged -= OnStairsStateChanged;
+                ServiceStairs.OnOperationChanged -= OnStairsOperationChanged;
+                ServiceRefuel.OnStateChanged -= OnRefuelStateChanged;
+                ServiceRefuel.OnHoseConnection -= OnRefuelHoseConnection;
+            }
+            catch { }
 
             return Task.CompletedTask;
         }
@@ -112,24 +152,24 @@ namespace Any2GSX.Notifications
                     Connectors.Add(efb);
                 }
 
+                await Task.Delay(1000, Token);
+                Logger.Debug($"Notification Manager active");
+                await ResetConnectors();
+
                 Logger.Debug("Waiting for Automation Controller");
                 while (IsExecutionAllowed && AutomationController?.IsStarted == false)
                     await Task.Delay(Config.StateMachineInterval, Token);
                 if (!IsExecutionAllowed)
                     return;
 
-                Logger.Debug($"Notification Manager active");                
-                await CallOnConnectors((connector) => connector.SetConnected(true, Profile.Name));
-                await CallOnConnectors((connector) => connector.SetBoardPaxInfo(-1));
-                await CallOnConnectors((connector) => connector.SetBoardCargoInfo(-1));
-                await CallOnConnectors((connector) => connector.SetDeboardPaxInfo(-1));
-                await CallOnConnectors((connector) => connector.SetDeboardCargoInfo(-1));
                 while (IsExecutionAllowed)
                 {
-                    if (NotifyUpdates)
+                    if (IsSessionRunning)
                     {
-                        await EvaluateState();
-                        await CheckMenu();
+                        Tracker.CheckNotifications();
+                        await UpdateState();
+                        if (GsxController?.IsGsxRunning == true)
+                            await CheckMenu();
                     }
                     await Task.Delay(Config.StateMachineInterval, Token);
                 }
@@ -145,11 +185,37 @@ namespace Any2GSX.Notifications
             }
         }
 
+        protected virtual async Task ResetConnectors(bool checkAircraft = false)
+        {
+            Logger.Debug("Reset Connectors");
+            ReportedProfile = Profile.Name;
+            ReportedAircraftConnected = checkAircraft && AircraftController.IsConnected;
+            ReportedCouatlVars = GsxController.CouatlVarsValid ? "true" : "false";
+            ReportedServicesCompleted = 0;
+            ReportedServicesRunning = 0;
+            ReportedServicesTotal = 0;
+            LastPushInfo = "";
+
+            await CallOnConnectors((connector) => connector.SetConnected(true, ReportedProfile));
+            await CallOnConnectors((connector) => connector.SetAircraftConnected(ReportedAircraftConnected));
+            await CallOnConnectors((connector) => connector.SetCouatlVars(ReportedCouatlVars));
+            await CallOnConnectors((connector) => connector.SetMenuTitle(""));
+            await CallOnConnectors((connector) => connector.SetMenuLines([]));
+            await CallOnConnectors((connector) => connector.SetBoardPaxInfo(-1));
+            await CallOnConnectors((connector) => connector.SetBoardCargoInfo(-1));
+            await CallOnConnectors((connector) => connector.SetDeboardPaxInfo(-1));
+            await CallOnConnectors((connector) => connector.SetDeboardCargoInfo(-1));
+            await CallOnConnectors((connector) => connector.SetSmartCall(SmartButtonCall.None, "", true));
+            await Task.Delay(50);
+            await CallOnConnectors((connector) => connector.SetState(AutomationState.SessionStart, new Notification(AppNotification.Loading)));
+            await CallOnConnectors((connector) => connector.SetDepartureServices(ReportedServicesCompleted, ReportedServicesRunning, ReportedServicesTotal));
+        }
+
         public override async Task Stop()
         {
             try
             {
-                await CallOnConnectors((connector) => connector.SetConnected(false, ""));
+                await ResetConnectors();
                 await CallOnConnectors((connector) => connector.Stop());
             }
             catch (Exception ex)
@@ -160,369 +226,146 @@ namespace Any2GSX.Notifications
 
             Connectors.Clear();
             DeckConnector = null;
-            
+
             await base.Stop();
         }
 
         protected virtual async Task CallOnConnectors(Func<ExternalConnector, Task> action)
         {
-            try
+            var connectors = Connectors.Keys.ToArray();
+            foreach (var connector in connectors)
             {
-                foreach (var connector in Connectors)
+                try
+                {
                     await action?.Invoke(connector);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
+                }
+                catch (Exception ex)
+                {
+                    if (ex is not TaskCanceledException)
+                        Logger.Error($"Error '{ex.GetType().Name}' on Connector {connector?.GetType()?.Name}: {ex.Message}");
+                }
             }
         }
 
-        protected virtual Task DeiceOnStateChanged(IGsxService service)
+        protected virtual async Task UpdateState()
         {
-            if (service.State == GsxServiceState.Completed)
-                LastCapturedGate = "";
+            AutomationState phase = GsxController.AutomationState;
 
-            return Task.CompletedTask;
-        }
+            //Phase & Status Display
+            if (ServicePushBack.IsRunning && ServicePushBack.PushStatus > 0 && (Tracker.Current.Id != AppNotification.PushPhase || !Tracker.Current.HasMessage) && !string.IsNullOrWhiteSpace(LastPushInfo))
+                Tracker.TrackMessage(AppNotification.PushPhase, LastPushInfo);
+            await CallOnConnectors((connector) => connector.SetState(phase, Tracker.Current));
 
-        public virtual Task OnMenuChangeParking(IGsxMenu menu)
-        {
-            try
-            {
-                string line = menu.MenuLines[0];
-                Logger.Debug($"Trying to get Gate/Pad from Line '{line}'");
-                if (GsxConstants.MenuRegexFacility.GroupMatches(line, 1, out var group))
-                {
-                    string parking = Regex.Replace(group, @"\([^\)]+\)", "").Trim();
-                    parking = Regex.Replace(parking, @"\[[^\]]+\]", "").Trim();
-                    if (AutomationController.State == AutomationState.TaxiOut)
-                    {
-                        LastCapturedGate = parking.Replace("deice", "", StringComparison.InvariantCultureIgnoreCase).Replace("de-ice", "", StringComparison.InvariantCultureIgnoreCase).Trim();
-                        Logger.Debug($"Capture set to '{LastCapturedGate}'");
-                    }
-                    else
-                    {
-                        var matches = GsxConstants.MenuRegexGate.Matches(parking);
-                        if (matches.Count > 0)
-                        {
-                            LastCapturedGate = matches[0].Value.Trim();
-                            Logger.Debug($"Capture set to '{LastCapturedGate}'");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-                LastCapturedGate = "";
-            }
-
-            return Task.CompletedTask;
-        }
-
-        protected virtual async Task EvaluateState()
-        {
-            SmartButtonCall call = ReportedCall;
-            string callInfo = "";
-            AutomationState phase = ReportedPhase;
-            string status = ReportedStatus;
-            int svcCompleted = 0;
-            int svcRunning = 0;
-            int svcTotal = 0;
-            bool svcCounted = false;
-            string couatlVars = ReportedCouatlVars;
-
-            if (AutomationState == AutomationState.SessionStart)
-            {
-                call = SmartButtonCall.None;
-                phase = AutomationState;
-                status = "";
-
-                if (!GsxMenu.IsGateMenu)
-                    status = "Move to Gate!";
-            }
-            else if (AutomationState == AutomationState.Preparation)
-            {
-                call = SmartButtonCall.None;
-                phase = AutomationState;
-                status = "";
-
-                if (!GsxMenu.IsGateMenu)
-                    status = "Move to Gate!";
-                else if (AutomationController.ExecutedReposition && GsxController.SkippedWalkAround && AutomationController.GroundEquipmentPlaced)
-                    status = "Trigger Departure!";
-                else if (((GsxController.HasGateJetway && !GsxController.ServiceJetway.IsConnected && !GsxController.ServiceJetway.IsOperating)
-                    || (GsxController.HasGateStair && !GsxController.ServiceStairs.IsConnected && !GsxController.ServiceStairs.IsOperating))
-                    && !GsxController.ServiceJetway.IsConnected && !GsxController.ServiceStairs.IsConnected)
-                    call = SmartButtonCall.Connect;
-
-                if (GsxController.ServiceJetway.IsOperating)
-                    status = "Operating Jetway ...";
-                if (GsxController.ServiceStairs.IsOperating && GsxController.ServiceStairs.State != GsxServiceState.Active)
-                    status = "Operating Stairs ...";
-
-                if (GsxController.ServiceReposition.IsCalling)
-                    status = "Reposition Aircraft ...";
-            }
-            else if (AutomationState == AutomationState.Departure)
-            {
-                call = AutomationController.DepartureServicesCompleted || !AutomationController.DepartureServicesEnumerator.CheckEnumeratorValid() ? SmartButtonCall.None : SmartButtonCall.NextService;
-                phase = AutomationState;
-                status = "";
-
-                foreach (var serviceCfg in Profile.DepartureServices.Values)
-                {
-                    if (serviceCfg.ServiceActivation == GsxServiceActivation.Skip)
-                        continue;
-
-                    if (GsxController.GsxServices[serviceCfg.ServiceType].IsActive)
-                    {
-                        status = $"{serviceCfg.ServiceType} active ...";
-                        svcRunning++;
-                    }
-                    else if (GsxController.GsxServices[serviceCfg.ServiceType].IsRunning)
-                        svcRunning++;
-                    else if (GsxController.GsxServices[serviceCfg.ServiceType].IsCompleted || GsxController.GsxServices[serviceCfg.ServiceType].IsSkipped)
-                        svcCompleted++;
-
-                    svcTotal++;
-                }
-                svcCounted = true;
-
-                if (GsxController.ServiceJetway.IsOperating)
-                    status = "Operating Jetway ...";
-                if (GsxController.ServiceStairs.IsOperating && GsxController.ServiceStairs.State != GsxServiceState.Active)
-                    status = "Operating Stairs ...";
-
-                if (GsxController.ServiceRefuel.IsActive)
-                {
-                    if (!GsxController.ServiceRefuel.IsHoseConnected && !GsxController.ServiceRefuel.WasHoseConnected)
-                        status = "Connecting Hose ...";
-                    else if (GsxController.ServiceRefuel.IsHoseConnected && GsxController.ServiceRefuel.WasHoseConnected)
-                        status = "Loading Fuel ...";
-                    else if (!GsxController.ServiceRefuel.IsHoseConnected && GsxController.ServiceRefuel.WasHoseConnected)
-                        status = "Removing Hose ...";
-                }
-                else if (GsxController.ServiceBoard.IsActive)
-                {
-                    if (AircraftController.Aircraft.IsCargo)
-                        status = "Loading ...";
-                    else
-                        status = "Boarding ...";
-                }
-
-                if (!AutomationController.IsFinalReceived && AutomationController.FinalDelay > 0)
-                    status = $"Final in {AutomationController.FinalDelay}s";
-
-                if (call == SmartButtonCall.NextService && AutomationController.DepartureServicesEnumerator.CheckEnumeratorValid())
-                    callInfo = AutomationController.DepartureServicesCurrent.ServiceType.ToString();
-            }
-            else if (AutomationState == AutomationState.Pushback)
-            {
-                call = GsxController.ServicePushBack.IsCompleted || GsxController.ServicePushBack.IsRunning ? SmartButtonCall.None : SmartButtonCall.PushCall;
-                phase = AutomationState;
-                status = "";
-
-                if (!AutomationController.IsFinalReceived && AutomationController.FinalDelay > 0)
-                    status = $"Final in {AutomationController.FinalDelay}s";
-
-                if (GsxController.ServiceJetway.IsOperating)
-                    status = "Operating Jetway ...";
-                if (GsxController.ServiceStairs.IsOperating && GsxController.ServiceStairs.State != GsxServiceState.Active)
-                    status = "Operating Stairs ...";
-
-                if (GsxController.ServicePushBack.IsRunning)
-                {
-                    double value = GsxController.ServicePushBack.PushStatus;
-                    if (value == 1)
-                        status = "Insert Pin ...";
-                    else if (value == 2)
-                        status = "Locking Gear ...";
-                    else if (value == 3 || value == 4)
-                        status = "Direction?";
-                    else if (value == 6)
-                        status = "Pushing Back ...";
-                    else if (value == 7)
-                        status = "Set Brake!";
-                    else if (value == 8)
-                        status = "Confirm?";
-                    else if (value == 5 || value == 9)
-                        status = "Unlocking Gear ...";
-                    else if (value >= 10)
-                        status = "Show Pin ...";
-
-                    if (value >= 6 && value < 8)
-                        call = SmartButtonCall.PushStop;
-                    else if (value == 8)
-                        call = SmartButtonCall.PushConfirm;
-                }
-            }
-            else if (AutomationState == AutomationState.TaxiOut)
-            {
-                call = SmartButtonCall.None;
-                phase = AutomationState;
-                status = "";
-
-                if (!string.IsNullOrWhiteSpace(LastCapturedGate) && !GsxController.ServiceDeice.IsRunning)
-                {
-                    status = $"[ {LastCapturedGate} ]";
-                    if (GsxMenu.IsGateMenu && GsxMenu.MenuLines[0]!?.StartsWith(GsxConstants.MenuRequestDeice, StringComparison.InvariantCultureIgnoreCase) == true)
-                        call = SmartButtonCall.Deice;
-                }
-                else if (GsxController.ServiceDeice.IsRunning)
-                    status = $"{GsxServiceType.Deice} active ...";                
-            }
-            else if (AutomationState > AutomationState.TaxiOut && AutomationState <= AutomationState.TaxiIn)
-            {
-                call = SmartButtonCall.None;
-                phase = AutomationState;
-                status = "";
-
-                if (AutomationState == AutomationState.TaxiIn && !string.IsNullOrWhiteSpace(LastCapturedGate))
-                {
-                    status = $"[ {LastCapturedGate} ]";
-                    call = SmartButtonCall.ClearGate;
-                }
-            }
-            else if(AutomationState == AutomationState.Arrival)
-            {
-                call = GsxController.ServiceDeboard.IsRunning ? SmartButtonCall.None : SmartButtonCall.Deboard;
-                phase = AutomationState;
-                status = "";
-
-                if (Aircraft.HasChocks && !Aircraft.EquipmentChocks && AutomationController.ChockDelay > 0)
-                    status = $"Chocks in {AutomationController.ChockDelay}s";
-                else if (GsxController.ServiceJetway.IsOperating || GsxController.ServiceStairs.IsOperating)
-                {
-                    if (GsxController.ServiceJetway.IsOperating)
-                        status = "Operating Jetway ...";
-                    if (GsxController.ServiceStairs.IsOperating && GsxController.ServiceStairs.State != GsxServiceState.Active)
-                        status = "Operating Stairs ...";
-                }
-                else if (GsxController.ServiceDeboard.IsActive)
-                {
-                    if (AircraftController.Aircraft.IsCargo)
-                        status = "Unloading ...";
-                    else
-                        status = "Deboarding ...";
-                }
-            }
-            else if (AutomationState == AutomationState.TurnAround)
-            {
-                call = SmartButtonCall.SkipTurn;
-                phase = AutomationState;
-                status = "";
-
-                if (AutomationController.InitialTurnDelay)
-                    status = $"Turn-Delay {(int)((AutomationController.TimeNextTurnCheck - DateTime.Now).TotalSeconds)}s ...";
-                else if (!GsxController.IsGateConnected)
-                    status = $"Connect Jetway/Stairs!";
-                else if (!AutomationController.InitialTurnDelay && !AppService.Instance.Flightplan.LastOnlineCheck)
-                    status = $"Create new OFP!";
-                else if (!Aircraft.ReadyForDepartureServices)
-                    status = "Trigger Departure!";
-            }
-
+            //Couatl State
+            string couatlVars;
             if (GsxController.CouatlVarsValid)
                 couatlVars = "true";
             else
                 couatlVars = "false";
-
-            if (ReportedPhase != phase || ReportedStatus != status)
-            {
-                await CallOnConnectors((connector) => connector.SetState(phase, status));
-                ReportedPhase = phase;
-                ReportedStatus = status;
-            }
-
             if (ReportedCouatlVars != couatlVars)
-            {
                 await CallOnConnectors((connector) => connector.SetCouatlVars(couatlVars));
-                ReportedCouatlVars = couatlVars;
-            }
+            ReportedCouatlVars = couatlVars;
 
-            if (ReportedCall != call || ReportedCallInfo != callInfo)
+            //SmartButton Info
+            if (Profile.RunAutomationService)
             {
-                await CallOnConnectors((connector) => connector.SetSmartCall(call, callInfo));
-                ReportedCall = call;
-                ReportedCallInfo = callInfo;
+                if (Profile.RunAutomationService && Tracker.SmartButton == SmartButtonCall.NextService && AutomationController.DepartureQueue.HasNext)
+                    await CallOnConnectors((connector) => connector.SetSmartCall(Tracker.SmartButton, AutomationController.NextType));
+                else if (Profile.RunAutomationService && Tracker.SmartButton == SmartButtonCall.ClearGate)
+                    await CallOnConnectors((connector) => connector.SetSmartCall(Tracker.SmartButton, Profile.ClearGateMenuOption));
+                else if (Profile.RunAutomationService && Tracker.SmartButton == SmartButtonCall.Deice)
+                {
+                    string callInfo = (ServiceDeice.IsActive ? "Stop" : "Start");
+                    if (ServiceDeice.IsCompleted)
+                        callInfo = "Done";
+                    await CallOnConnectors((connector) => connector.SetSmartCall(Tracker.SmartButton, callInfo));
+                }
+                else if (Profile.RunAutomationService && Tracker.SmartButton == SmartButtonCall.PushStop)
+                    await CallOnConnectors((connector) => connector.SetSmartCall(Tracker.SmartButton, Profile.StopPushMenuOption.ToString()));
+                else
+                    await CallOnConnectors((connector) => connector.SetSmartCall(Tracker.SmartButton, ""));
             }
 
-            if (!svcCounted && LastServiceCount != svcCounted)
-                await CallOnConnectors((connector) => connector.ClearDepartureServices());
-            else if ((ReportedServicesCompleted != svcCompleted)
-                || (ReportedServicesRunning != svcRunning)
-                || (ReportedServicesTotal != svcTotal))
+            //Departue Queue Info
+            if (Profile.RunAutomationService)
             {
-                await CallOnConnectors((connector) => connector.SetDepartureServices(svcCompleted, svcRunning, svcTotal));
-                ReportedServicesCompleted = svcCompleted;
-                ReportedServicesRunning = svcRunning;
-                ReportedServicesTotal = svcTotal;
+                if (AutomationState != AutomationState.Departure && AutomationState != AutomationState.Arrival)
+                    await CallOnConnectors((connector) => connector.ClearDepartureServices());
+                else if ((ReportedServicesCompleted != DepartureQueue.CountCompleted)
+                        || (ReportedServicesRunning != DepartureQueue.CountRunning)
+                        || (ReportedServicesTotal != DepartureQueue.CountTotal))
+                    await CallOnConnectors((connector) => connector.SetDepartureServices(DepartureQueue.CountCompleted, DepartureQueue.CountRunning, DepartureQueue.CountTotal));
             }
+            ReportedServicesCompleted = DepartureQueue.CountCompleted;
+            ReportedServicesRunning = DepartureQueue.CountRunning;
+            ReportedServicesTotal = DepartureQueue.CountTotal;
 
+            //Connection and Profile
             if (ReportedProfile != (Profile?.Name ?? ""))
-            {
                 await CallOnConnectors((connector) => connector.SetConnected(true, Profile?.Name ?? ""));
-                ReportedProfile = Profile?.Name ?? "";
-            }
+            ReportedProfile = Profile?.Name ?? "";
+
+            //Aircraft Connection
+            if (ReportedAircraftConnected != AircraftController.IsConnected)
+                await CallOnConnectors((connector) => connector.SetAircraftConnected(AircraftController.IsConnected));
+            ReportedAircraftConnected = AircraftController.IsConnected;
         }
 
         protected virtual async Task CheckMenu()
         {
             try
             {
-                var automation = GsxController.AutomationController.State;
+                var automation = AutomationController.State;
+                var deckRefresh = (Profile.PilotsDeckRefresh || Config.RefreshMenuForEfb) && GsxMenu.MenuCommandsAllowed;
+                var autoRefresh = (Profile.RunAutomationService || deckRefresh) && GsxMenu.MenuCommandsAllowed;
                 var now = DateTime.Now;
-                if ((Profile.PilotsDeckIntegration || Config.RefreshMenuForEfb) && !GsxMenu.SuppressMenuRefresh && !GsxMenu.IsSequenceActive && ClearInhibitTime <= DateTime.Now
-                    && !(automation == AutomationState.SessionStart || automation == AutomationState.Pushback || automation == AutomationState.Flight))
-                {
-                    if (Profile.PilotsDeckIntegration && DeckConnector != null)
-                        await DeckConnector.SetConnected(true, Profile.Name);
-                    Logger.Debug($"PilotsDeck Integration: Refresh Menu (After Clear)");
-                    await GsxMenu.OpenHide();
-                }
+                var isTimeout = GsxMenu.LastTimeout < DateTime.MaxValue && (Config.DeckClearedMenuRefresh == 0 || GsxMenu.LastTimeout + TimeSpan.FromMilliseconds(Config.DeckClearedMenuRefresh) <= now) && GsxMenu.MenuCommandsAllowed;
+                var noInhibit = GsxMenu.LastSelectionTime < DateTime.MaxValue && (Config.DeckClearedMenuRefresh == 0 || GsxMenu.LastSelectionTime + TimeSpan.FromMilliseconds(Config.DeckClearedMenuRefresh) <= now) && GsxMenu.MenuCommandsAllowed && GsxMenu.LastMenuSelection == -2;
 
-                if (automation == AutomationState.TaxiOut && !string.IsNullOrWhiteSpace(LastCapturedGate)
-                    && !GsxMenu.SuppressMenuRefresh && GsxMenu.MenuState == GsxMenuState.TIMEOUT
-                    && Aircraft.IsBrakeSet && Aircraft.GroundSpeed < Config.SpeedTresholdTaxiOut && !GsxController.ServiceDeice.IsRunning)
+                //Request for delayed/timed Menu Open
+                if (MenuOpenQueued)
                 {
-                    Logger.Debug($"Open Menu to for Deice Pad ({AppService.Instance?.NotificationManager?.LastCapturedGate})");
-                    await GsxMenu.OpenHide();
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-            }
-        }
-
-        protected virtual async void OnMenuReceived(IGsxMenu menu)
-        {
-            try
-            {
-                if (!NotifyUpdates)
-                    return;
-
-                if (GsxMenu.MenuState == GsxMenuState.READY || GsxMenu.MenuState == GsxMenuState.HIDE)
-                {
-                    ClearInhibitTime = DateTime.MaxValue;
-                    await CallOnConnectors((connector) => connector.SetMenuTitle(GsxMenu.MenuTitle));
-                    await CallOnConnectors((connector) => connector.SetMenuLines(GsxMenu.MenuLines));
-                }
-                else
-                    await ClearMenu(GsxMenu.MenuState == GsxMenuState.TIMEOUT);
-
-                if (GsxMenu.MenuState == GsxMenuState.TIMEOUT && (Profile.PilotsDeckIntegration || Config.RefreshMenuForEfb))
-                {
-                    var automation = GsxController.AutomationController.State;
-                    if ((GsxController.ServicePushBack.PushStatus == 0 || GsxController.ServicePushBack.State < GsxServiceState.Requested) && !GsxMenu.SuppressMenuRefresh && !GsxMenu.IsSequenceActive
-                        && (automation == AutomationState.Preparation || automation == AutomationState.Departure || automation == AutomationState.Pushback || automation == AutomationState.Arrival || automation == AutomationState.TurnAround))
+                    if (MenuOpenDelayed <= now)
                     {
-                        if (Profile.PilotsDeckIntegration && DeckConnector != null)
-                            await DeckConnector.SetConnected(true, Profile.Name);
-                        Logger.Debug($"PilotsDeck Integration: Refresh Menu (Timeout)");
-                        await GsxMenu.OpenHide();
+                        if (!GsxMenu.ReadyReceived && GsxMenu.MenuCommandsAllowed)
+                        {
+                            Logger.Debug($"Menu Refresh: Open Menu delayed");
+                            await GsxController.Menu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection || GsxMenu.IsToolbarEnabled);
+                        }
+                        MenuOpenDelayed = DateTime.MaxValue;
                     }
+                }
+                //Timeout Handling
+                else if ((autoRefresh || deckRefresh) && isTimeout)
+                {
+                    //Keep Direction Menu open
+                    if (autoRefresh && Profile.KeepDirectionMenuOpen && ServicePushBack.IsWaitingForDirection && ServicePushBack.State == GsxServiceState.Callable && automation == AutomationState.Pushback)
+                    {
+                        Logger.Debug($"Menu Refresh: Reopen Direction Menu");
+                        await ServicePushBack.Call();
+                        GsxMenu.ExternalSequence = true;
+                        await GsxMenu.WaitInterval(5);
+
+                        if (GsxMenu.IsReady && GsxMenu.MatchTitle(GsxConstants.MenuPushbackInterrupt) && GsxMenu.MatchMenuLine(2, GsxConstants.MenuPushbackChange))
+                            await GsxMenu.RunCommand(GsxMenuCommand.Select(3), Profile.EnableMenuForSelection || GsxController.IsDeiceAvail || GsxController.Menu.IsToolbarEnabled);
+
+                        await GsxMenu.WaitInterval(2);
+                        GsxMenu.ExternalSequence = false;
+                    }
+                    //Deck/EFB: Open after Timeout on Gate
+                    else if (deckRefresh &&
+                                (((GsxMenu.IsGateMenu || GsxMenu.LastTitle?.StartsWith(GsxConstants.MenuGate, StringComparison.InvariantCultureIgnoreCase) == true) && (automation <= AutomationState.Departure || automation >= AutomationState.Arrival))
+                                || (automation == AutomationState.Pushback && !ServicePushBack.IsTugConnected && !ServicePushBack.IsRunning && !ServiceDeice.IsRunning)))
+                    {
+                        Logger.Debug($"Menu Refresh: After Timeout");
+                        await GsxController.Menu.RunCommand(GsxMenuCommand.Open(), false);
+                    }
+                }
+                //Deck/EFB: Open after Selection
+                else if (deckRefresh && noInhibit && !ServiceDeice.IsRunning && !ServicePushBack.IsTugConnected && !ServicePushBack.IsRunning)
+                {
+                    Logger.Debug($"Menu Refresh: After Selection");
+                    await GsxController.Menu.RunCommand(GsxMenuCommand.Open(), false);
                 }
             }
             catch (Exception ex)
@@ -532,113 +375,353 @@ namespace Any2GSX.Notifications
             }
         }
 
-        public virtual async Task ClearMenu(bool setTime)
+        protected virtual async Task OnMenuReceived(IGsxMenu menu)
         {
-            if (!NotifyUpdates)
+            try
+            {
+                if (!IsSessionRunning)
+                    return;
+
+                if (GsxMenu.MenuState == GsxMenuState.READY)
+                {
+                    await CallOnConnectors((connector) => connector.SetMenuTitle(GsxMenu.MenuTitle));
+                    await CallOnConnectors((connector) => connector.SetMenuLines(GsxMenu.MenuLines));
+                    await OnMenuTitle(menu);
+                }
+                else
+                    await ClearMenu();
+            }
+            catch (Exception ex)
+            {
+                if (ex is not TaskCanceledException)
+                    Logger.LogException(ex);
+            }
+        }
+
+        public virtual async Task ClearMenu()
+        {
+            if (!IsSessionRunning)
                 return;
 
-            if (setTime)
-                ClearInhibitTime = DateTime.Now + TimeSpan.FromMilliseconds(Config.DeckClearedMenuRefresh);
             await CallOnConnectors((connector) => connector.SetMenuTitle(""));
             await CallOnConnectors((connector) => connector.SetMenuLines([]));
         }
 
-        protected virtual async Task OnAutomationStateChange(AutomationState state)
+        protected virtual Task OnMenuTitle(IGsxMenu menu)
         {
-            if (!NotifyUpdates)
+            if (ServicePushBack.IsWaitingForDirection && !Tracker.IsActive(AppNotification.PushReleaseBrake) && (menu.MatchTitle(GsxConstants.MenuPushbackDirection) || menu.MatchTitle(GsxConstants.MenuPushbackChange)))
+            {
+                LastPushInfo = "Direction?";
+                Tracker.TrackMessage(AppNotification.PushPhase, LastPushInfo);
+            }
+            else if (Profile.AttachTugDuringBoarding == 0 && menu.MatchTitle(GsxConstants.MenuTugAttach))
+                Tracker.TrackMessage(AppNotification.GsxQuestion, "Tug?");
+            else if (!Profile.OperatorAutoSelect && (menu.MatchTitle(GsxConstants.MenuOperatorHandling) || menu.MatchTitle(GsxConstants.MenuOperatorCater)))
+                Tracker.TrackMessage(AppNotification.GsxQuestion, "Operator?");
+            else if (Profile.AnswerCrewBoardQuestion == 0 && menu.MatchTitle(GsxConstants.MenuBoardCrew))
+                Tracker.TrackMessage(AppNotification.GsxQuestion, "Crew?");
+            else if (Profile.AnswerCrewDeboardQuestion == 0 && menu.MatchTitle(GsxConstants.MenuDeboardCrew))
+                Tracker.TrackMessage(AppNotification.GsxQuestion, "Crew?");
+            else if (!menu.DeiceGateQuestionAnswered && menu.MatchTitle(GsxConstants.MenuDeiceOnPush))
+                Tracker.TrackMessage(AppNotification.GsxQuestion, "De-Ice?");
+            else if (menu.MatchTitle(GsxConstants.MenuFollowMe))
+                Tracker.TrackMessage(AppNotification.GsxQuestion, "Follow-Me?");
+            else if (menu.MenuTitle.Contains("fluid", StringComparison.InvariantCultureIgnoreCase))
+                Tracker.TrackMessage(AppNotification.GsxQuestion, "Fluid?");
+            else if (menu.MenuTitle.Contains("concentration", StringComparison.InvariantCultureIgnoreCase))
+                Tracker.TrackMessage(AppNotification.GsxQuestion, "Concentration?");
+            else
+                Tracker.Clear(AppNotification.GsxQuestion);
+
+            return Task.CompletedTask;
+        }
+
+        protected virtual async Task OnAutomationStateChanged(AutomationState state)
+        {
+            if (!IsSessionRunning)
                 return;
 
-            if (state == AutomationState.TurnAround)
+            if (state == AutomationState.SessionStart)
             {
+                await ResetConnectors(true);
+            }
+            else if (state == AutomationState.Pushback)
+            {
+                await CallOnConnectors((connector) => connector.SetBoardPaxInfo(-1));
+                await CallOnConnectors((connector) => connector.SetBoardCargoInfo(-1));
+            }
+            else if (state == AutomationState.TaxiOut)
+            {
+                Tracker.LastCapturedGate = "";
+            }
+            else if (state == AutomationState.Flight)
+            {
+                Tracker.Reset();
+                if (Config.DebugArrival)
+                    await ResetConnectors(true);
+                else
+                {
+                    await CallOnConnectors((connector) => connector.SetMenuTitle(""));
+                    await CallOnConnectors((connector) => connector.SetMenuLines([]));
+                }
+            }
+            else if (state == AutomationState.TurnAround)
+            {
+                Tracker.LastCapturedGate = "";
+                Tracker.Clear(AppNotification.UpdatesBlocked);
                 await CallOnConnectors((connector) => connector.SetDeboardPaxInfo(-1));
                 await CallOnConnectors((connector) => connector.SetDeboardCargoInfo(-1));
             }
         }
 
-        protected virtual async Task BoardingOnStateChanged(IGsxService gsxService)
+        protected virtual Task OnJetwayStateChanged(IGsxService gsxService)
+        {
+            if (!IsSessionRunning)
+                return Task.CompletedTask;
+
+            if (gsxService.State <= GsxServiceState.Bypassed || gsxService.State >= GsxServiceState.Active)
+                Tracker.Clear(AppNotification.OperateJetway);
+
+            return Task.CompletedTask;
+        }
+
+        protected virtual Task OnJetwayOperationChanged(GsxServiceState state)
         {
             if (!NotifyUpdates)
+                return Task.CompletedTask;
+
+            if (state == GsxServiceState.Active)
+                Tracker.Track(AppNotification.OperateJetway);
+
+            return Task.CompletedTask;
+        }
+
+        protected virtual Task OnStairsStateChanged(IGsxService gsxService)
+        {
+            if (!IsSessionRunning)
+                return Task.CompletedTask;
+
+            if (gsxService.State <= GsxServiceState.Bypassed || gsxService.State >= GsxServiceState.Active)
+                Tracker.Clear(AppNotification.OperateStairs);
+
+            return Task.CompletedTask;
+        }
+
+        protected virtual Task OnStairsOperationChanged(GsxServiceState state)
+        {
+            if (!NotifyUpdates)
+                return Task.CompletedTask;
+
+            if (state == GsxServiceState.Active)
+                Tracker.Track(AppNotification.OperateStairs);
+
+            return Task.CompletedTask;
+        }
+
+        protected virtual async Task OnBoardingStateChanged(IGsxService gsxService)
+        {
+            if (!IsSessionRunning)
                 return;
 
-            if (gsxService.State == GsxServiceState.Active)
+            if (gsxService.IsRunning)
             {
-                await CallOnConnectors((connector) => connector.SetBoardPaxInfo(0));
-                await CallOnConnectors((connector) => connector.SetBoardCargoInfo(0));
+                if (gsxService.State == GsxServiceState.Requested)
+                {
+                    await CallOnConnectors((connector) => connector.SetBoardPaxInfo(0));
+                    await CallOnConnectors((connector) => connector.SetBoardCargoInfo(0));
+                }
+
+                string status = "Boarding ...";
+                if (await AircraftController.GetIsCargo())
+                    status = "Loading ...";
+                Tracker.TrackMessage(AppNotification.ServiceBoard, status);
             }
             else
             {
                 await CallOnConnectors((connector) => connector.SetBoardPaxInfo(-1));
                 await CallOnConnectors((connector) => connector.SetBoardCargoInfo(-1));
+                Tracker.Clear(AppNotification.ServiceBoard);
             }
         }
 
-        protected virtual async Task BoardingOnPaxChange(GsxServiceBoarding gsxService)
+        protected virtual Task OnBoardingPaxChanged(GsxServiceBoarding gsxService)
         {
-            if (!NotifyUpdates)
-                return;
+            if (!NotifyUpdates || !gsxService.IsRunning)
+                return Task.CompletedTask;
 
-            if (gsxService.State != GsxServiceState.Active)
-                await CallOnConnectors((connector) => connector.SetBoardPaxInfo(-1));
+            if (!gsxService.IsRunning)
+                return CallOnConnectors((connector) => connector.SetBoardPaxInfo(-1));
             else
-                await CallOnConnectors((connector) => connector.SetBoardPaxInfo(gsxService.PaxTotal));
+                return CallOnConnectors((connector) => connector.SetBoardPaxInfo(gsxService.PaxTotal));
         }
 
-        protected virtual async Task BoardingOnCargoChange(GsxServiceBoarding gsxService)
+        protected virtual Task OnBoardingCargoChanged(GsxServiceBoarding gsxService)
         {
-            if (!NotifyUpdates || gsxService.State != GsxServiceState.Active)
-                return;
+            if (!NotifyUpdates || !gsxService.IsRunning)
+                return Task.CompletedTask;
 
-            if (gsxService.State != GsxServiceState.Active)
-                await CallOnConnectors((connector) => connector.SetBoardCargoInfo(-1));
+            if (!gsxService.IsRunning)
+                return CallOnConnectors((connector) => connector.SetBoardCargoInfo(-1));
             else
-                await CallOnConnectors((connector) => connector.SetBoardCargoInfo(gsxService.CargoPercent));
+                return CallOnConnectors((connector) => connector.SetBoardCargoInfo(gsxService.CargoPercent));
         }
 
-        protected virtual async Task DeboardingOnStateChanged(IGsxService gsxService)
+        protected virtual async Task OnDeboardingStateChanged(IGsxService gsxService)
         {
-            if (!NotifyUpdates || gsxService.State != GsxServiceState.Active)
+            if (!IsSessionRunning)
                 return;
+
+            if (gsxService.IsRunning)
+            {
+                var target = AutomationController.PayloadArrival.CountPax;
+                if (gsxService.State == GsxServiceState.Requested)
+                {
+                    await CallOnConnectors((connector) => connector.SetDeboardPaxInfo(target));
+                    await CallOnConnectors((connector) => connector.SetDeboardCargoInfo(100));
+                }
+
+                string status = "Deboarding ...";
+                if (await AircraftController.GetIsCargo())
+                    status = "Unloading ...";
+                Tracker.TrackMessage(AppNotification.ServiceDeboard, status);
+            }
+            else
+            {
+                await CallOnConnectors((connector) => connector.SetDeboardPaxInfo(-1));
+                await CallOnConnectors((connector) => connector.SetDeboardCargoInfo(-1));
+                Tracker.Clear(AppNotification.ServiceDeboard);
+            }
+        }
+
+        protected virtual Task OnDeboardingPaxChanged(GsxServiceDeboarding gsxService)
+        {
+            if (!NotifyUpdates || !gsxService.IsRunning)
+                return Task.CompletedTask;
+
+            int paxOnBoard = AutomationController.PayloadArrival.CountPax - gsxService.PaxTotal;
+            if (paxOnBoard < 0)
+                paxOnBoard = 0;
+            return CallOnConnectors((connector) => connector.SetDeboardPaxInfo(paxOnBoard));
+        }
+
+        protected virtual Task OnDeboardingCargoChanged(GsxServiceDeboarding gsxService)
+        {
+            if (!NotifyUpdates || !gsxService.IsRunning)
+                return Task.CompletedTask;
+
+            return CallOnConnectors((connector) => connector.SetDeboardCargoInfo(100 - gsxService.CargoPercent));
+        }
+
+        protected virtual Task OnRefuelStateChanged(IGsxService gsxService)
+        {
+            if (!IsSessionRunning)
+                return Task.CompletedTask;
 
             if (gsxService.State == GsxServiceState.Active)
-            {
-                var target = (gsxService as GsxServiceDeboarding).PaxTarget;
-                if (target <= 0)
-                    target = AppService.Instance.Flightplan.CountPax;
-                await CallOnConnectors((connector) => connector.SetDeboardPaxInfo(target));
-                await CallOnConnectors((connector) => connector.SetDeboardCargoInfo(100));
-            }
+                Tracker.TrackMessage(AppNotification.ServiceRefuel, "Connecting Hose ...");
             else
+                Tracker.Clear(AppNotification.ServiceRefuel);
+
+            return Task.CompletedTask;
+        }
+
+        protected virtual Task OnRefuelHoseConnection(bool connected)
+        {
+            if (!NotifyUpdates)
+                return Task.CompletedTask;
+
+            if (ServiceRefuel.IsActive)
+                if (connected)
+                    Tracker.TrackMessage(AppNotification.ServiceRefuel, "Loading Fuel ...");
+                else if (!connected && ServiceRefuel.WasHoseConnected)
+                    Tracker.TrackTimeout(AppNotification.ServiceRefuel, 30000, "Removing Hose ...");
+
+            return Task.CompletedTask;
+        }
+
+        protected virtual Task OnDeiceStateChanged(IGsxService service)
+        {
+            if (!IsSessionRunning)
+                return Task.CompletedTask;
+
+            if (service.State == GsxServiceState.Completed)
+                Tracker.Clear(AppNotification.GateMove);
+
+            return Task.CompletedTask;
+        }
+
+        protected virtual async Task OnPushbackStateChanged(IGsxService service)
+        {
+            if (!IsSessionRunning)
+                return;
+
+            if (service.State == GsxServiceState.Completed)
             {
-                await CallOnConnectors((connector) => connector.SetDeboardPaxInfo(-1));
-                await CallOnConnectors((connector) => connector.SetDeboardCargoInfo(-1));
+                Tracker.Clear(AppNotification.PushPhase);
+                Tracker.Clear(AppNotification.PushReleaseBrake);
+                LastPushInfo = "";
+
+                if (Profile.RunAutomationService && GsxMenu.MenuCommandsAllowed)
+                {
+                    GsxMenu.ExternalSequence = true;
+                    Logger.Debug($"Refresh and disable Menu after Pushback ...");
+                    await GsxMenu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection);
+                    await GsxMenu.WaitInterval(2);
+                    if (!GsxController.IsDeiceAvail)
+                        await GsxMenu.RunCommand(GsxMenuCommand.State(GsxMenuState.DISABLED), false);
+                    GsxMenu.ExternalSequence = false;
+                    _ = TaskTools.RunDelayed(() => Tracker.Clear(AppNotification.GateSelect), 1000, Token);
+                }
+            }
+            else if (service.State == GsxServiceState.Active && ServicePushBack.PushStatus == 0)
+            {
+                Tracker.Clear(AppNotification.PushPhase);
+                Tracker.Clear(AppNotification.PushReleaseBrake);
             }
         }
 
-        protected virtual async Task DeboardingOnPaxChange(GsxServiceDeboarding gsxService)
+        protected virtual Task OnPushStatusChanged(GsxServicePushback gsxService)
         {
-            if (!NotifyUpdates || gsxService.State != GsxServiceState.Active)
-                return;
+            if (!IsSessionRunning)
+                return Task.CompletedTask;
 
-            if (gsxService.State != GsxServiceState.Active)
-                await CallOnConnectors((connector) => connector.SetDeboardPaxInfo(-1));
-            else
+            string status = "Standby ...";
+            int value = ServicePushBack.PushStatus;
+            if (value == 1)
+                status = "Insert Pin ...";
+            else if (value == 2)
+                status = "Locking Gear ...";
+            else if (value == 6)
+                status = "In Progress ...";
+            else if (value == 7)
+                status = "Set Brake!";
+            else if (value == 8)
+                status = "Confirm Start?";
+            else if (value == 5 || value == 9)
+                status = "Unlocking Gear ...";
+            else if (value == 10)
+                status = "Remove Pin ...";
+
+            if (value > 0)
             {
-                var target = gsxService.PaxTarget;
-                if (target <= 0)
-                    target = AppService.Instance.Flightplan.CountPax;
-                await CallOnConnectors((connector) => connector.SetDeboardPaxInfo(target - gsxService.PaxTotal));
+                LastPushInfo = status;
+                Tracker.TrackMessage(AppNotification.PushPhase, LastPushInfo);
             }
+            else
+                Tracker.Clear(AppNotification.PushPhase);
+
+            return Task.CompletedTask;
         }
 
-        protected virtual async Task DeboardingOnCargoChange(GsxServiceDeboarding gsxService)
+        protected virtual Task OnPushPinChanged(GsxServicePushback gsxService)
         {
-            if (!NotifyUpdates || gsxService.State != GsxServiceState.Active)
-                return;
+            if (!gsxService.IsPinInserted && gsxService.PushStatus == 10)
+            {
+                LastPushInfo = "Show Pin ...";
+                Tracker.TrackMessage(AppNotification.PushPhase, LastPushInfo);
+            }
 
-            if (gsxService.State != GsxServiceState.Active)
-                await CallOnConnectors((connector) => connector.SetDeboardCargoInfo(-1));
-            else
-                await CallOnConnectors((connector) => connector.SetDeboardCargoInfo(100 - gsxService.CargoPercent));
+            return Task.CompletedTask;
         }
     }
 }

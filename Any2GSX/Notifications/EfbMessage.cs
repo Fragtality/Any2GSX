@@ -4,8 +4,10 @@
     {
         public virtual string WasmWorkaround { get; set; } = "derp";
         public virtual string CouatlVarsValid { get; set; }
-        public virtual string ConnectionState { get; set; }
+        public virtual string AppConnectionState { get; set; }
+        public virtual string AircraftConnectionState { get; set; }
         public virtual string ProfileName { get; set; }
+        public virtual string FlightPhase { get; set; }
         public virtual string PhaseStatus { get; set; }
         public virtual string DepartureServices { get; set; }
         public virtual string SmartCall { get; set; }

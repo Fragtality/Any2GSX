@@ -19,6 +19,32 @@ namespace Any2GSX.UI.Views.Profiles
             CreateMemberBinding<string, string>(nameof(ProfileMatching.MatchString), new NoneConverter());
         }
 
+        public override bool UpdateSource(ProfileMatching oldItem, ProfileMatching newItem)
+        {
+            oldItem.MatchData = newItem.MatchData;
+            oldItem.MatchOperation = newItem.MatchOperation;
+            oldItem.MatchString = newItem.MatchString;
+            AppService.Instance.Config.SaveConfiguration();
+            return true;
+        }
+
+        protected override void AddSource(ProfileMatching item)
+        {
+            base.AddSource(item);
+            AppService.Instance.Config.SaveConfiguration();
+        }
+
+        protected override bool RemoveSource(ProfileMatching item)
+        {
+            if (base.RemoveSource(item))
+            {
+                AppService.Instance.Config.SaveConfiguration();
+                return true;
+            }
+            else
+                return false;
+        }
+
         public virtual void ChangeProfile(SettingProfile profile)
         {
             Profile = profile;

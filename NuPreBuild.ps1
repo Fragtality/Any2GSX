@@ -1,5 +1,10 @@
 ### PRE
-### pwsh -ExecutionPolicy Unrestricted -file "$(ProjectDir)..\NuPreBuild.ps1" $(SolutionDir) $(ProjectDir) "PROJECT" PACKAGES...
+### pwsh -ExecutionPolicy Unrestricted -file "$(ProjectDir)..\NuPreBuild.ps1" $(SolutionDir) $(ProjectDir) "PROJECT" $(Configuration) PACKAGES...
+
+if ($args[3] -eq "Debug") {
+	Write-Host "Skip NuPreBuild in Debug!"
+	exit 0
+}
 
 $basePath = $args[0]
 $projectDir = $args[1]
@@ -48,7 +53,7 @@ $pathRepo = (pwd).Path
 Write-Host "Checking NuGet Dependencies for $packageName ..."
 cd $projectDir
 $count = 0
-for ($index = 3; $index -lt $args.length; $index++) {
+for ($index = 4; $index -lt $args.length; $index++) {
 	$package = $args[$index]
 	$packageVersion = GetInstalledVersion($package)
 	$latestFile = (ls $pathRepo | Where-Object Name -like "$package*" | Sort-Object LastWriteTime)[-1].Name

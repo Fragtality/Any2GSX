@@ -20,7 +20,7 @@ namespace Any2GSX.Audio
             { new ChannelDefinition() { Name = "TACAN2", VolumeVariable = "TACAN VOLUME:2", VolumeUnit = SimUnitType.PercentOver100, MinValue = 0, MaxValue = 1 } },
             { new ChannelDefinition() { Name = "COM", VolumeVariable = "COM VOLUME", VolumeUnit = SimUnitType.Percent, MinValue = 0, MaxValue = 100 } },
             { new ChannelDefinition() { Name = "NAV", VolumeVariable = "NAV VOLUME", VolumeUnit = SimUnitType.Percent, MinValue = 0, MaxValue = 100 } },
-            { new ChannelDefinition() { Name = "ADF", VolumeVariable = "ADF VOLUME", VolumeUnit = SimUnitType.PercentOver100, MinValue = 0, MaxValue = 1 } },         
+            { new ChannelDefinition() { Name = "ADF", VolumeVariable = "ADF VOLUME", VolumeUnit = SimUnitType.PercentOver100, MinValue = 0, MaxValue = 1 } },
         };
     }
 }

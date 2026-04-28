@@ -13,6 +13,7 @@ namespace Any2GSX.CommBus
         RELAY = 6,
         CODE = 7,
         EFB = 8,
+        GSXMENU = 9,
     };
 
     public class MessageRequest

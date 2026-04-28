@@ -16,7 +16,8 @@ namespace Any2GSX.GSX.Services
         public virtual ISimResourceSubscription SubPushStatus { get; protected set; }
         public virtual bool IsPinInserted => SubBypassPin.GetNumber() == 1;
         public virtual int PushStatus => (int)SubPushStatus.GetNumber();
-        public virtual bool IsTugConnected => SubPushStatus.GetNumber() == 3 || SubPushStatus.GetNumber() == 4;
+        public virtual bool IsTugConnected => SubPushStatus.GetNumber() >= 3;
+        public virtual bool IsWaitingForDirection => SubPushStatus.GetNumber() == 3 || SubPushStatus.GetNumber() == 4;
         public virtual bool TugAttachedOnBoarding { get; protected set; } = false;
         public virtual ISimResourceSubscription SubBypassPin { get; protected set; }
 
@@ -26,9 +27,11 @@ namespace Any2GSX.GSX.Services
         protected override GsxMenuSequence InitCallSequence()
         {
             var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(new(5, GsxConstants.MenuGate, true));
-            sequence.Commands.Add(GsxMenuCommand.CreateOperator());
-            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            sequence.Commands.Add(GsxMenuCommand.Select(5, GsxConstants.MenuGate));
+            sequence.Commands.Add(GsxMenuCommand.Operator());
+            sequence.EnableMenuCheck = () => Profile.EnableMenuForSelection || Controller.IsDeiceAvail;
+            sequence.ResetMenuCheck = () => false;
 
             return sequence;
         }
@@ -38,33 +41,35 @@ namespace Any2GSX.GSX.Services
             return new GsxMenuSequence();
         }
 
-        protected override void InitSubscriptions()
+        public override void InitSubscriptions()
         {
             SubDepartService = SimStore.AddVariable(GsxConstants.VarServiceDeparture);
-            SubDepartService.OnReceived += OnStateChange;
+            SubDepartService?.OnReceived += OnStateChange;
             SubPushStatus = SimStore.AddVariable(GsxConstants.VarPusbackStatus);
-            SubPushStatus.OnReceived += OnPushChange;
+            SubPushStatus?.OnReceived += OnPushChange;
 
             SubBypassPin = SimStore.AddVariable(GsxConstants.VarBypassPin);
-            SubBypassPin.OnReceived += NotifyBypassPin;
+            SubBypassPin?.OnReceived += NotifyBypassPin;
         }
 
-        protected virtual void OnPushChange(ISimResourceSubscription sub, object data)
+        protected virtual Task OnPushChange(ISimResourceSubscription sub, object data)
         {
             Logger.Debug($"PushState changed to {sub?.GetNumber() ?? 0}");
-            if (!TugAttachedOnBoarding && sub.GetNumber() > 0 && (Controller.GsxServices[GsxServiceType.Boarding].State == GsxServiceState.Active || Controller.GsxServices[GsxServiceType.Boarding].State == GsxServiceState.Requested))
+            if (!TugAttachedOnBoarding && sub.GetNumber() > 0 && Controller.GsxServices[GsxServiceType.Boarding].IsRunning)
             {
                 Logger.Information($"Tug attaching during Boarding");
                 TugAttachedOnBoarding = true;
-                Controller.Menu.SuppressMenuRefresh = false;
+                Controller.Menu.BlockMenuUpdates(false);
             }
-            TaskTools.RunLogged(() => OnPushStatus?.Invoke(this), Controller.Token);
+            _ = TaskTools.RunPool(() => OnPushStatus?.Invoke(this), Controller.Token);
+            return Task.CompletedTask;
         }
 
-        protected virtual void NotifyBypassPin(ISimResourceSubscription sub, object data)
+        protected virtual Task NotifyBypassPin(ISimResourceSubscription sub, object data)
         {
             Logger.Debug($"BypassPin changed to {sub?.GetNumber() ?? 0}");
-            TaskTools.RunLogged(() => OnBypassPin?.Invoke(this), Controller.Token);
+            _ = TaskTools.RunPool(() => OnBypassPin?.Invoke(this), Controller.Token);
+            return Task.CompletedTask;
         }
 
         protected override void DoReset()
@@ -74,42 +79,82 @@ namespace Any2GSX.GSX.Services
 
         public override void FreeResources()
         {
-            SubDepartService.OnReceived -= OnStateChange;
-            SubBypassPin.OnReceived -= NotifyBypassPin;
-            SubPushStatus.OnReceived -= OnPushChange;
+            SubDepartService?.OnReceived -= OnStateChange;
+            SubBypassPin?.OnReceived -= NotifyBypassPin;
+            SubPushStatus?.OnReceived -= OnPushChange;
 
             SimStore.Remove(GsxConstants.VarServiceDeparture);
             SimStore.Remove(GsxConstants.VarBypassPin);
             SimStore.Remove(GsxConstants.VarPusbackStatus);
         }
 
-        public override async Task Call()
+        protected override GsxServiceState GetState()
+        {
+            var state = ReadState();
+
+            if ((state == GsxServiceState.Callable || state == GsxServiceState.NotAvailable || state == GsxServiceState.Bypassed) && WasCompleted)
+                return GsxServiceState.Completed;
+            else
+                return state;
+        }
+
+        protected override bool EvaluateComplete(ISimResourceSubscription sub)
+        {
+            var state = sub?.GetNumber() ?? 0;
+            return (((state == NumStateCompleted || state == 1) && WasActive) || WasCompleted) && (PushStatus == 0 || PushStatus == 11);
+        }
+
+        protected override bool CheckCalled()
+        {
+            IsCalled = IsRunning || PushStatus > 0;
+            return IsCalled;
+        }
+
+        public override Task Call()
         {
             if (PushStatus == 0 || !CheckCalled())
-                await base.Call();
+                return base.Call();
             else if (PushStatus > 0 && PushStatus < 5)
             {
                 var sequence = new GsxMenuSequence();
-                sequence.Commands.Add(new(5, GsxConstants.MenuGate, true) { NoHide = true });
-                await Controller.Menu.RunSequence(sequence);
+                sequence.Commands.Add(GsxMenuCommand.Open());
+                sequence.Commands.Add(GsxMenuCommand.Select(5, GsxConstants.MenuGate));
+                sequence.EnableMenuCheck = () => Profile.EnableMenuForSelection;
+                sequence.ResetMenuCheck = () => false;
+
+                return Controller.Menu.RunSequence(sequence);
             }
+
+            return Task.CompletedTask;
         }
 
-        public override async Task Cancel(int option = -1)
+        public override Task Cancel(GsxCancelService option = GsxCancelService.Complete)
         {
-            await EndPushback();
+            return EndPushback();
         }
 
-        public virtual async Task EndPushback(int selection = 1)
+        public virtual Task EndPushback()
         {
             Logger.Debug($"End Pushback ({PushStatus})");
             if (PushStatus < 5)
-                return;
+                return Task.CompletedTask;
 
             var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(new(selection, GsxConstants.MenuPushbackInterrupt, true));
-            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
-            await Controller.Menu.RunSequence(sequence);
+            sequence.Commands.Add(GsxMenuCommand.State(GsxMenuState.TIMEOUT));
+            sequence.Commands.Add(GsxMenuCommand.Wait());
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            if (PushStatus == 8)
+                sequence.Commands.Add(GsxMenuCommand.Select(1, GsxConstants.MenuPushbackInterrupt, [GsxConstants.MenuLineConfirm]));
+            else if (PushStatus < 8)
+                sequence.Commands.Add(GsxMenuCommand.Select((int)Profile.StopPushMenuOption, GsxConstants.MenuPushbackInterrupt, GsxConstants.MenuLinesPush[Profile.StopPushMenuOption]));
+            else
+                sequence.Commands.Add(GsxMenuCommand.Select(1, GsxConstants.MenuPushbackInterrupt));
+            sequence.Commands.Add(GsxMenuCommand.Wait());
+            sequence.Commands.Add(GsxMenuCommand.State(GsxMenuState.HIDE));
+            sequence.EnableMenuCheck = () => false;
+            sequence.ResetMenuCheck = () => false;
+
+            return Controller.Menu.RunSequence(sequence);
         }
     }
 }

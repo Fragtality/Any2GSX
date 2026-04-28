@@ -18,5 +18,7 @@ namespace Any2GSX.PluginInterface
         public virtual object DefaultValue { get; set; }
         public virtual Dictionary<int, string> EnumValues { get; set; } = [];
         public virtual string Description { get; set; }
+        public virtual string DescUnit { get; set; }
+        public virtual string Tooltip { get; set; }
     }
 }

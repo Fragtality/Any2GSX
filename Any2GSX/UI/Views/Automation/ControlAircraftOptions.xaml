@@ -22,15 +22,56 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Label Grid.Column="0" Grid.Row="0" Margin="8,4,0,4">
-            <Italic>
-                <Bold>Note:</Bold> Remember that L-Vars <Italic>need</Italic> to prefixed with 'L:'
-            </Italic>
-        </Label>
+        
+        <GroupBox Grid.Column="0" Grid.Row="0" Margin="8,0,8,8" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>Plugin Configuration</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
 
-        <GroupBox Grid.Column="0" Grid.Row="1" Margin="8,0,8,8" Style="{StaticResource GroupBoxDefault}" Name="GroupPluginOptions">
+                <TextBlock Grid.Column="0" Grid.Row="0" Name="LabelPluginGeneric" Margin="4" Style="{StaticResource TextBlockDefault}" MaxWidth="512" TextWrapping="WrapWithOverflow">
+                    <Italic>
+                        The Generic Plugin uses the Sim-Variables below to check the Aircraft State (i.e. if its powered, Beacon is on or Engines are running).<LineBreak/>
+                        Some Variables <Bold>(bold Names)</Bold> are essential for the Automation Flow to work correctly!<LineBreak/>
+                        Use the 'App Monitor' View or 'Variable Checker' Tool below to check if the default Settings work for the current Aircraft.
+                    </Italic>
+                </TextBlock>
+
+                <TextBlock Grid.Column="0" Grid.Row="0" Name="LabelPluginAircraft" Margin="4" Style="{StaticResource TextBlockDefault}" MaxWidth="684" TextWrapping="WrapWithOverflow" Visibility="Collapsed">
+                    <Italic>
+                        The loaded Aircraft Plugin should provide the correct Settings &amp; Variables to check the Aircraft State.<LineBreak/>
+                        It can hide some/all Generic Options when they are not used or already preset.
+                    </Italic>
+                </TextBlock>
+
+                <Button Grid.Column="0" Grid.Row="1" IsEnabled="{Binding IsSessionRunning}" Command="{Binding ShowVariableCheckerCommand}" Style="{StaticResource BtnDefault}" HorizontalAlignment="Left" MinHeight="28" Margin="4" Padding="4" FontWeight="DemiBold"
+                        ToolTip="Monitor the Generic Variables registered by the current Profile and query custom Sim Variables.">
+                    Variable Checker
+                </Button>
+
+                <Button Grid.Column="0" Grid.Row="1" IsEnabled="{Binding IsSessionRunning}" Command="{Binding ReloadAircraftCommand}" Style="{StaticResource BtnDefault}" Foreground="OrangeRed" HorizontalAlignment="Right" MinHeight="28" Margin="4" Padding="4" FontWeight="DemiBold"
+                        ToolTip="Reload the current Aircraft Plugin.&#x0a;The Aircraft Controller will be stopped and started as if the App was restarted - but without all the other Controllers being restarted.">
+                    Reload Aircraft
+                </Button>
+
+                <TextBlock Grid.Column="0" Grid.Row="2" Margin="4" Style="{StaticResource TextBlockDefault}">
+                    <Italic>
+                        <Bold>Note:</Bold> L-Vars need to prefixed with 'L:'
+                    </Italic>
+                </TextBlock>
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Column="0" Grid.Row="1" Style="{StaticResource GroupBoxDefault}" Name="GroupPluginOptions">
             <GroupBox.Header>Aircraft Plugin Options</GroupBox.Header>
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -40,12 +81,14 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Vertical" Name="PanelSettingsPlugin"/>
+                <ScrollViewer MaxHeight="560" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Vertical" Name="PanelSettingsPlugin"/>
+                </ScrollViewer>
             </Grid>
         </GroupBox>
 
-        <GroupBox Grid.Column="0" Grid.Row="2" Margin="8,0,8,8" Style="{StaticResource GroupBoxDefault}" Name="GroupGenericOptions">
-            <GroupBox.Header>Generic Options</GroupBox.Header>
+        <GroupBox Grid.Column="0" Grid.Row="2" Style="{StaticResource GroupBoxDefault}" Name="GroupGenericOptions">
+            <GroupBox.Header>Generic Plugin Options</GroupBox.Header>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition/>

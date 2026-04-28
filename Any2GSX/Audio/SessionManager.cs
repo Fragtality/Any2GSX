@@ -122,7 +122,7 @@ namespace Any2GSX.Audio
                         if (session.SessionControls.Count == 0 && sessions.Count != 0)
                         {
                             session.SetSessionList(sessions);
-                            session.SynchControls();
+                            session.SyncControls();
                             if (!force)
                                 Logger.Debug($"Added {sessions.Count} SessionControls to AudioSession {session}");
                             else
@@ -135,11 +135,11 @@ namespace Any2GSX.Audio
             }
         }
 
-        public virtual void SynchControls()
+        public virtual void SyncControls()
         {
             foreach (var channel in MappedAudioSessions)
                 foreach (var session in channel.Value)
-                    session.SynchControls();
+                    session.SyncControls();
         }
     }
 }

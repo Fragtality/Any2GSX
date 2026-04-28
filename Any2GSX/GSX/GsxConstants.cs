@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Any2GSX.PluginInterface.Interfaces;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 
@@ -15,6 +17,7 @@ namespace Any2GSX.GSX
 
         //Events
         public static string EventMenu { get; } = "EXTERNAL_SYSTEM_TOGGLE";
+        public static string EventCommBus { get; } = "Any2GsxToolbarNotification";
 
         //Variables
         public static string VarCouatlStarted { get; } = "L:FSDT_GSX_COUATL_STARTED";
@@ -30,10 +33,19 @@ namespace Any2GSX.GSX
         public static string VarSetCustFuel { get; } = "L:FSDT_GSX_SET_DETECT_CUST_REFUEL";
         public static string VarReadAutoMode { get; } = "L:FSDT_GSX_SETTINGS_AUTOMODE";
         public static string VarSetAutoMode { get; } = "L:FSDT_GSX_SET_AUTOMODE";
+        public static string VarSetAutoDoors { get; } = "L:FSDT_GSX_AUTOMATION_DOORS";
+        public static string VarSetAutoFuel { get; } = "L:FSDT_GSX_AUTOMATION_FUEL";
+        public static string VarSetAutoPayload { get; } = "L:FSDT_GSX_AUTOMATION_PAYLOAD";
+        public static string VarSetAutoEquip { get; } = "L:FSDT_GSX_AUTOMATION_GROUND_EQUIP";
+        public static string VarSetDoorMsg { get; } = "L:FSDT_GSX_DISABLE_DOORS_MSG";
         public static string VarServiceJetway { get; } = "L:FSDT_GSX_JETWAY";
         public static string VarServiceJetwayOperation { get; } = "L:FSDT_GSX_OPERATEJETWAYS_STATE";
         public static string VarServiceStairs { get; } = "L:FSDT_GSX_STAIRS";
         public static string VarServiceStairsOperation { get; } = "L:FSDT_GSX_OPERATESTAIRS_STATE";
+        public static string VarVehicleStairsFront { get; } = "L:FSDT_GSX_VEHICLE_PASSENGERSTAIRSFRONT_STATE";
+        public static string VarVehicleStairsMiddle { get; } = "L:FSDT_GSX_VEHICLE_PASSENGERSTAIRSMIDDLE_STATE";
+        public static string VarVehicleStairsRear { get; } = "L:FSDT_GSX_VEHICLE_PASSENGERSTAIRSREAR_STATE";
+        public static string VarServiceReposition { get; } = "L:FSDT_GSX_REPOSITIONING";
         public static string VarServiceRefuel { get; } = "L:FSDT_GSX_REFUELING_STATE";
         public static string VarServiceRefuelHose { get; } = "L:FSDT_GSX_FUELHOSE_CONNECTED";
         public static string VarServiceRefuelUnderground { get; } = "L:FSDT_GSX_UNDERGROUND_REFUELING";
@@ -73,12 +85,6 @@ namespace Any2GSX.GSX
         public static string VarCargoLoader1 { get; } = "L:FSDT_GSX_LOADER_EXIT_0";
         public static string VarCargoLoader2 { get; } = "L:FSDT_GSX_LOADER_EXIT_1";
         public static string VarCargoLoader3 { get; } = "L:FSDT_GSX_LOADER_EXIT_2";
-        public static string VarCargoLoading1 { get; } = "L:FSDT_GSX_BOARDING_CARGO_EXIT_0";
-        public static string VarCargoLoading2 { get; } = "L:FSDT_GSX_BOARDING_CARGO_EXIT_1";
-        public static string VarCargoLoading3 { get; } = "L:FSDT_GSX_BOARDING_CARGO_EXIT_2";
-        public static string VarCargoUnloading1 { get; } = "L:FSDT_GSX_DEBOARDING_CARGO_EXIT_0";
-        public static string VarCargoUnloading2 { get; } = "L:FSDT_GSX_DEBOARDING_CARGO_EXIT_1";
-        public static string VarCargoUnloading3 { get; } = "L:FSDT_GSX_DEBOARDING_CARGO_EXIT_2";
 
         //Menu
         public static string GsxChoice { get; } = "[GSX choice]";
@@ -88,18 +94,31 @@ namespace Any2GSX.GSX
         public static Regex MenuRegexFacility { get; } = new(@"^Change Facility \[(.+)\]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         public static Regex MenuRegexGate { get; } = new(@"\s{0,1}([A-Z]{1,2}[0-9]{1,3}[A-Z]{0,2})\s{0,1}|\s{0,1}([A-Z]{0,2}[0-9]{1,3}[A-Z]{1,2})\s{0,1}", RegexOptions.Compiled | RegexOptions.RightToLeft);
         public static string MenuRequestDeice { get; } = "Request DeIce";
+        public static string MenuLineDeice { get; } = "De-icing service";
         public static string MenuAdditionalServices { get; } = "Activate Ground Services";
         public static string MenuOperatorHandling { get; } = "Select handling operator";
         public static string MenuOperatorCater { get; } = "Select catering operator";
-        public static string MenuTugAttach { get; } = "Attach Pushback Tug"; 
+        public static string MenuTugAttach { get; } = "Attach Pushback Tug";
         public static string MenuPushbackInterrupt { get; } = "Interrupt pushback";
         public static string MenuPushbackDirection { get; } = "Select pushback direction";
         public static string MenuPushbackChange { get; } = "Change Direction";
         public static string MenuDeiceOnPush { get; } = "Ice warning: do you request the de-icing treatment";
         public static string MenuPushbackConfirm { get; } = "Interrupt pushback";
+        public static string MenuLineConfirm { get; } = "Confirm good engine";
+        public static string MenuPushbackRequest { get; } = "Do you want to request";
         public static string MenuFollowMe { get; } = "Request FollowMe";
-        public static string MenuCrewBoard { get; } = "Do you want to board crew";
-        public static string MenuCrewDeboard { get; } = "Do you want to deboard crew";
-        public static string MenuCancelService { get; } = "Service in progress";
+        public static string MenuBoardCrew { get; } = "Do you want to board crew";
+        public static string MenuDeboardCrew { get; } = "Do you want to deboard crew";
+        public static string MenuCancelService { get; } = "Service ";
+        public static string MenuLineCompleteService { get; } = "Complete now";
+        public static string MenuLineAbortService { get; } = "Abort service";
+        public static string MenuRefuelLevel { get; } = "Select refueling";
+        public static string MenuRefuelLevelCustom { get; } = "Custom refueling";
+        public static readonly Dictionary<GsxStopPush, string[]> MenuLinesPush = new()
+        {
+            { GsxStopPush.Pause, ["Pause", "Resume"] },
+            { GsxStopPush.Stop, ["Stop"] },
+            { GsxStopPush.Abort, ["Abort"] },
+        };
     }
 }

@@ -1,4 +1,6 @@
 ﻿using Any2GSX.AppConfig;
+using Any2GSX.GSX;
+using CFIT.AppFramework.Services;
 using CFIT.AppLogger;
 using System;
 using System.IO;
@@ -8,21 +10,14 @@ using System.Windows;
 
 namespace Any2GSX.CommBus
 {
-    public class ApiController
+    public class ApiController(Config config) : ServiceController<Any2GSX, AppService, Config, Definition>(config)
     {
-        public virtual HttpListener HttpListener { get; }
-        public virtual bool IsExecutionAllowed { get; set; } = true;
+        public virtual HttpListener HttpListener { get; } = new();
         public virtual int Port { get; protected set; } = 0;
-        protected virtual Config Config => AppService.Instance?.Config;
 
-        public ApiController()
+        protected override Task DoInit()
         {
-            HttpListener = new();
-        }
-
-        public virtual void Stop()
-        {
-            IsExecutionAllowed = false;
+            return Task.CompletedTask;
         }
 
         protected virtual bool StartListener(int port)
@@ -45,7 +40,7 @@ namespace Any2GSX.CommBus
             return false;
         }
 
-        public async virtual void Run()
+        protected override async Task DoRun()
         {
             Port = 0;
             for (int i = 0; i < Config.PortRange; i++)
@@ -56,7 +51,7 @@ namespace Any2GSX.CommBus
             if (Port == 0)
             {
                 Logger.Error($"HttpListener could not be started!");
-                MessageBox.Show("The HTTP Listener could not be started but is required to connect to the CommBus Module.\r\nAny2GSX will exit now. If the Problem continues, try a Reboot of your PC.", $"HTTP Listener could not be started!", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Any2GSX.Instance.AppWindow, "The HTTP Listener could not be started but is required to connect to the CommBus Module.\r\nAny2GSX will exit now. If the Problem continues, try a Reboot of your PC (or another 'PortBase' in the AppConfig.json).", $"HTTP Listener could not be started!", MessageBoxButton.OK, MessageBoxImage.Error);
                 throw new Exception($"HttpListener could not be started!");
             }
             else
@@ -65,9 +60,9 @@ namespace Any2GSX.CommBus
                 Logger.Debug($"Using Port {Port} to listen for CommBus Messages");
             }
 
-            Logger.Information("ApiTask started");
+            Logger.Information("API Controller started");
             bool first = true;
-            while (!AppService.Instance.Token.IsCancellationRequested && IsExecutionAllowed)
+            while (IsExecutionAllowed)
             {
                 try
                 {
@@ -96,7 +91,13 @@ namespace Any2GSX.CommBus
             }
 
             try { HttpListener?.Close(); } catch { }
-            Logger.Information("ApiTask ended");
+            Logger.Information("API Controller ended");
+        }
+
+        protected override Task DoCleanup()
+        {
+            try { HttpListener?.Close(); } catch { }
+            return Task.CompletedTask;
         }
 
         protected virtual void HandleRequestV1(HttpListenerContext context)
@@ -106,7 +107,11 @@ namespace Any2GSX.CommBus
             if (url.StartsWith("pushevent"))
                 HandlePushEventV1(context, url.Replace("pushevent", ""));
             else if (url.StartsWith("ping-reply"))
+            {
+                var msg = GetMessage(context);
+                Logger.Debug($"CommBus WASM Version: {msg.data}");
                 AppService.Instance.CommBus.IsPingReceived = true;
+            }
             else
             {
                 Logger.Warning($"Received unknown {context.Request.HttpMethod} Request: {context.Request.RawUrl}");
@@ -119,16 +124,24 @@ namespace Any2GSX.CommBus
         {
             try
             {
-                using var reader = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding);
-                var msg = MessageReceive.Parse(reader.ReadToEnd());
+                var msg = GetMessage(context);
                 Logger.Verbose($"Received Push Event: {msg.@event}");
-                AppService.Instance.CommBus.PushEvent(msg.@event, msg.data);
+                if (msg.@event == GsxConstants.EventCommBus)
+                    AppService.Instance.GsxController.Menu.OnToolbarEvent(msg.data);
+                else
+                    AppService.Instance.CommBus.PushEvent(msg.@event, msg.data);
                 context.Response.StatusCode = (int)HttpStatusCode.OK;
             }
             catch (Exception ex)
             {
                 Logger.LogException(ex);
             }
+        }
+
+        protected virtual MessageReceive GetMessage(HttpListenerContext context)
+        {
+            using var reader = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding);
+            return MessageReceive.Parse(reader.ReadToEnd());
         }
     }
 }

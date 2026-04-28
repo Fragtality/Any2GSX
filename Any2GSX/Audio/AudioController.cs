@@ -1,6 +1,7 @@
 ﻿using Any2GSX.Aircraft;
 using Any2GSX.AppConfig;
 using CFIT.AppFramework.Services;
+using CFIT.AppFramework.UI.ViewModels;
 using CFIT.AppLogger;
 using CFIT.AppTools;
 using CFIT.SimConnectLib;
@@ -19,7 +20,6 @@ namespace Any2GSX.Audio
         public virtual bool IsActive { get; protected set; } = false;
         protected virtual AircraftController AircraftController => AppService.Instance.AircraftController;
         protected virtual SettingProfile SettingProfile => AppService.Instance?.SettingProfile;
-        public virtual bool IsPlanePowered => AircraftController?.Aircraft?.IsAvionicPowered == true;
         public virtual bool HasInitialized { get; protected set; } = false;
         public virtual DeviceManager DeviceManager { get; }
         public virtual SessionManager SessionManager { get; }
@@ -38,13 +38,6 @@ namespace Any2GSX.Audio
         {
             DeviceManager = new(this);
             SessionManager = new(this);
-        }
-
-        protected override Task FreeResources()
-        {
-            UnregisterChannels();
-            DeviceManager.Clear();
-            return Task.CompletedTask;
         }
 
         protected virtual void RegisterChannels()
@@ -75,19 +68,17 @@ namespace Any2GSX.Audio
                 ChannelDefinitions.Add(channel.Name, channel);
             }
             ResetChannels = false;
-            TaskTools.RunLogged(() => OnChannelsChanged?.Invoke());
+            ModelHelper.RunOnDispatcher(() => OnChannelsChanged?.Invoke());
         }
 
         protected virtual void UnregisterChannels()
         {
             try
             {
-                foreach (var channel in ChannelDefinitions.Values)
-                {
-                    SimStore.Remove(channel.VolumeVariable);
-                    if (!string.IsNullOrWhiteSpace(channel.MuteVariable))
-                        SimStore.Remove(channel.MuteVariable);
-                }
+                foreach (var variable in VolumeVariables)
+                    SimStore.Remove(variable.Key);
+                foreach (var variable in MuteVariables)
+                    SimStore.Remove(variable.Key);
             }
             catch (Exception ex)
             {
@@ -134,12 +125,12 @@ namespace Any2GSX.Audio
                         {
                             Logger.Debug($"Setting Startup Volume Variable for '{channel.Name}' to {pos}");
                             await SimStore[channel.VolumeVariable].WriteValue(pos);
-                        }                        
+                        }
                     }
 
                     if (SettingProfile.AudioStartupUnmute.TryGetValue(channel.Name, out bool target) && target)
                     {
-                        
+
                         if (channel.MuteStartupCode != null)
                         {
                             Logger.Debug($"Sending Startup Mute Code of '{channel.Name}' ({channel.UnmutedValue})");
@@ -159,11 +150,16 @@ namespace Any2GSX.Audio
             }
         }
 
+        protected override Task DoInit()
+        {
+            return Task.CompletedTask;
+        }
+
         protected override async Task DoRun()
         {
             try
             {
-                while ((!IsPlanePowered || !AircraftController.IsConnected) && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
+                while ((!AircraftController.IsConnected || !await AircraftController.Aircraft.GetAvionicPowered()) && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
                     await Task.Delay(Config.AudioServiceRunInterval, Token);
 
                 RegisterChannels();
@@ -216,7 +212,7 @@ namespace Any2GSX.Audio
 
                     SessionManager.CheckSessions(rescanNeeded);
                     if (ResetVolumes)
-                        SessionManager.SynchControls();
+                        SessionManager.SyncControls();
 
                     ResetVolumes = false;
                     rescanNeeded = false;
@@ -244,17 +240,14 @@ namespace Any2GSX.Audio
             Logger.Debug($"AudioService ended");
         }
 
-        public override Task Stop()
+        protected override Task DoCleanup()
         {
-            base.Stop();
-
             try { SessionManager.RestoreVolumes(); } catch { }
             UnregisterChannels();
             DeviceManager.Clear();
             SessionManager.Clear();
             IsActive = false;
             HasInitialized = false;
-
             return Task.CompletedTask;
         }
     }

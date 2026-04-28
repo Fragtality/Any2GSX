@@ -15,6 +15,7 @@ namespace Any2GSX.UI.Views.Audio
     public partial class ViewAudio : UserControl, IView
     {
         protected virtual ModelAudio ViewModel { get; }
+        protected virtual ControlProfileSelector ControlProfileSelector { get; }
         protected virtual ViewModelSelector<string, string> ViewModelChannels { get; }
         protected virtual ViewModelSelector<AudioMapping, AudioMapping> ViewModelMappings { get; }
         protected virtual ViewModelSelector<string, string> ViewModelBlacklist { get; }
@@ -27,7 +28,7 @@ namespace Any2GSX.UI.Views.Audio
             this.DataContext = ViewModel;
 
             ViewModelChannels = new(SelectorCurrentChannel, ViewModel.ChannelCollection, AppWindow.IconLoader);
-            
+
             ViewModel.BindStringNumber(nameof(ViewModel.StartupVolume), InputStartupVolume, "0");
 
             ViewModelMappings = new(GridAudioMappings, ViewModel.AppMappingCollection, AppWindow.IconLoader);
@@ -35,20 +36,20 @@ namespace Any2GSX.UI.Views.Audio
             ButtonRemoveMapping.Command = ViewModelMappings.BindRemoveButton(ButtonRemoveMapping);
 
             SelectorMappingChannel.ItemsSource = ViewModel.ChannelCollection;
-            ViewModelMappings.BindMember(SelectorMappingChannel, nameof(AudioMapping.Channel));
+            ViewModelMappings.BindMember(SelectorMappingChannel, nameof(AudioMapping.Channel), null, "");
             ViewModelMappings.AddUpdateCommand.Subscribe(SelectorCurrentChannel);
 
-            ViewModelMappings.BindTextElement(InputMappingApp, nameof(AudioMapping.Binary));
+            ViewModelMappings.BindTextElement(InputMappingApp, nameof(AudioMapping.Binary), "");
             ViewModelMappings.AddUpdateCommand.Subscribe(InputMappingApp);
 
             SelectorMappingDevice.ItemsSource = ViewModel.AudioDevices;
-            ViewModelMappings.BindMember(SelectorMappingDevice, nameof(AudioMapping.DeviceName));
+            ViewModelMappings.BindMember(SelectorMappingDevice, nameof(AudioMapping.DeviceName), null, "All");
             ViewModelMappings.AddUpdateCommand.Subscribe(SelectorMappingDevice);
 
-            ViewModelMappings.BindMember(CheckboxMappingMute, nameof(AudioMapping.UseLatch));
+            ViewModelMappings.BindMember(CheckboxMappingMute, nameof(AudioMapping.UseLatch), null, true);
             ViewModelMappings.AddUpdateCommand.Subscribe(CheckboxMappingMute);
 
-            ViewModelMappings.BindMember(CheckboxOnlyActive, nameof(AudioMapping.OnlyActive));
+            ViewModelMappings.BindMember(CheckboxOnlyActive, nameof(AudioMapping.OnlyActive), null, true);
             ViewModelMappings.AddUpdateCommand.Subscribe(CheckboxOnlyActive);
 
             GridAudioMappings.SizeChanged += OnGridSizeChanged;
@@ -71,6 +72,12 @@ namespace Any2GSX.UI.Views.Audio
             ListActiveProcesses.SelectionChanged += OnProcessSelected;
             InputMappingApp.GotFocus += OnBinaryInputFocused;
             InputMappingApp.LostFocus += OnBinaryInputUnfocused;
+
+            ControlProfileSelector = new();
+            ViewProfileSelector.Content = ControlProfileSelector;
+
+            ViewModel.ChannelCollection.CollectionChanged += (_, _) => SelectorMappingChannel.SelectedIndex = 0;
+            ViewModelMappings.AddUpdateCommand.Executed += () => SelectorMappingChannel.SelectedIndex = 0;
         }
 
         protected virtual void OnGridSizeChanged(object sender, SizeChangedEventArgs e)
@@ -146,12 +153,14 @@ namespace Any2GSX.UI.Views.Audio
                 InputMappingApp.Text = str;
                 ListActiveProcesses.ItemsSource = null;
                 ListActiveProcesses.Visibility = Visibility.Collapsed;
+                ViewModelMappings.AddUpdateCommand.NotifyCanExecuteChanged();
             }
         }
 
         protected virtual void OnBinaryInputUnfocused(object sender, RoutedEventArgs e)
         {
             ListActiveProcesses.Visibility = Visibility.Collapsed;
+            ViewModelMappings.AddUpdateCommand.NotifyCanExecuteChanged();
         }
 
         protected virtual List<string> GetProcesses(string name)
@@ -172,14 +181,18 @@ namespace Any2GSX.UI.Views.Audio
 
         public virtual void Start()
         {
+            SelectorMappingChannel.SelectedIndex = 0;
             SelectorMappingDevice.ItemsSource = null;
             SelectorMappingDevice.ItemsSource = ViewModel.AudioDevices;
-            SelectorMappingDevice.SelectedIndex = 0;
+            SelectorMappingDevice.SelectedValue = "All";
+            ViewModel.SwapEnabled = ViewModel.SettingProfile.AudioMappings.Count > 0;
+            CheckboxMappingMute.IsChecked = true;
+            CheckboxOnlyActive.IsChecked = true;
         }
 
         public virtual void Stop()
         {
-            
+
         }
     }
 }

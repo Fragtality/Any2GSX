@@ -1,5 +1,6 @@
 ﻿using Any2GSX.Aircraft;
 using Any2GSX.AppConfig;
+using CFIT.AppFramework.UI.ViewModels;
 using CFIT.AppLogger;
 using CFIT.AppTools;
 using CoreAudio;
@@ -20,6 +21,7 @@ namespace Any2GSX.Audio
         protected virtual SettingProfile SettingProfile => AppService.Instance?.SettingProfile;
         protected virtual MMDeviceEnumerator DeviceEnumerator { get; } = new(Guid.NewGuid());
         public virtual ConcurrentDictionary<string, MMDevice> Devices { get; } = [];
+        protected virtual List<string> NotifiedDevices { get; } = [];
         protected virtual DateTime LastDeviceScan { get; set; } = DateTime.MinValue;
         protected virtual int LastDeviceCount { get; set; } = 0;
         protected virtual int SessionCount => Devices.Sum(d => d.Value.AudioSessionManager2.Sessions.Count);
@@ -69,7 +71,7 @@ namespace Any2GSX.Audio
                 }
 
                 if (result)
-                    DevicesChanged?.Invoke();
+                    ModelHelper.RunOnDispatcher(() => DevicesChanged?.Invoke());
             }
             catch (Exception ex)
             {
@@ -102,7 +104,11 @@ namespace Any2GSX.Audio
                     string deviceName = device.DeviceFriendlyName;
                     if (Config.AudioDeviceBlacklist.Where(d => d.StartsWith(deviceName, StringComparison.InvariantCultureIgnoreCase)).Any())
                     {
-                        Logger.Debug($"Ignoring Device '{deviceName}' (on Blacklist)");
+                        if (!NotifiedDevices.Contains(deviceName))
+                        {
+                            Logger.Debug($"Ignoring Device '{deviceName}' (on Blacklist)");
+                            NotifiedDevices.Add(deviceName);
+                        }
                         continue;
                     }
 
@@ -195,7 +201,7 @@ namespace Any2GSX.Audio
             try
             {
                 StringBuilder debugInfo = new();
-                
+
                 try
                 {
                     debugInfo.AppendLine($"Configured Audio Mappings: {SettingProfile?.AudioMappings?.Count}");
@@ -254,7 +260,7 @@ namespace Any2GSX.Audio
                         debugInfo.AppendLine($"Device raised Exception: '{ex.GetType()}' - '{ex.Message}' - '{ex.TargetSite}' - {ex.StackTrace}");
                     }
                 }
-            
+
                 File.WriteAllText(Config.AudioDebugFile, debugInfo.ToString());
             }
             catch (Exception ex)

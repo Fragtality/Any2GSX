@@ -5,6 +5,7 @@ using Any2GSX.UI.Views.Monitor;
 using Any2GSX.UI.Views.Plugins;
 using Any2GSX.UI.Views.Profiles;
 using Any2GSX.UI.Views.Settings;
+using CFIT.AppFramework.AppConfig;
 using CFIT.AppTools;
 using System;
 using System.Reflection;
@@ -55,36 +56,31 @@ namespace Any2GSX.UI
             ButtonPlugins.Click += (_, _) => SetView(ButtonPlugins, ViewPlugins);
             ButtonSettings.Click += (_, _) => SetView(ButtonSettings, ViewSettings);
 
-            if (Any2GSX.Instance.UpdateDetected)
-            {
-                if (Any2GSX.Instance.UpdateIsDev)
-                    LabelVersionCheck.Inlines.Add("New Develop Version ");
-                else
-                    LabelVersionCheck.Inlines.Add("New Stable Version ");
-                var run = new Run($"{Any2GSX.Instance.UpdateVersion}");
-
-                Hyperlink hyperlink;
-                if (Any2GSX.Instance.UpdateIsDev)
-                    hyperlink = new Hyperlink(run)
-                    {
-                        NavigateUri = new Uri("https://github.com/Fragtality/Any2GSX/blob/master/Any2GSX-Installer-latest.exe")
-                    };
-                else
-                    hyperlink = new Hyperlink(run)
-                    {
-                        NavigateUri = new Uri("https://github.com/Fragtality/Any2GSX/releases/latest")
-                    };
-                LabelVersionCheck.Inlines.Add(hyperlink);
-                LabelVersionCheck.Inlines.Add(" available!");
-                this.AddHandler(Hyperlink.RequestNavigateEvent, new RequestNavigateEventHandler(Nav.RequestNavigateHandler));
-                PanelVersion.Visibility = Visibility.Visible;
-            }
+            Any2GSX.Instance.NewVersion += (version, timestamp) => SetAppUpdateNotice("Version", $"{version.ToString(3)}-{timestamp}");
+            Any2GSX.Instance.NewBuild += (version, timestamp) => SetAppUpdateNotice("Build", $"{version.ToString(3)}-{timestamp}");
 
             if (string.IsNullOrWhiteSpace(Config?.SimbriefUser))
             {
                 SetView(ButtonSettings, ViewSettings);
                 Config.ForceOpen = true;
             }
+        }
+
+        public virtual void SetAppUpdateNotice(string type, string version)
+        {
+            LabelVersionCheck.Inlines.Add($"New App {type} ");
+            var run = new Run($"{version}");
+
+            Hyperlink hyperlink = new(run)
+            {
+                NavigateUri = new Uri(ProductDefinitionBase.GetUrlGit(Config.Definition.ProductInstallerLatest, Config.Definition.ProductAuthor, Config.Definition.ProductName, Config.Definition.ProductBranch))
+            };
+            LabelVersionCheck.Inlines.Add(hyperlink);
+            LabelVersionCheck.Inlines.Add(" available!");
+            this.AddHandler(Hyperlink.RequestNavigateEvent, new RequestNavigateEventHandler(Nav.RequestNavigateHandler));
+            PanelVersion.Visibility = Visibility.Visible;
+            Any2GSX.Instance.NotifyIcon.SetIconUpdate();
+            this.Icon = Any2GSX.Instance.NotifyIcon.Model.AppIcon.ToImageSource();
         }
 
         public virtual void SetPluginUpdateNotice()
@@ -102,6 +98,7 @@ namespace Any2GSX.UI
 
         protected virtual void OnWindowLoaded(object sender, RoutedEventArgs e)
         {
+            AppService.Instance.NotifyProfileChanged();
             if (CurrentButton == null)
                 SetView(ButtonAutomation, ViewAutomation);
         }

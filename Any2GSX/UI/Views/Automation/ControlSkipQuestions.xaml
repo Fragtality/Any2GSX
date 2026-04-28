@@ -20,6 +20,7 @@
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <GroupBox Grid.Column="0" Grid.Row="0" Margin="8,0,8,8" Style="{StaticResource GroupBoxDefault}">
@@ -29,6 +30,7 @@
                     <ColumnDefinition/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -93,12 +95,44 @@
                     <TextBlock>Automatically reopen <Underline>Pushback Direction</Underline> Menu</TextBlock>
                 </CheckBox>
 
-                <StackPanel Grid.Column="0" Grid.Row="7" Style="{StaticResource SettingItemPanel}" ToolTip="Select which GSX Menu Item is selected when the SmartButton Action 'ClearGate' is triggered.">
-                    <TextBlock Style="{StaticResource TextBlockDefault}" MinWidth="245" ToolTip="Select which GSX Menu Item is selected when the SmartButton Action 'ClearGate' is triggered.">
-                        Select the following Menu Item on the 'ClearGate' SmartButton: 
+                <CheckBox Grid.Column="0" Grid.Row="7" IsChecked="{Binding AnswerDeiceOnReopen}" Style="{StaticResource CheckBoxSettingItemIndented}" IsEnabled="{Binding KeepDirectionMenuOpen}"
+                          ToolTip="When the Pushback Menu is reopened, the Deice Question is automatically answered.&#x0a;BUT only if it was answered before by the User!">
+                    <TextBlock>Automatically answer <Underline>Deice Question</Underline> on Reopen with 'No'</TextBlock>
+                </CheckBox>
+
+                <CheckBox Grid.Column="0" Grid.Row="8" IsChecked="{Binding EnableMenuForSelection}" Style="{StaticResource CheckBoxSettingItem}"
+                          ToolTip="The App will automatically enable the GSX Menu/Toolbar (make it visible) when a manual Selection is needed.&#x0a;This Setting will be overriden if PilotsDeck Integration is enabled for the Profile!">
+                    <TextBlock><Underline>Enable</Underline> GSX Menu for <Underline>manual</Underline> Selections</TextBlock>
+                </CheckBox>
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Column="1" Grid.Row="1" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>SmartButton Calls</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Column="0" Grid.Row="0" Style="{StaticResource SettingItemPanel}" ToolTip="Select which GSX Menu Item is selected in the 'Change parking or service' Menu after the Arrival Gate was selected.">
+                    <TextBlock Style="{StaticResource TextBlockDefault}" MinWidth="245" ToolTip="Select which GSX Menu Item is selected in the 'Change parking or service' Menu after the Arrival Gate was selected.">
+                        Menu Item for SmartButton in the <Underline>Change parking or service</Underline> Menu:
                     </TextBlock>
                     <ComboBox SelectedValue="{Binding ClearGateMenuOption}" ItemsSource="{Binding ClearGateOptions}" SelectedValuePath="Key" DisplayMemberPath="Value" Margin="8,0,0,0" Style="{StaticResource ComboBoxDefault}"
-                              ToolTip="Select which GSX Menu Item is selected when the SmartButton Action 'ClearGate' is triggered.">
+                              ToolTip="Select which GSX Menu Item is selected when the Change Parking/Service Menu is current (after a Gate was selected on Arrival).">
+                    </ComboBox>
+                </StackPanel>
+
+                <StackPanel Grid.Column="0" Grid.Row="1" Style="{StaticResource SettingItemPanel}" ToolTip="Select which GSX Menu Item is selected in the 'Interrupt pushback' Menu while Pushback is active (has started but Engine Start not yet confirmed).">
+                    <TextBlock Style="{StaticResource TextBlockDefault}" MinWidth="245" ToolTip="Select which GSX Menu Item is selected in the 'Interrupt pushback' Menu while Pushback is active (has started but Engine Start not yet confirmed).">
+                        Menu Item for SmartButton in the <Underline>interrupt Pushback</Underline> Menu:
+                    </TextBlock>
+                    <ComboBox SelectedValue="{Binding StopPushMenuOption}" ItemsSource="{Binding StopPushOptions}" SelectedValuePath="Key" DisplayMemberPath="Value" Margin="8,0,0,0" Style="{StaticResource ComboBoxDefault}"
+                              ToolTip="Select which GSX Menu Item is selected when the SmartButton is triggered while Pushback is in Progress.">
                     </ComboBox>
                 </StackPanel>
             </Grid>

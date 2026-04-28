@@ -1,4 +1,4 @@
-﻿using Any2GSX.GSX;
+﻿using Any2GSX.GSX.Automation;
 using Any2GSX.PluginInterface.Interfaces;
 using CFIT.AppFramework.UI.ValueConverter;
 using CFIT.AppFramework.UI.ViewModels;
@@ -33,6 +33,7 @@ namespace Any2GSX.UI.Views.Automation
                     oldItem.CallOnCargo = newItem.CallOnCargo;
                     oldItem.MaxTimeBeforeDeparture = newItem.MaxTimeBeforeDeparture;
                     oldItem.MaxRunTime = newItem.MaxRunTime;
+                    oldItem.CallDelay = newItem.CallDelay;
                     return true;
                 }
             }

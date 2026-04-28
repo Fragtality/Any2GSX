@@ -1,5 +1,6 @@
 ﻿using Any2GSX.GSX.Menu;
 using Any2GSX.PluginInterface.Interfaces;
+using CFIT.AppLogger;
 using CFIT.SimConnectLib.SimResources;
 
 namespace Any2GSX.GSX.Services
@@ -9,16 +10,17 @@ namespace Any2GSX.GSX.Services
         public override GsxServiceType Type => GsxServiceType.Deice;
         public virtual ISimResourceSubscription SubDeiceService { get; protected set; }
         protected override ISimResourceSubscription SubStateVar => SubDeiceService;
+        protected override double NumStateCompleted { get; } = 1;
 
         protected override GsxMenuSequence InitCallSequence()
         {
             var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(new(8, GsxConstants.MenuGate, true));
-            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
-            sequence.Commands.Add(new(2, GsxConstants.MenuAdditionalServices) { WaitReady = true });
-            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
-            sequence.Commands.Add(GsxMenuCommand.CreateOperator());
-            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            sequence.Commands.Add(GsxMenuCommand.Select(8, GsxConstants.MenuGate));
+            sequence.Commands.Add(GsxMenuCommand.Select(2, GsxConstants.MenuAdditionalServices));
+            sequence.Commands.Add(GsxMenuCommand.Operator());
+            sequence.EnableMenuCheck = () => Controller.IsDeiceAvail;
+            sequence.ResetMenuCheck = () => false;
 
             return sequence;
         }
@@ -26,17 +28,19 @@ namespace Any2GSX.GSX.Services
         protected override GsxMenuSequence InitCancelSequence()
         {
             var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(new(8, GsxConstants.MenuGate, true));
-            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
-            sequence.Commands.Add(new(2, GsxConstants.MenuAdditionalServices) { WaitReady = true });
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            sequence.Commands.Add(GsxMenuCommand.Select(8, GsxConstants.MenuGate));
+            sequence.Commands.Add(GsxMenuCommand.Select(2, GsxConstants.MenuAdditionalServices));
+            sequence.Commands.Add(GsxMenuCommand.Wait());
+            sequence.Commands.Add(GsxMenuCommand.Open());
 
             return sequence;
         }
 
-        protected override void InitSubscriptions()
+        public override void InitSubscriptions()
         {
             SubDeiceService = SimStore.AddVariable(GsxConstants.VarServiceDeice);
-            SubDeiceService.OnReceived += OnStateChange;
+            SubDeiceService?.OnReceived += OnStateChange;
         }
 
         protected override void DoReset()
@@ -46,9 +50,26 @@ namespace Any2GSX.GSX.Services
 
         public override void FreeResources()
         {
-            SubDeiceService.OnReceived -= OnStateChange;
+            SubDeiceService?.OnReceived -= OnStateChange;
 
             SimStore.Remove(GsxConstants.VarServiceDeice);
+        }
+
+        protected override void NotifyStateChange()
+        {
+            base.NotifyStateChange();
+
+            if (State == GsxServiceState.Unknown)
+            {
+                var state = Controller.AutomationState;
+                if (state == AutomationState.Pushback)
+                    Controller.Tracker.Clear(Notifications.AppNotification.UpdatesBlocked);
+                else if (!IsCompleted && Controller.IsDeiceAvail && state == AutomationState.TaxiOut)
+                {
+                    Logger.Debug($"Fixing unknown State for {Type}");
+                    SubDeiceService.WriteValue(1);
+                }
+            }
         }
     }
 }

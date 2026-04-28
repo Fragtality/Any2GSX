@@ -7,10 +7,15 @@ namespace Any2GSX.Aircraft
 {
     public class GenericAircraft(IAppResources appResources) : AircraftBase(appResources)
     {
-        public override bool IsConnected => AppService.Instance.SimConnect.IsSessionRunning;
+        public override bool IsConnected => AppService.Instance.SimConnect.IsSessionRunning && FuelCapacityGallon > 0;
         public virtual SettingProfile Profile => AppService.Instance.SettingProfile;
 
         public override Task RunInterval()
+        {
+            return Task.CompletedTask;
+        }
+
+        public override Task CheckConnection()
         {
             return Task.CompletedTask;
         }

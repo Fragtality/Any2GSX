@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace Any2GSX.GSX
+namespace Any2GSX.GSX.Automation
 {
     public class ServiceConfig
     {
@@ -29,6 +29,7 @@ namespace Any2GSX.GSX
             { GsxServiceConstraint.NonCompanyHub, "Only on Non-Hub" },
             { GsxServiceConstraint.TurnOnHub, "Turn on Hub" },
             { GsxServiceConstraint.TurnOnNonHub, "Turn on Non-Hub" },
+            { GsxServiceConstraint.PreferredOp, "Preferred Operator" },
         };
 
         public virtual GsxServiceType ServiceType { get; set; } = GsxServiceType.Unknown;
@@ -47,15 +48,18 @@ namespace Any2GSX.GSX
         public virtual TimeSpan MaxRunTime { get; set; } = TimeSpan.Zero;
         [JsonIgnore]
         public virtual bool HasMaxRunTime => MaxRunTime > TimeSpan.Zero;
+        public virtual TimeSpan CallDelay { get; set; } = TimeSpan.Zero;
+        [JsonIgnore]
+        public virtual bool HasCallDelay => CallDelay > TimeSpan.Zero;
         public virtual bool CallOnCargo { get; set; } = false;
         [JsonIgnore]
-        public virtual int ActivationCount { get; set; } = 0;
+        public virtual int TurnCount { get; set; } = 0;
 
-        public ServiceConfig(){ }
+        public ServiceConfig() { }
 
-        public ServiceConfig(GsxServiceType type, GsxServiceActivation activation) : this(type, activation, TimeSpan.Zero, GsxServiceConstraint.NoneAlways, false, TimeSpan.Zero, TimeSpan.Zero) { }
+        public ServiceConfig(GsxServiceType type, GsxServiceActivation activation) : this(type, activation, TimeSpan.Zero, GsxServiceConstraint.NoneAlways, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) { }
 
-        public ServiceConfig(GsxServiceType type, GsxServiceActivation activation, TimeSpan duration, GsxServiceConstraint constraint, bool callOnCargo, TimeSpan maxBeforeDepart, TimeSpan maxRun)
+        public ServiceConfig(GsxServiceType type, GsxServiceActivation activation, TimeSpan duration, GsxServiceConstraint constraint, bool callOnCargo, TimeSpan maxBeforeDepart, TimeSpan maxRun, TimeSpan callDelay)
         {
             ServiceType = type;
             ServiceActivation = activation;
@@ -64,6 +68,7 @@ namespace Any2GSX.GSX
             CallOnCargo = callOnCargo;
             MaxTimeBeforeDeparture = maxBeforeDepart;
             MaxRunTime = maxRun;
+            CallDelay = callDelay;
         }
     }
 }

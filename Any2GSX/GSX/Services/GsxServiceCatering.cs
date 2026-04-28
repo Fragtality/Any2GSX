@@ -13,9 +13,9 @@ namespace Any2GSX.GSX.Services
         protected override GsxMenuSequence InitCallSequence()
         {
             var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(new(2, GsxConstants.MenuGate, true));
-            sequence.Commands.Add(GsxMenuCommand.CreateOperator());
-            sequence.Commands.Add(GsxMenuCommand.CreateDummy());
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            sequence.Commands.Add(GsxMenuCommand.Select(2, GsxConstants.MenuGate));
+            sequence.Commands.Add(GsxMenuCommand.Operator(false));
 
             return sequence;
         }
@@ -23,25 +23,26 @@ namespace Any2GSX.GSX.Services
         protected override GsxMenuSequence InitCancelSequence()
         {
             var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(new(2, GsxConstants.MenuGate, true) { WaitReady = true });
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            sequence.Commands.Add(GsxMenuCommand.Select(2, GsxConstants.MenuGate));
 
             return sequence;
         }
 
-        protected override void InitSubscriptions()
+        public override void InitSubscriptions()
         {
             SubCaterService = SimStore.AddVariable(GsxConstants.VarServiceCatering);
-            SubCaterService.OnReceived += OnStateChange;
+            SubCaterService?.OnReceived += OnStateChange;
         }
 
         protected override void DoReset()
         {
-            
+
         }
 
         public override void FreeResources()
         {
-            SubCaterService.OnReceived -= OnStateChange;
+            SubCaterService?.OnReceived -= OnStateChange;
 
             SimStore.Remove(GsxConstants.VarServiceCatering);
         }
