@@ -88,4 +88,37 @@
 - Improvements & Fixes to Session Start & Stop Handling solving secondary Issues after App/Session Restart
 - The Position of the App Window is now saved and restored on startup
 
+<br/>
+
+### Components
+- Changes to the WASM Module/Community Package for the Features - Version bumped to 0.4
+- Rewrite of the Notification System for EFB App / PilotsDeck Integration
+  - More & detailed Status Messages of App Operations and GSX Events (OFP Detection, GSX Restart/Refresh, Menu Calls, Service State changes, etc)
+  - EFB App has an additional Field for the Aircraft/Plugin Connection (and splits Phase and Status Messages in two Lines)
+- Some Fixes/Improvements on the GSX Profile - Version bumped to 1.0
+
+<br/>
+
+### Installer
+- Option to start the Application after Installation (automatically selected when the Sim is running)
+- Option to install/update the GSX Profile for PilotsDeck (through the Plugin's Profile Manager)
+- Set .NET 10.0.7 as Target
+
+<br/>
+
+### Plugins
+- The Plugin Repository now has its own [Changelog](https://github.com/Fragtality/Any2GSX-Plugins/blob/master/CHANGELOG.md) listing the Updates/Changes to the Plugins
+- All existing Plugins (B777, A350, A340, A330, A300): adapted to new Features and Changes in the Plugin Interface
+- New Plugin: Fenix A320 - which will be the Replacement to Fenix2GSX (see 'Migrating from Fenix2GSX' in the Readme)
+
+<br/>
+
+### Release Management
+- There won't be a Distinction between a Release/Stable and Beta/Dev Version as with Fenix2GSX
+  - There will be a (Github) Release called "Latest Build" always being updated when Changes are pushed
+  - The Any2GSX-Installer-latest.exe in the Project Files can still be used - it is the same Thing
+  - Recent Changes are now tracked in CHANGES.md (which will also be added the Description of the latest Release)
+  - When the Version increases, the Changes will be added to the CHANGELOG.md
+  - The Installer will be scanned by VirusTotal every Time an Update is pushed - in Case you need a second Opinion on your Scanner saying its Malware :wink:
+
 <br/><br/>
