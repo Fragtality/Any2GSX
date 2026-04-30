@@ -16,6 +16,11 @@ namespace Any2GSX.Notifications
             return Task.CompletedTask;
         }
 
+        public override Task CheckState()
+        {
+            return Task.CompletedTask;
+        }
+
         public override Task Init()
         {
             return Task.CompletedTask;

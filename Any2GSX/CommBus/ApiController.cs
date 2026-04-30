@@ -51,7 +51,7 @@ namespace Any2GSX.CommBus
             if (Port == 0)
             {
                 Logger.Error($"HttpListener could not be started!");
-                MessageBox.Show(Any2GSX.Instance.AppWindow, "The HTTP Listener could not be started but is required to connect to the CommBus Module.\r\nAny2GSX will exit now. If the Problem continues, try a Reboot of your PC (or another 'PortBase' in the AppConfig.json).", $"HTTP Listener could not be started!", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("The HTTP Listener could not be started but is required to connect to the CommBus Module.\r\nAny2GSX will exit now. If the Problem continues, try a Reboot of your PC (or another 'PortBase' in the AppConfig.json).", $"HTTP Listener could not be started!", MessageBoxButton.OK, MessageBoxImage.Error);
                 throw new Exception($"HttpListener could not be started!");
             }
             else

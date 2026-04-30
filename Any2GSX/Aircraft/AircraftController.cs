@@ -307,12 +307,20 @@ namespace Any2GSX.Aircraft
 
             await Aircraft.OnCouatlStarted();
 
-            if ((AutomationController.State == AutomationState.Departure || AutomationController.State == AutomationState.Pushback)
-                && IsBoarding)
+            if (AutomationController.State == AutomationState.Departure || AutomationController.State == AutomationState.Pushback)
             {
-                IsBoarding = false;
-                await Aircraft.BoardCompleted(Flightplan.CountPax, Flightplan.WeightPerPaxKg, Flightplan.WeightCargoKg);
-                Logger.Information($"Boarding set to completed due to GSX Restart");
+                if (IsBoarding)
+                {
+                    IsBoarding = false;
+                    await Aircraft.BoardCompleted(Flightplan.CountPax, Flightplan.WeightPerPaxKg, Flightplan.WeightCargoKg);
+                    Logger.Information($"Boarding set to completed due to GSX Restart");
+                }
+
+                if (AutomationController.State == AutomationState.Pushback && (RefuelTimer.IsEnabled || (GsxController.ServiceRefuel.WasActive && await Aircraft.GetFuelOnBoardKg() <= Flightplan.FuelRampKg - Config.FuelCompareVariance)))
+                {
+                    await RefuelStopEarly();
+                    Logger.Information($"Aircraft Refueling finished early due to GSX Restart");
+                }
             }
 
             if ((AutomationController.State == AutomationState.Arrival || AutomationController.State == AutomationState.TurnAround)
@@ -321,12 +329,6 @@ namespace Any2GSX.Aircraft
                 IsDeboarding = false;
                 await Aircraft.DeboardCompleted();
                 Logger.Information($"Deboarding set to completed due to GSX Restart");
-            }
-
-            if (AutomationController.State == AutomationState.Pushback && RefuelTimer.IsEnabled)
-            {
-                await RefuelStopEarly();
-                Logger.Information($"Aircraft Refueling finished early due to GSX Restart");
             }
         }
 
@@ -535,7 +537,11 @@ namespace Any2GSX.Aircraft
             FuelFobCounter = await Aircraft.GetFuelOnBoardKg();
             bool isFuelInc = FuelFobCounter <= Flightplan.FuelRampKg;
             if (SettingProfile.UseRefuelTimeTarget)
+            {
                 FuelRate = Math.Abs(Flightplan.FuelRampKg - FuelFobCounter) / SettingProfile.RefuelTimeTargetSeconds;
+                if (FuelRate < Config.RefuelMinimumRate)
+                    FuelRate = Config.RefuelMinimumRate;
+            }
             else
                 FuelRate = SettingProfile.RefuelRateKgSec;
 
@@ -561,8 +567,12 @@ namespace Any2GSX.Aircraft
                 FuelFobCounter += FuelRate * (isFuelInc ? 1 : -1);
                 FuelProgress += FuelRate;
 
+                if (isFuelInc && FuelFobCounter > Flightplan.FuelRampKg)
+                    FuelFobCounter = Flightplan.FuelRampKg;
+                else if (!isFuelInc && FuelFobCounter < Flightplan.FuelRampKg)
+                    FuelFobCounter = Flightplan.FuelRampKg;
 
-                if (Math.Abs(fob - Flightplan.FuelRampKg) <= Config.FuelCompareVariance)
+                if (Math.Abs(FuelFobCounter - Flightplan.FuelRampKg) <= Config.FuelCompareVariance)
                 {
                     FuelFobCounter = Flightplan.FuelRampKg;
                     Logger.Debug($"Last-Tick: {FuelFobCounter} / {Flightplan.FuelRampKg} @ {FuelRate} - FOB {fob}");

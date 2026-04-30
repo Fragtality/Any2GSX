@@ -167,6 +167,7 @@ namespace Any2GSX.Notifications
                     if (IsSessionRunning)
                     {
                         Tracker.CheckNotifications();
+                        await CallOnConnectors((connector) => connector.CheckState());
                         await UpdateState();
                         if (GsxController?.IsGsxRunning == true)
                             await CheckMenu();
@@ -309,6 +310,8 @@ namespace Any2GSX.Notifications
             if (ReportedAircraftConnected != AircraftController.IsConnected)
                 await CallOnConnectors((connector) => connector.SetAircraftConnected(AircraftController.IsConnected));
             ReportedAircraftConnected = AircraftController.IsConnected;
+
+            await CallOnConnectors((connector) => { connector.NeedsRefresh = false; return Task.CompletedTask; });
         }
 
         protected virtual async Task CheckMenu()
@@ -330,7 +333,7 @@ namespace Any2GSX.Notifications
                         if (!GsxMenu.ReadyReceived && GsxMenu.MenuCommandsAllowed)
                         {
                             Logger.Debug($"Menu Refresh: Open Menu delayed");
-                            await GsxController.Menu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection || GsxMenu.IsToolbarEnabled);
+                            await GsxController.Menu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection || (GsxMenu.IsToolbarEnabled && !Config.DisableUserEnabledMenu));
                         }
                         MenuOpenDelayed = DateTime.MaxValue;
                     }
@@ -665,7 +668,7 @@ namespace Any2GSX.Notifications
                 {
                     GsxMenu.ExternalSequence = true;
                     Logger.Debug($"Refresh and disable Menu after Pushback ...");
-                    await GsxMenu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection);
+                    await GsxMenu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection || (GsxMenu.IsToolbarEnabled && !Config.DisableUserEnabledMenu));
                     await GsxMenu.WaitInterval(2);
                     if (!GsxController.IsDeiceAvail)
                         await GsxMenu.RunCommand(GsxMenuCommand.State(GsxMenuState.DISABLED), false);
@@ -706,6 +709,8 @@ namespace Any2GSX.Notifications
             {
                 LastPushInfo = status;
                 Tracker.TrackMessage(AppNotification.PushPhase, LastPushInfo);
+                if (value > 5)
+                    Tracker.Clear(AppNotification.PushReleaseBrake);
             }
             else
                 Tracker.Clear(AppNotification.PushPhase);

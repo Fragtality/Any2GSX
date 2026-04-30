@@ -427,7 +427,7 @@ namespace Any2GSX.GSX.Menu
             {
                 Logger.Debug($"Pushback Question was answered: {num + 1} - '{GetMenuLine(num)}'");
             }
-            else if (num >= 0 && MatchTitle(GsxConstants.MenuPushbackDirection) && Controller.ServicePushBack.IsWaitingForDirection)
+            else if (num >= 0 && MatchTitle(GsxConstants.MenuPushbackDirection) && Controller.ServicePushBack.IsWaitingForDirection && !string.IsNullOrWhiteSpace(GetMenuLine(num)))
             {
                 Logger.Debug($"Pushback Direction selected: {num + 1} - '{GetMenuLine(num)}'");
                 Tracker.Track(AppNotification.PushReleaseBrake);

@@ -305,7 +305,7 @@ namespace Any2GSX.GSX.Automation
                     else if (Profile.RunAutomationService && Menu.MenuCommandsAllowed && !Menu.IsReady)
                     {
                         Logger.Information("Automation: Refresh Menu to start Departure Phase ...");
-                        await Menu.RunCommand(GsxMenuCommand.Open(), Menu.IsToolbarEnabled && !Config.DisableUserEnabledMenu);
+                        await RefreshCheckGateMenu();
                     }
                 }
                 else if (Aircraft.IsConnected && GsxController.SkippedWalkAround)
@@ -328,7 +328,7 @@ namespace Any2GSX.GSX.Automation
                     else if (Profile.RunAutomationService && Menu.MenuCommandsAllowed && !Menu.IsReady)
                     {
                         Logger.Information("Automation: Refresh Menu to start Preparation Phase ...");
-                        await Menu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection);
+                        await RefreshCheckGateMenu();
                     }
                 }
             }
@@ -461,7 +461,7 @@ namespace Any2GSX.GSX.Automation
                     if (Profile.RunAutomationService && Menu.MenuCommandsAllowed && !Menu.IsReady)
                     {
                         Logger.Information($"Automation: Refresh Menu for Arrival Services ...");
-                        await Menu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection && !Profile.CallDeboardOnArrival && !Profile.CallJetwayStairsOnArrival);
+                        await RefreshCheckGateMenu(() => Profile.EnableMenuForSelection && !Profile.CallDeboardOnArrival && !Profile.CallJetwayStairsOnArrival);
                     }
                     await ServiceDeboard.SetPaxTarget(PayloadArrival.CountPax);
 
@@ -561,6 +561,14 @@ namespace Any2GSX.GSX.Automation
                 else if (State != AutomationState.TurnAround)
                     Tracker.Clear(AppNotification.GateDepart);
             }
+        }
+
+        public virtual async Task RefreshCheckGateMenu(Func<bool> enableCondition = null)
+        {
+            enableCondition ??= () => Profile.EnableMenuForSelection;
+            await Menu.RunCommand(GsxMenuCommand.Open(), (Menu.IsToolbarEnabled && !Config.DisableUserEnabledMenu) || enableCondition());
+            if (Menu.ReadyReceived && Menu.IsGateMenu && Profile.RunAutomationService)
+                await Menu.RunCommand(GsxMenuCommand.State(GsxMenuState.HIDE), false);
         }
 
         protected virtual void EvaluateSmartCalls()
@@ -1244,7 +1252,7 @@ namespace Any2GSX.GSX.Automation
             //GSX Menu Trigger
             if (!Menu.IsGateMenu && !NotificationManager.MenuOpenQueued && Menu.MenuCommandsAllowed && (ServiceJetway.State == GsxServiceState.Unknown || ServiceStairs.State == GsxServiceState.Unknown))
             {
-                await Menu.RunCommand(GsxMenuCommand.Open(), false);
+                await RefreshCheckGateMenu(() => false);
                 return;
             }
 

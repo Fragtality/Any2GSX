@@ -33,13 +33,14 @@ namespace Any2GSX.AppConfig
         public virtual string SimbriefUser { get; set; } = "";
         public virtual int HttpRequestTimeoutMs { get; set; } = 5000;
         public virtual int SessionInitDelayMs { get; set; } = 0;
-        public virtual int DeckRefreshSelectionDelay { get; set; } = 3000;
         public virtual int DeckRegisterDelay { get; set; } = 2000;
         public virtual int DeckClearedMenuRefresh { get; set; } = 5000;
         public virtual int StatusTimeoutDefault { get; set; } = 10000;
         public virtual bool RefreshMenuForEfb { get; set; } = false;
         public virtual bool RefreshMenuForDeck { get; set; } = true;
         public virtual string DeckUrlBase { get; set; } = "http://localhost:42042";
+        public virtual int DeckAliveCheckInterval { get; set; } = 10000;
+        public virtual string DeckMessageGet { get; set; } = "/v1/get/{0}";
         public virtual string DeckMessageWrite { get; set; } = "/v1/set/{0}={1}";
         public virtual string DeckMessageRegister { get; set; } = "/v1/register/{0}";
         public virtual string DeckMessageUnregister { get; set; } = "/v1/unregister/{0}";
@@ -95,6 +96,7 @@ namespace Any2GSX.AppConfig
         public virtual int DelayOpenTaxiInMenu { get; set; } = 15;
         public virtual int RefuelDisconnectTimeout { get; set; } = 30000;
         public virtual int CargoPercentChangePerSec { get; set; } = 5;
+        public virtual double RefuelMinimumRate { get; set; } = 5;
         public virtual int PanelRefuelOpenDelayUnderground { get; set; } = 80;
         public virtual int PanelRefuelCloseDelayUnderground { get; set; } = 23;
         public virtual int PanelRefuelOpenDelayTanker { get; set; } = 24;

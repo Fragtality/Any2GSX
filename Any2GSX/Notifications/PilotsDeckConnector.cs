@@ -30,6 +30,7 @@ namespace Any2GSX.Notifications
         public virtual string VarDeckInfoPax => Config.DeckVarInfoPax;
         public virtual string VarDeckInfoCargo => Config.DeckVarInfoCargo;
         public virtual CancellationToken Token => AppService.Instance.Token;
+        protected virtual DateTime NextAliveCheck { get; set; } = DateTime.MaxValue;
         protected virtual HttpClient HttpClient { get; }
         public virtual Dictionary<GsxServiceState, string> StateColors { get; } = new()
         {
@@ -78,6 +79,20 @@ namespace Any2GSX.Notifications
             Logger.Debug($"PilotsDeck Connector initialized");
         }
 
+        public override async Task CheckState()
+        {
+            if (NextAliveCheck < DateTime.Now)
+            {
+                NextAliveCheck = DateTime.Now + TimeSpan.FromMilliseconds(Config.DeckAliveCheckInterval);
+                string state = await HttpClient.GetStringAsync(string.Format(Config.DeckMessageGet, VarDeckConnected), Token);
+                if (state != "1")
+                {
+                    await SetConnected(true, AppService.Instance.ProfileName);
+                    await SetAircraftConnected(AppService.Instance.AircraftController.IsConnected);
+                }
+            }
+        }
+
         protected virtual async Task RegisterVariables()
         {
             await Task.Delay(Config.DeckRegisterDelay, Token);
@@ -102,6 +117,7 @@ namespace Any2GSX.Notifications
 
             try
             {
+                NextAliveCheck = DateTime.MaxValue;
                 await HttpClient.GetStringAsync(string.Format(Config.DeckMessageUnregister, VarDeckMenu), Token);
                 for (int i = 1; i <= 10; i++)
                     await HttpClient.GetStringAsync(string.Format(Config.DeckMessageUnregister, $"{VarDeckLine}{i}"), Token);
@@ -144,9 +160,16 @@ namespace Any2GSX.Notifications
         public override Task SetConnected(bool connected, string profile)
         {
             if (connected)
+            {
+                NextAliveCheck = DateTime.Now + TimeSpan.FromMilliseconds(Config.DeckAliveCheckInterval);
+                NeedsRefresh = true;
                 return WriteVariable($"{VarDeckConnected}", "1");
+            }
             else
+            {
+                NextAliveCheck = DateTime.MaxValue;
                 return WriteVariable($"{VarDeckConnected}", "0");
+            }
         }
 
         public override Task SetAircraftConnected(bool connected)
@@ -251,7 +274,7 @@ namespace Any2GSX.Notifications
                 _ => "",
             };
 
-            if (ReportedCall != call || ReportedCallInfo != text || force)
+            if (ReportedCall != call || ReportedCallInfo != text || force || NeedsRefresh)
                 await WriteVariable($"{VarDeckCall}", text);
             ReportedCall = call;
             ReportedCallInfo = text;
@@ -376,7 +399,7 @@ namespace Any2GSX.Notifications
                     break;
             }
 
-            if (ReportedPhase != phase || ReportedStatusMessage != status)
+            if (ReportedPhase != phase || ReportedStatusMessage != status || NeedsRefresh)
             {
                 if (!string.IsNullOrEmpty(status))
                     await WriteVariable(VarDeckState, status);

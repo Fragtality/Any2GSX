@@ -202,7 +202,7 @@ namespace Any2GSX.GSX.Automation
                 asSkipped = true;
                 reason = "not enabled for Cargo Airplane";
             }
-            else if (NextConfig.HasDurationConstraint && Flightplan.Duration >= NextConfig.MinimumFlightDuration)
+            else if (NextConfig.HasDurationConstraint && Flightplan.Duration < NextConfig.MinimumFlightDuration)
             {
                 asSkipped = true;
                 reason = "Min. Flight Time";

@@ -419,7 +419,7 @@ namespace Any2GSX.GSX
                     if (!Menu.FirstReadyReceived && NextMenuStartupCheck <= DateTime.Now && IsOnGround)
                     {
                         if (IsGsxRunning && Profile.RunAutomationService && NextMenuStartupCheck != DateTime.MinValue && !AutomationController.IsStarted && AircraftController.IsConnected
-                            && SkippedWalkAround && await Aircraft.GetSpeed() < 1 && !await Aircraft.GetEngineRunning() && !await Aircraft.GetLightBeacon())
+                            && SkippedWalkAround && await Aircraft.GetSpeed() < 1 && !await Aircraft.GetEngineRunning() && !await Aircraft.GetLightBeacon() && ServicePushBack.PushStatus == 0)
                         {
                             Logger.Debug($"HasChocks {await Aircraft.GetHasChocks()} | EquipmentChocks {await Aircraft.GetEquipmentChocks()} | IsBrakeSet {await Aircraft.GetBrakeSet()} | Type {Aircraft.GetType().Name}");
                             if (await Aircraft.GetHasChocks() && !await Aircraft.GetEquipmentChocks())
@@ -658,7 +658,7 @@ namespace Any2GSX.GSX
                     await SimStore[GsxConstants.VarSetDoorMsg]?.WriteValue(1);
                 }
 
-                gsxMode = SimStore[GsxConstants.VarSetAutoDoors]?.GetNumber() > 0 || SimStore[GsxConstants.VarSetAutoFuel]?.GetNumber() > 0 || SimStore[GsxConstants.VarSetAutoPayload]?.GetNumber() > 0 || SimStore[GsxConstants.VarSetAutoEquip]?.GetNumber() > 0; ;
+                gsxMode = SimStore[GsxConstants.VarSetAutoDoors]?.GetNumber() > 0 || SimStore[GsxConstants.VarSetAutoFuel]?.GetNumber() > 0 || SimStore[GsxConstants.VarSetAutoPayload]?.GetNumber() > 0 || SimStore[GsxConstants.VarSetAutoEquip]?.GetNumber() > 0;
                 acPref = await Aircraft.GetSettingAdvAutomation();
                 if (gsxMode != acPref)
                 {

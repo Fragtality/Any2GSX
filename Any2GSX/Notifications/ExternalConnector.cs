@@ -27,6 +27,7 @@ namespace Any2GSX.Notifications
         public virtual string ReportedStatusMessage { get; protected set; } = "";
         public virtual SmartButtonCall ReportedCall { get; protected set; } = SmartButtonCall.None;
         public virtual string ReportedCallInfo { get; protected set; } = "";
+        public virtual bool NeedsRefresh { get; set; } = false;
 
         public virtual async Task Start()
         {
@@ -40,6 +41,8 @@ namespace Any2GSX.Notifications
         }
 
         public abstract Task Init();
+
+        public abstract Task CheckState();
 
         public virtual async Task Stop()
         {
