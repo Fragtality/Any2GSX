@@ -140,6 +140,7 @@ As the Name suggests it provides the App Access to Simulator's CommBus API provi
 - It is **not recommended** to use the **Always ask for pushback** Option - use Any2GSX to Answer the Question with Yes, No (default) or answer it manually
 - The De-/Boarding Speed of Passengers is dependent on the Passenger Density Setting (GSX In-Game Menu -> GSX Settings -> Timings). Higher Density => faster De/Boarding (But "Extreme" can be to extreme in some Cases).
 - Ensure the other two Settings under Timings are on their Default (15s, 1x).
+- It is **not recommended** to use the Boarding Delays (under Timings)
 - As with GSX itself, Any2GSX runs best when you have a proper Airport Profile installed!
 - Up to everyone's *Preference*, but disabling the **Aural Cues** (GSX In-Game Menu -> GSX Settings -> Audio) and setting **Message verbosity** to "*only Important*" (GSX In-Game Menu -> GSX Settings -> Simulation) can improve Immersion! 😉
 
