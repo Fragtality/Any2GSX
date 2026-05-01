@@ -1,6 +1,7 @@
 ﻿using Any2GSX.Aircraft;
 using Any2GSX.AppConfig;
 using Any2GSX.PluginInterface;
+using CFIT.AppFramework.AppConfig;
 using CFIT.AppLogger;
 using CFIT.AppTools;
 using System;
@@ -23,23 +24,51 @@ namespace Any2GSX.Plugins
         public virtual SortedDictionary<string, AircraftChannels> Channels { get; } = [];
         public virtual SortedDictionary<string, ProfileManifest> Profiles { get; } = [];
         protected virtual DateTime NextCheck { get; set; } = DateTime.MinValue;
-        protected virtual string ReleaseTimestamp { get; set; } = $"";
+        protected virtual string LatestCommit { get; set; } = "";
+        public virtual bool LatestValid => !string.IsNullOrWhiteSpace(LatestCommit);
+        protected virtual HttpClient HttpClient { get; }
+        protected virtual HttpClientHandler HttpClientHandler { get; }
+
+        public PluginRepo()
+        {
+            HttpClientHandler = new HttpClientHandler
+            {
+                UseProxy = false
+            };
+            HttpClient = new()
+            {
+                Timeout = TimeSpan.FromMilliseconds(Config.HttpRequestTimeoutMs)
+            };
+            HttpClient.DefaultRequestHeaders.Accept.Clear();
+            HttpClient.DefaultRequestHeaders.Add("User-Agent", ".NET Foundation Repository Reporter");
+            HttpClient.DefaultRequestHeaders.CacheControl = new()
+            {
+                NoStore = true,
+                NoCache = true,
+            };
+        }
 
         public virtual async Task Refresh()
         {
             if (NextCheck < DateTime.Now)
             {
                 await RefreshReleaseInfo();
-                await RefreshPlugins();
-                await RefreshChannels();
-                await RefreshProfiles();
+                if (LatestValid)
+                {
+                    await RefreshPlugins();
+                    await RefreshChannels();
+                    await RefreshProfiles();
+                }
+                else
+                    Logger.Error($"Could not refresh latest Commit from Plugin Repository");
                 NextCheck = DateTime.Now + TimeSpan.FromMinutes(5);
             }
         }
 
         protected virtual async Task RefreshReleaseInfo()
         {
-            ReleaseTimestamp = await GetStringFromUrl($"{Definition.RepoDistUrlReleaseInfo}?{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
+            LatestCommit = await ProductDefinitionBase.GetLatestCommit(HttpClient, Definition.ProductAuthor, Definition.RepoPlugins, Definition.RepoDistPathReleaseInfo);
+            Logger.Debug($"Received latest Commit: {LatestCommit}");
         }
 
         public virtual bool HasUpdates()
@@ -71,33 +100,24 @@ namespace Any2GSX.Plugins
                 Profiles.Add(profile.Key, profile.Value);
         }
 
-        public static async Task<JsonNode> GetJsonFromUrl(string url)
+        public virtual string GetUrlCommit(string path)
         {
-            HttpClient client = new()
-            {
-                Timeout = TimeSpan.FromMilliseconds(Config.HttpRequestTimeoutMs)
-            };
-            client.DefaultRequestHeaders.Accept.Clear();
-            client.DefaultRequestHeaders.Add("User-Agent", ".NET Foundation Repository Reporter");
+            return ProductDefinitionBase.GetUrlCommit(path, Definition.ProductAuthor, Definition.RepoPlugins, LatestCommit);
+        }
 
+        public virtual async Task<JsonNode> GetJsonFromUrl(string url)
+        {
             Logger.Debug($"Downloading '{url}' ...");
-            string json = await client.GetStringAsync(url);
-            Logger.Debug($"json received: len {json?.Length}");
+            string json = await HttpClient.GetStringAsync(url);
+            Logger.Verbose($"json received: len {json?.Length}");
             return JsonSerializer.Deserialize<JsonNode>(json);
         }
 
-        public static async Task<string> GetStringFromUrl(string url)
+        public virtual async Task<string> GetStringFromUrl(string url)
         {
-            HttpClient client = new()
-            {
-                Timeout = TimeSpan.FromMilliseconds(Config.HttpRequestTimeoutMs)
-            };
-            client.DefaultRequestHeaders.Accept.Clear();
-            client.DefaultRequestHeaders.Add("User-Agent", ".NET Foundation Repository Reporter");
-
             Logger.Debug($"Downloading '{url}' ...");
-            string json = await client.GetStringAsync(url);
-            Logger.Debug($"json received: len {json?.Length}");
+            string json = await HttpClient.GetStringAsync(url);
+            Logger.Verbose($"json received: len {json?.Length}");
             return json;
         }
 
@@ -106,7 +126,7 @@ namespace Any2GSX.Plugins
             Dictionary<string, PluginManifest> result = [];
             try
             {
-                JsonNode node = await GetJsonFromUrl($"{Definition.RepoDistUrlPluginFile}?{ReleaseTimestamp}");
+                JsonNode node = await GetJsonFromUrl(GetUrlCommit(Definition.RepoDistPathPluginFile));
 
                 foreach (var entry in node.AsObject())
                 {
@@ -125,10 +145,10 @@ namespace Any2GSX.Plugins
 
         public virtual Task<PluginManifest> InstallPluginFromRepo(string pluginFile)
         {
-            if (!Plugins.TryGetValue(pluginFile, out _))
+            if (!LatestValid || !Plugins.TryGetValue(pluginFile, out _))
                 return Task.FromResult<PluginManifest>(null);
 
-            var installer = new PluginInstaller($"{Definition.RepoDistUrlPlugins}/{pluginFile}?{ReleaseTimestamp}");
+            var installer = new PluginInstaller(GetUrlCommit($"{Definition.RepoDistPathPlugins}/{pluginFile}"));
             return installer.Install();
         }
 
@@ -146,7 +166,7 @@ namespace Any2GSX.Plugins
             Dictionary<string, AircraftChannels> result = [];
             try
             {
-                JsonNode node = await GetJsonFromUrl($"{Definition.RepoDistUrlChannelFile}?{ReleaseTimestamp}");
+                JsonNode node = await GetJsonFromUrl(GetUrlCommit(Definition.RepoDistPathChannelFile));
 
                 foreach (var entry in node.AsObject())
                 {
@@ -171,7 +191,7 @@ namespace Any2GSX.Plugins
             bool result = false;
             try
             {
-                string json = await GetStringFromUrl($"{Definition.RepoDistUrlChannels}/{channelFile}?{ReleaseTimestamp}");
+                string json = await GetStringFromUrl(GetUrlCommit($"{Definition.RepoDistPathChannels}/{channelFile}"));
                 var channelDefinition = AircraftChannels.Deserialize(json);
                 if (channelDefinition != null && !string.IsNullOrWhiteSpace(channelDefinition.Id))
                 {
@@ -225,7 +245,7 @@ namespace Any2GSX.Plugins
             Dictionary<string, ProfileManifest> result = [];
             try
             {
-                JsonNode node = await GetJsonFromUrl($"{Definition.RepoDistUrlProfileFile}?{ReleaseTimestamp}");
+                JsonNode node = await GetJsonFromUrl(GetUrlCommit(Definition.RepoDistPathProfileFile));
 
                 foreach (var entry in node.AsObject())
                 {
@@ -250,7 +270,7 @@ namespace Any2GSX.Plugins
             bool result = false;
             try
             {
-                string json = await GetStringFromUrl($"{Definition.RepoDistUrlProfiles}/{profileFile}?{ReleaseTimestamp}");
+                string json = await GetStringFromUrl(GetUrlCommit($"{Definition.RepoDistPathProfiles}/{profileFile}"));
                 SettingProfile profile = JsonSerializer.Deserialize<SettingProfile>(json);
                 if (profile == null)
                 {

@@ -3,12 +3,10 @@
 #include <SimConnect.h>
 #include <MSFS\Legacy\gauges.h>
 #include <MSFS\MSFS_CommBus.h>
-#include <MSFS\MSFS_Network.h>
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/stringbuffer.h>
 #include <cstdio>
-#include <deque>
 #include <list>
 #include <algorithm>
 #include <string>
@@ -17,7 +15,7 @@
 typedef long long FsNetworkRequestId;
 typedef void (*HttpRequestCallback)(FsNetworkRequestId requestId, int errorCode, void* userData);
 
-const char* VERSION = "0.4";
+const char* VERSION = "0.4.2";
 const char* CLIENTNAME = "Any2GSX_CommBus";
 
 const char* EventNameJs = "Any2GSX_RelayToJs";

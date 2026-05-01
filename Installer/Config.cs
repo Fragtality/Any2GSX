@@ -31,7 +31,7 @@ namespace Installer
         public static readonly string OptionCommModuleInstallation = "CommModuleInstallation";
         public static readonly string OptionForceCommModuleUpdate = "ForceCommModuleUpdate";
         public static readonly string OptionSkipModuleUpdate = "SkipModuleUpdate";
-        public virtual string ModuleVersion { get; set; } = "0.4.0";
+        public virtual string ModuleVersion { get; set; } = "0.4.2";
 
         //Pilotsdeck
         public static readonly string OptionInstallDeckProfile = "InstallDeckProfile";

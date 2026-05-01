@@ -5,7 +5,6 @@ using Any2GSX.UI.Views.Monitor;
 using Any2GSX.UI.Views.Plugins;
 using Any2GSX.UI.Views.Profiles;
 using Any2GSX.UI.Views.Settings;
-using CFIT.AppFramework.AppConfig;
 using CFIT.AppTools;
 using System;
 using System.Reflection;
@@ -73,7 +72,7 @@ namespace Any2GSX.UI
 
             Hyperlink hyperlink = new(run)
             {
-                NavigateUri = new Uri(ProductDefinitionBase.GetUrlGit(Config.Definition.ProductInstallerLatest, Config.Definition.ProductAuthor, Config.Definition.ProductName, Config.Definition.ProductBranch))
+                NavigateUri = new Uri(AppService.Instance.Definition.ProductLatestUrl)
             };
             LabelVersionCheck.Inlines.Add(hyperlink);
             LabelVersionCheck.Inlines.Add(" available!");
