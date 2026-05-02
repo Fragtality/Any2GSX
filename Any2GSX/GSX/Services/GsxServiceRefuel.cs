@@ -97,9 +97,11 @@ namespace Any2GSX.GSX.Services
             return Task.CompletedTask;
         }
 
-        protected override void DoReset()
+        protected override Task DoReset()
         {
             WasHoseConnected = false;
+
+            return Task.CompletedTask;
         }
 
         public override void FreeResources()

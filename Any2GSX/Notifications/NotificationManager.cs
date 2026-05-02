@@ -333,7 +333,7 @@ namespace Any2GSX.Notifications
                         if (!GsxMenu.ReadyReceived && GsxMenu.MenuCommandsAllowed)
                         {
                             Logger.Debug($"Menu Refresh: Open Menu delayed");
-                            await GsxController.Menu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection || (GsxMenu.IsToolbarEnabled && !Config.DisableUserEnabledMenu));
+                            await GsxController.Menu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection);
                         }
                         MenuOpenDelayed = DateTime.MaxValue;
                     }
@@ -350,7 +350,7 @@ namespace Any2GSX.Notifications
                         await GsxMenu.WaitInterval(5);
 
                         if (GsxMenu.IsReady && GsxMenu.MatchTitle(GsxConstants.MenuPushbackInterrupt) && GsxMenu.MatchMenuLine(2, GsxConstants.MenuPushbackChange))
-                            await GsxMenu.RunCommand(GsxMenuCommand.Select(3), Profile.EnableMenuForSelection || GsxController.IsDeiceAvail || GsxController.Menu.IsToolbarEnabled);
+                            await GsxMenu.RunCommand(GsxMenuCommand.Select(3), GsxController.IsDeiceAvail || Profile.EnableMenuForSelection);
 
                         await GsxMenu.WaitInterval(2);
                         GsxMenu.ExternalSequence = false;
@@ -667,11 +667,9 @@ namespace Any2GSX.Notifications
                 if (Profile.RunAutomationService && GsxMenu.MenuCommandsAllowed)
                 {
                     GsxMenu.ExternalSequence = true;
-                    Logger.Debug($"Refresh and disable Menu after Pushback ...");
-                    await GsxMenu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection || (GsxMenu.IsToolbarEnabled && !Config.DisableUserEnabledMenu));
+                    Logger.Debug($"Refresh (and disable) Menu after Pushback ...");
+                    await GsxMenu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection && GsxController.IsDeiceAvail);
                     await GsxMenu.WaitInterval(2);
-                    if (!GsxController.IsDeiceAvail)
-                        await GsxMenu.RunCommand(GsxMenuCommand.State(GsxMenuState.DISABLED), false);
                     GsxMenu.ExternalSequence = false;
                     _ = TaskTools.RunDelayed(() => Tracker.Clear(AppNotification.GateSelect), 1000, Token);
                 }

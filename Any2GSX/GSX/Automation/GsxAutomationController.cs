@@ -107,7 +107,7 @@ namespace Any2GSX.GSX.Automation
             IsInitialized = false;
         }
 
-        public virtual void Reset()
+        public virtual async Task Reset()
         {
             IsStarted = false;
             RunFlag = false;
@@ -115,7 +115,7 @@ namespace Any2GSX.GSX.Automation
             State = AutomationState.SessionStart;
 
             foreach (var service in GsxServices)
-                service.Value.ResetState();
+                await service.Value.ResetState();
 
             TimeNextTurnCheck = DateTime.MinValue;
             ExecutedReposition = false;
@@ -148,11 +148,11 @@ namespace Any2GSX.GSX.Automation
             DepartureQueue.Reset();
         }
 
-        protected virtual void ResetFlight()
+        protected virtual async Task ResetFlight()
         {
             Menu.ResetFlight();
             foreach (var service in GsxServices)
-                service.Value.ResetState(Config.ResetGsxStateVarsFlight);
+                await service.Value.ResetState(Config.ResetGsxStateVarsFlight);
 
             TimeNextTurnCheck = DateTime.MinValue;
             EquipManager.Reset();
@@ -336,7 +336,7 @@ namespace Any2GSX.GSX.Automation
             else if (State < AutomationState.Flight && !IsOnGround)
             {
                 StateChange(AutomationState.Flight);
-                ResetFlight();
+                await ResetFlight();
             }
             //intercept TaxiOut
             else if (State < AutomationState.TaxiOut && EnginesRunning && ServicePushBack.State != GsxServiceState.Active && Speed > 1)
@@ -566,9 +566,9 @@ namespace Any2GSX.GSX.Automation
         public virtual async Task RefreshCheckGateMenu(Func<bool> enableCondition = null)
         {
             enableCondition ??= () => Profile.EnableMenuForSelection;
-            await Menu.RunCommand(GsxMenuCommand.Open(), (Menu.IsToolbarEnabled && !Config.DisableUserEnabledMenu) || enableCondition());
+            await Menu.RunCommand(GsxMenuCommand.Open(), enableCondition());
             if (Menu.ReadyReceived && Menu.IsGateMenu && Profile.RunAutomationService)
-                await Menu.RunCommand(GsxMenuCommand.State(GsxMenuState.HIDE), false);
+                await Menu.RunCommand(GsxMenuCommand.Disable(), false);
         }
 
         protected virtual void EvaluateSmartCalls()
@@ -603,7 +603,7 @@ namespace Any2GSX.GSX.Automation
                 if (call == SmartButtonCall.Deice && Menu.MenuCommandsAllowed && BrakeChanged)
                 {
                     Logger.Information($"Automation: Refresh Menu on Brake-Change for Deice Pad ({Tracker.LastCapturedGate}) ...");
-                    _ = Menu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection || (Menu.IsToolbarEnabled && !Config.DisableUserEnabledMenu));
+                    _ = Menu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection);
                 }
             }
             else if (State == AutomationState.TaxiIn)
@@ -752,7 +752,7 @@ namespace Any2GSX.GSX.Automation
                     var sequence = new GsxMenuSequence();
                     sequence.Commands.Add(GsxMenuCommand.Open());
                     sequence.Commands.Add(GsxMenuCommand.Select((int)Profile.ClearGateMenuOption, GsxConstants.MenuParkingChange));
-                    sequence.EnableMenuCheck = () => (Profile.EnableMenuForSelection && Profile.ClearGateMenuOption < GsxChangePark.ClearAI) || (Menu.IsToolbarEnabled && !Config.DisableUserEnabledMenu);
+                    sequence.EnableMenuCheck = () => Profile.EnableMenuForSelection && Profile.ClearGateMenuOption < GsxChangePark.ClearAI;
                     sequence.ResetMenuCheck = () => false;
 
                     return Menu.RunSequence(sequence);
@@ -766,7 +766,7 @@ namespace Any2GSX.GSX.Automation
         {
             Menu.ExternalSequence = true;
             Logger.Debug($"Refresh Menu for Deice Pad ({Tracker.LastCapturedGate}) ...");
-            await Menu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection || (Menu.IsToolbarEnabled && !Config.DisableUserEnabledMenu));
+            await Menu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection);
             await Menu.WaitInterval(2);
 
             bool stop = ServiceDeice.IsActive;
@@ -775,7 +775,7 @@ namespace Any2GSX.GSX.Automation
                 if (!stop)
                 {
                     Logger.Information("SmartButton: Start Deice on Pad");
-                    await Menu.RunCommand(GsxMenuCommand.Select(1, GsxConstants.MenuGate), Profile.EnableMenuForSelection || (Menu.IsToolbarEnabled && !Config.DisableUserEnabledMenu));
+                    await Menu.RunCommand(GsxMenuCommand.Select(1, GsxConstants.MenuGate), Profile.EnableMenuForSelection);
                 }
                 else
                 {
@@ -1103,7 +1103,8 @@ namespace Any2GSX.GSX.Automation
                     await Task.Delay(Config.StateMachineInterval, RequestToken);
                 }
 
-                _ = Aircraft.NotifyCockpit(CockpitNotification.FinalReceived);
+                if (Profile.NotifyFinalReceived)
+                    _ = Aircraft.NotifyCockpit(CockpitNotification.FinalReceived);
                 IsFinalReceived = true;
                 Logger.Debug($"Final LS handled");
             }
@@ -1245,7 +1246,8 @@ namespace Any2GSX.GSX.Automation
             //Chock Notification
             if (EquipManager.HasChocks && EquipManager.EquipmentChocks && !CockpitChocksNotified)
             {
-                await Aircraft.NotifyCockpit(CockpitNotification.ChocksPlaced);
+                if (Profile.NotifyChocksPlaced)
+                    await Aircraft.NotifyCockpit(CockpitNotification.ChocksPlaced);
                 CockpitChocksNotified = true;
             }
 

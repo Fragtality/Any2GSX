@@ -2,6 +2,7 @@
 using Any2GSX.PluginInterface.Interfaces;
 using CFIT.AppLogger;
 using CFIT.SimConnectLib.SimResources;
+using System.Threading.Tasks;
 
 namespace Any2GSX.GSX.Services
 {
@@ -43,9 +44,9 @@ namespace Any2GSX.GSX.Services
             SubDeiceService?.OnReceived += OnStateChange;
         }
 
-        protected override void DoReset()
+        protected override Task DoReset()
         {
-
+            return Task.CompletedTask;
         }
 
         public override void FreeResources()

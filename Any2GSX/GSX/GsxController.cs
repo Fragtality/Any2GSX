@@ -369,7 +369,7 @@ namespace Any2GSX.GSX
                 if (!IsExecutionAllowed || RequestToken.IsCancellationRequested)
                     return;
 
-                AutomationController.Reset();
+                await AutomationController.Reset();
                 IsActive = true;
                 Logger.Debug($"GsxService active (VarsReceived: {CouatlVarsReceived} | FirstReady: {Menu.FirstReadyReceived})");
                 Logger.Information($"GsxController active - GSX Ready: {CouatlVarsReceived && IsProcessRunning} | GSX Menu: {Menu.FirstReadyReceived} | Aircraft Ready: {AircraftController.IsConnected} | Walkaround: {IsWalkaround}");
@@ -383,6 +383,8 @@ namespace Any2GSX.GSX
                 }
                 Logger.Debug($"Continue after {delay}ms");
                 await AppService.Instance.CommBus.PingModule();
+                if (!Config.GsxMenuTimeoutFix)
+                    Logger.Warning($"GsxMenuTimeoutFix is disabled!");
 
                 while (SimConnect.IsSessionRunning && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
                 {
@@ -440,7 +442,7 @@ namespace Any2GSX.GSX
                             Logger.Information($"Open GSX Menu on Startup ...");
                             await Menu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection || !Profile.RunAutomationService);
                             if (Menu.FirstReadyReceived && Menu.MenuState == GsxMenuState.READY && Menu.IsGateMenu && Profile.RunAutomationService)
-                                await Menu.RunCommand(GsxMenuCommand.State(GsxMenuState.DISABLED), false);
+                                await Menu.RunCommand(GsxMenuCommand.Disable(), false);
                             Menu.ExternalSequence = false;
                         }
 
@@ -703,13 +705,13 @@ namespace Any2GSX.GSX
             return GsxServices[GsxServiceType.Refuel].Cancel();
         }
 
-        public override Task Stop()
+        public override async Task Stop()
         {
             AutomationController.Stop();
             Menu.Reset();
 
             foreach (var service in GsxServices)
-                service.Value.ResetState();
+                await service.Value.ResetState();
 
             IsActive = false;
             SkippedWalkAround = false;
@@ -726,7 +728,7 @@ namespace Any2GSX.GSX
             IsAirStart = false;
             NextMenuStartupCheck = DateTime.MinValue;
 
-            return base.Stop();
+            await base.Stop();
         }
 
         protected override Task DoCleanup()

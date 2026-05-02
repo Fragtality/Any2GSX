@@ -30,7 +30,8 @@ namespace Any2GSX.GSX.Services
             sequence.Commands.Add(GsxMenuCommand.Open());
             sequence.Commands.Add(GsxMenuCommand.Select(5, GsxConstants.MenuGate));
             sequence.Commands.Add(GsxMenuCommand.Operator());
-            sequence.EnableMenuCheck = () => Profile.EnableMenuForSelection || Controller.IsDeiceAvail;
+            sequence.Commands.Add(GsxMenuCommand.Close());
+            sequence.EnableMenuCheck = () => Profile.EnableMenuForSelection;
             sequence.ResetMenuCheck = () => false;
 
             return sequence;
@@ -72,9 +73,11 @@ namespace Any2GSX.GSX.Services
             return Task.CompletedTask;
         }
 
-        protected override void DoReset()
+        protected override Task DoReset()
         {
             TugAttachedOnBoarding = false;
+
+            return Task.CompletedTask;
         }
 
         public override void FreeResources()
@@ -140,7 +143,7 @@ namespace Any2GSX.GSX.Services
                 return Task.CompletedTask;
 
             var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(GsxMenuCommand.State(GsxMenuState.TIMEOUT));
+            sequence.Commands.Add(GsxMenuCommand.Disable());
             sequence.Commands.Add(GsxMenuCommand.Wait());
             sequence.Commands.Add(GsxMenuCommand.Open());
             if (PushStatus == 8)
@@ -150,7 +153,7 @@ namespace Any2GSX.GSX.Services
             else
                 sequence.Commands.Add(GsxMenuCommand.Select(1, GsxConstants.MenuPushbackInterrupt));
             sequence.Commands.Add(GsxMenuCommand.Wait());
-            sequence.Commands.Add(GsxMenuCommand.State(GsxMenuState.HIDE));
+            sequence.Commands.Add(GsxMenuCommand.Disable());
             sequence.EnableMenuCheck = () => false;
             sequence.ResetMenuCheck = () => false;
 

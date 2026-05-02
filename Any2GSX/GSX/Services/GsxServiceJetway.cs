@@ -46,9 +46,9 @@ namespace Any2GSX.GSX.Services
             SubOperating?.OnReceived += OnOperationChange;
         }
 
-        protected override void DoReset()
+        protected override Task DoReset()
         {
-
+            return Task.CompletedTask;
         }
 
         public override void FreeResources()

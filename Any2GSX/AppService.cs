@@ -449,6 +449,7 @@ namespace Any2GSX
                     Sys.StartProcess(Path.Join(dir, $"{App.Config.BinaryGsx2024}.exe"), dir);
                 }
 
+                await GsxController.ServiceStairs.ResetVehicleState();
                 Logger.Debug($"Wait for Binary Start ({Config.DelayGsxBinaryStart}ms) ...");
                 await Task.Delay(Config.DelayGsxBinaryStart, Token);
 

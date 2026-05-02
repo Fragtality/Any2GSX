@@ -57,10 +57,11 @@
     public enum GsxMenuCommandType
     {
         Open = 0,
-        State = 1,
-        Select = 2,
-        Wait = 3,
-        Operator = 4,
+        Select = 1,
+        Wait = 2,
+        Operator = 3,
+        Close = 4,
+        Disable = 5,
     }
 
     public enum GsxServiceType

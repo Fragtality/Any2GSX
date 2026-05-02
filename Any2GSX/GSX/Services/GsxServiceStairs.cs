@@ -69,9 +69,10 @@ namespace Any2GSX.GSX.Services
             SubVehicleStairs[GsxVehicleStair.Rear]?.OnReceived += SubVehicleCallbacks[GsxVehicleStair.Rear];
         }
 
-        protected override void DoReset()
+        protected override Task DoReset()
         {
             OverrideActive = false;
+            return ResetVehicleState();
         }
 
         public override void FreeResources()
@@ -197,6 +198,19 @@ namespace Any2GSX.GSX.Services
         public virtual bool StairsExtending()
         {
             return AllStairs((state) => state == GsxVehicleStairState.Extending || state == GsxVehicleStairState.Completing || state == GsxVehicleStairState.InPosition);
+        }
+
+        public virtual async Task ResetVehicleState()
+        {
+            OverrideActive = true;
+            try
+            {
+                await SubVehicleStairs[GsxVehicleStair.Front]?.WriteValue(1);
+                await SubVehicleStairs[GsxVehicleStair.Middle]?.WriteValue(1);
+                await SubVehicleStairs[GsxVehicleStair.Rear]?.WriteValue(1);
+            }
+            catch { }
+            OverrideActive = false;
         }
     }
 }

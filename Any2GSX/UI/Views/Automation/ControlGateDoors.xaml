@@ -122,7 +122,7 @@
                 </Grid.RowDefinitions>
 
                 <CheckBox Grid.Column="0" Grid.Row="0" IsChecked="{Binding CallJetwayStairsInWalkaround}" Margin="6,6,6,9" Style="{StaticResource CheckBoxSettingItem}"
-                    ToolTip="When the Walkaround is not skipped by the App, it will already call Reposition and GSX Stairs (if available).&#x0a;If supported by the Plugin, the Aircrafts own Stairs (or other Equipment) is also called/placed.">
+                    ToolTip="When the Walkaround is not skipped by the App, it will already call Reposition and GSX Stairs (if available).&#x0a;If supported by the Plugin, the Aircrafts own Stairs (or other Equipment) is also called/placed.&#x0a;NOTE: When the Aircraft Plugin reports refueling on the Port/Left Side, the Stairs are not connected.">
                     <TextBlock>Connect <Underline>Stairs</Underline> (and Reposition) while in <Underline>Walkaround</Underline> Mode (not skipped)</TextBlock>
                 </CheckBox>
 

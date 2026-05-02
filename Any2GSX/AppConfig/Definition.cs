@@ -6,7 +6,7 @@ namespace Any2GSX.AppConfig
 {
     public class Definition : ProductDefinitionBase, IProductDefinition
     {
-        public override int BuildConfigVersion { get; } = 19;
+        public override int BuildConfigVersion { get; } = 20;
         public override string ProductName => "Any2GSX";
         public override string ProductExePath => Path.Join(Path.Join(ProductPath, "bin"), ProductExe);
         public virtual string RepoPlugins => $"{ProductName}-Plugins";

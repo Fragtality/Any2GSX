@@ -79,6 +79,8 @@ namespace Any2GSX.Plugins
                         profile.SetPropertyValue<SortedDictionary<int, ServiceConfig>>(property.Name, property.Value.Deserialize<SortedDictionary<int, ServiceConfig>>());
                     else if (property.Name == "ProfileMatches")
                         profile.SetPropertyValue<List<ProfileMatching>>(property.Name, property.Value.Deserialize<List<ProfileMatching>>());
+                    else if (property.Name == "PluginSettings")
+                        profile.SetPropertyValue<Dictionary<string, object>>(property.Name, property.Value.Deserialize<Dictionary<string, object>>());
                     else
                         profile.SetPropertyValue<object>(property.Name, property.Value);
 

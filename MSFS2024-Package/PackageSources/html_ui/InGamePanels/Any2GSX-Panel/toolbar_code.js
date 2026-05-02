@@ -142,8 +142,12 @@
 					else if (request.type == RequestTypeRelay && !isMsfs2024) {
 						CommBusCallback(request.event, request.data);
 					}
-					else if (request.type == RequestTypeGsxMenu && request.data == "Open") {
-						Coherent.call("TOOLBAR_BUTTON_TOGGLE", "PANEL_FSDT_GSX_PANEL", true);
+					else if (request.type == RequestTypeGsxMenu) {
+						if (request.data == "Open") {
+							Coherent.call("TOOLBAR_BUTTON_TOGGLE", "PANEL_FSDT_GSX_PANEL", true);
+						} else if (request.data == "Close") {
+							Coherent.call("TOOLBAR_BUTTON_TOGGLE", "PANEL_FSDT_GSX_PANEL", false);
+						}
 					}
 					else if (request.type == RequestTypeEfb && isMsfs2024) {
 

@@ -90,7 +90,8 @@ namespace Any2GSX.AppConfig
         public virtual bool DebugArrival { get; set; } = false;
         public virtual int StateMachineInterval { get; set; } = 500;
         public virtual int DelayServiceStateChange { get; set; } = 750;
-        public virtual bool DisableUserEnabledMenu { get; set; } = false;
+        public virtual bool GsxToolbarFixes { get; set; } = true;
+        public virtual bool GsxMenuTimeoutFix { get; set; } = true;
         public virtual int SpeedTresholdTaxiOut { get; set; } = 2;
         public virtual int SpeedTresholdTaxiIn { get; set; } = 30;
         public virtual int DelayOpenTaxiInMenu { get; set; } = 15;

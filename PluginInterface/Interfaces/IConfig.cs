@@ -35,7 +35,6 @@ namespace Any2GSX.PluginInterface.Interfaces
         public bool DebugArrival { get; }
         public int StateMachineInterval { get; }
         public int DelayServiceStateChange { get; }
-        public bool DisableUserEnabledMenu { get; }
         public int SpeedTresholdTaxiOut { get; }
         public int SpeedTresholdTaxiIn { get; }
         public int DelayOpenTaxiInMenu { get; }

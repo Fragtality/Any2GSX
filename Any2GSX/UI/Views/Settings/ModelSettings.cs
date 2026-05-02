@@ -73,7 +73,6 @@ namespace Any2GSX.UI.Views.Settings
         public virtual DisplayUnitSource DisplayUnitSource { get => Source.DisplayUnitSource; set { SetModelValue<DisplayUnitSource>(value); Config.EvaluateDisplayUnit(); } }
 
         //GSX Settings
-        public virtual bool DisableUserEnabledMenu { get => Source.DisableUserEnabledMenu; set => SetModelValue<bool>(value); }
         public virtual bool RestartGsxOnTaxiIn { get => Source.RestartGsxOnTaxiIn; set => SetModelValue<bool>(value); }
         public virtual bool RestartGsxStartupFail { get => Source.RestartGsxStartupFail; set => SetModelValue<bool>(value); }
         public virtual int GsxMenuStartupMaxFail { get => Source.GsxMenuStartupMaxFail; set => SetModelValue<int>(value); }

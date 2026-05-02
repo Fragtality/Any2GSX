@@ -19,11 +19,6 @@ namespace Any2GSX.PluginInterface.Interfaces
             return new GsxMenuCommand(0, GsxMenuCommandType.Open, "", true);
         }
 
-        public static GsxMenuCommand State(GsxMenuState state, string title = "")
-        {
-            return new GsxMenuCommand((int)state, GsxMenuCommandType.State, title, false);
-        }
-
         public static GsxMenuCommand Select(int line, string title = "", string[] textSelect = null, bool waitRdy = true)
         {
             return new GsxMenuCommand(line, GsxMenuCommandType.Select, title, waitRdy, textSelect);
@@ -37,6 +32,16 @@ namespace Any2GSX.PluginInterface.Interfaces
         public static GsxMenuCommand Operator(bool handling = true)
         {
             return new GsxMenuCommand(handling ? 1 : 0, GsxMenuCommandType.Operator, "", true);
+        }
+
+        public static GsxMenuCommand Close(string title = "", bool waitRdy = false)
+        {
+            return new GsxMenuCommand(0, GsxMenuCommandType.Close, title, waitRdy);
+        }
+
+        public static GsxMenuCommand Disable(string title = "", bool waitRdy = false)
+        {
+            return new GsxMenuCommand(0, GsxMenuCommandType.Disable, title, waitRdy);
         }
     }
 }

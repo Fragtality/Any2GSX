@@ -130,7 +130,7 @@ namespace Any2GSX.GSX.Services
             return Task.CompletedTask;
         }
 
-        public virtual void ResetState(bool resetVariable = false)
+        public virtual async Task ResetState(bool resetVariable = false)
         {
             IsCalled = false;
             IsSkipped = false;
@@ -141,11 +141,11 @@ namespace Any2GSX.GSX.Services
             StateOverride = GsxServiceState.Unknown;
             CallSequence.Reset();
             if (resetVariable)
-                SetStateVariable(GsxServiceState.Callable);
-            DoReset();
+                await SetStateVariable(GsxServiceState.Callable);
+            await DoReset();
         }
 
-        protected abstract void DoReset();
+        protected abstract Task DoReset();
 
         public abstract void FreeResources();
 
@@ -187,10 +187,10 @@ namespace Any2GSX.GSX.Services
             }
         }
 
-        protected virtual void SetStateVariable(GsxServiceState state)
+        protected virtual Task SetStateVariable(GsxServiceState state)
         {
             Logger.Debug($"Resetting State L-Var for Service {Type} to '{state}'");
-            SubStateVar.WriteValue((int)state);
+            return SubStateVar.WriteValue((int)state);
         }
 
         protected virtual bool CheckCalled()
@@ -236,7 +236,7 @@ namespace Any2GSX.GSX.Services
             sequence.Commands.Add(GsxMenuCommand.Wait());
             sequence.Commands.Add(GsxMenuCommand.Select(1, GsxConstants.MenuCancelService, [line]));
             sequence.Commands.Add(GsxMenuCommand.Wait());
-            sequence.Commands.Add(GsxMenuCommand.State(GsxMenuState.HIDE));
+            sequence.Commands.Add(GsxMenuCommand.Disable());
             sequence.EnableMenuCheck = () => false;
             sequence.EnableMenuAfterResetCheck = () => false;
 

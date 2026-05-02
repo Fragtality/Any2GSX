@@ -1,6 +1,7 @@
 ﻿using Any2GSX.GSX.Menu;
 using Any2GSX.PluginInterface.Interfaces;
 using CFIT.SimConnectLib.SimResources;
+using System.Threading.Tasks;
 
 namespace Any2GSX.GSX.Services
 {
@@ -40,9 +41,9 @@ namespace Any2GSX.GSX.Services
             SubWaterService?.OnReceived += OnStateChange;
         }
 
-        protected override void DoReset()
+        protected override Task DoReset()
         {
-
+            return Task.CompletedTask;
         }
 
         public override void FreeResources()

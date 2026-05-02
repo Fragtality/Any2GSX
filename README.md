@@ -136,7 +136,8 @@ As the Name suggests it provides the App Access to Simulator's CommBus API provi
 ### 2.2 - GSX Pro
 
 - It is recommended (but not required) to enter your **SimBrief Username** and have **Ignore Time** checked to have correct Information on the VDGS Displays.
-- For **Automated staircases** semi-automatic (half-checked) is recommended - it should work with all Modes, but is designed around the semi-automatic Mode.
+- Set **Automated staircases** to semi-automatic (half-checked) - eventually it works with all Modes, but the App is designed around the semi-automatic Mode.
+- Disable **Automated reposition** in GSX -or- disable it in the App! Both are enabled by Default. It is recommended to let the App do the Repositioning.
 - It is **not recommended** to use the **Always ask for pushback** Option - use Any2GSX to Answer the Question with Yes, No (default) or answer it manually
 - The De-/Boarding Speed of Passengers is dependent on the Passenger Density Setting (GSX In-Game Menu -> GSX Settings -> Timings). Higher Density => faster De/Boarding (But "Extreme" can be to extreme in some Cases).
 - Ensure the other two Settings under Timings are on their Default (15s, 1x).

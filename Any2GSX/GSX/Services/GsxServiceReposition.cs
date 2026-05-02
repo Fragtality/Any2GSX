@@ -47,9 +47,11 @@ namespace Any2GSX.GSX.Services
             return Task.CompletedTask;
         }
 
-        protected override void DoReset()
+        protected override Task DoReset()
         {
             WasRepoReceived = false;
+
+            return Task.CompletedTask;
         }
 
         public override void FreeResources()
@@ -78,9 +80,9 @@ namespace Any2GSX.GSX.Services
             return IsCalled;
         }
 
-        protected override void SetStateVariable(GsxServiceState state)
+        protected override Task SetStateVariable(GsxServiceState state)
         {
-
+            return Task.CompletedTask;
         }
     }
 }
