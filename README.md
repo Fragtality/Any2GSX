@@ -627,14 +627,6 @@ Since Fenix has its own native GSX 'Integration' and Volume Control there are mu
 - Check/Restore the Fenix EFB GSX Settings to your Preference - but do *not* enable Auto Jetway Simulation.
 - Only start loading the Aircraft in the EFB when being in the Departure Phase (Avionic Powered + External Power connected + Nav Lights on)
 
-<br/>
-
-**Any2GSX only for PilotsDeck Integration**
-
-- Install the 'Fenix - PilotsDeck only' Profile in the Plugins View from the [Plugin-Repository](https://github.com/Fragtality/Any2GSX-Plugins)
-
-
-
 <br/><br/><br/>
 
 ## 5 - NOTAMs (Usage Tips)
