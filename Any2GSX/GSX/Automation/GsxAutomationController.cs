@@ -856,7 +856,7 @@ namespace Any2GSX.GSX.Automation
 
             //Skip Departure on BoardingCompleted
             bool skip = false;
-            if (!DepartureQueue.ServicesCompleted && IsBoardingCompleted && ServiceRefuel.State != GsxServiceState.Completed && ServiceBoard.State != GsxServiceState.Completed && State == AutomationState.Departure)
+            if (!DepartureQueue.ServicesCompleted && IsBoardingCompleted && !ServiceRefuel.IsRunning && !ServiceBoard.IsRunning && State == AutomationState.Departure)
             {
                 Logger.Information($"Automation: Skip Departure Services - Plane already boarded");
                 DepartureQueue.FinishServices();
