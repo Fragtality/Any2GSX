@@ -263,11 +263,13 @@ namespace Any2GSX.GSX.Automation
 
             var activation = NextConfig.ServiceActivation;
 
-            return ((IsFirst && activation != GsxServiceActivation.Skip) || activation == GsxServiceActivation.AfterCalled
-                || (activation == GsxServiceActivation.AfterRequested && LastCalled?.Service?.State >= GsxServiceState.Requested)
-                || (activation == GsxServiceActivation.AfterActive && LastCalled?.Service?.State >= GsxServiceState.Active)
-                || (activation == GsxServiceActivation.AfterPrevCompleted && LastCalled?.Service?.IsCompleted == true)
-                || (activation == GsxServiceActivation.AfterAllCompleted && AllCalledCompleted()))
+            return activation != GsxServiceActivation.Skip && activation != GsxServiceActivation.Manual &&
+                (IsFirst
+                    || activation == GsxServiceActivation.AfterCalled
+                    || (activation == GsxServiceActivation.AfterRequested && LastCalled?.Service?.State >= GsxServiceState.Requested)
+                    || (activation == GsxServiceActivation.AfterActive && LastCalled?.Service?.State >= GsxServiceState.Active)
+                    || (activation == GsxServiceActivation.AfterPrevCompleted && LastCalled?.Service?.IsCompleted == true)
+                    || (activation == GsxServiceActivation.AfterAllCompleted && AllCalledCompleted()))
                 && (!NextConfig.HasTobtConstraint || NextConfig.MaxTimeBeforeDeparture >= Flightplan.ScheduledOutTime - GsxController.GetTime())
                 && (!NextConfig.HasCallDelay || LastCallTime + NextConfig.CallDelay <= DateTime.Now);
         }
