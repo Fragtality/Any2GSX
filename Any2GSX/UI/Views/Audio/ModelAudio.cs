@@ -1,4 +1,5 @@
-﻿using Any2GSX.AppConfig;
+﻿using Any2GSX.Aircraft;
+using Any2GSX.AppConfig;
 using Any2GSX.Audio;
 using CFIT.AppLogger;
 using CFIT.AppTools;
@@ -17,8 +18,11 @@ namespace Any2GSX.UI.Views.Audio
 {
     public partial class ModelAudio : ModelBase<SettingProfile>
     {
-        public ICommand CommandDebugInfo { get; } = new RelayCommand(() => AppService.Instance.AudioController.DeviceManager.WriteDebugInformation());
+        public ICommand CommandDebugInfo { get; } = new RelayCommand(AppService.Instance.AudioController.DeviceManager.WriteDebugInformation);
         public override SettingProfile Source => AppService.Instance?.SettingProfile;
+        public virtual string ChannelFileId => AppService.Instance?.SettingProfile?.ChannelFileId ?? SettingProfile.GenericId;
+        public virtual AircraftChannels AircraftChannels => AppService.Instance?.PluginController?.Channels?.GetValueOrDefault(ChannelFileId) ?? null;
+        public virtual ChannelDefinition CurrentDefinition => AircraftChannels?.GetDefinition(CurrentChannel);
         public virtual Visibility ChannelVisibility => string.IsNullOrWhiteSpace(AppService.Instance?.SettingProfile?.ChannelFileId) || AppService.Instance?.SettingProfile?.ChannelFileId == SettingProfile.GenericId ? Visibility.Collapsed : Visibility.Visible;
 
         public ModelAudio(AppService appService) : base(appService.SettingProfile, appService)
@@ -200,12 +204,18 @@ namespace Any2GSX.UI.Views.Audio
 
         public virtual double StartupVolume
         {
-            get => Source?.AudioStartupVolumes != null && CurrentChannel != null && Source.AudioStartupVolumes.TryGetValue(CurrentChannel, out double vol) ? vol : 0.0;
+            get
+            {
+                if (Source?.AudioStartupVolumes != null && CurrentChannel != null && CurrentDefinition != null && Source.AudioStartupVolumes.TryGetValue(CurrentChannel, out double vol))
+                    return (vol / CurrentDefinition.MaxValue) * 100.0;
+                else
+                    return 0.0;
+            }
             set
             {
-                if (Source?.AudioStartupVolumes != null && CurrentChannel != null)
+                if (Source?.AudioStartupVolumes != null && CurrentChannel != null && CurrentDefinition != null)
                 {
-                    Source.AudioStartupVolumes.AddOrUpdate(CurrentChannel, value);
+                    Source.AudioStartupVolumes.AddOrUpdate(CurrentChannel, (value / 100.0) * CurrentDefinition.MaxValue);
                     Config.SaveConfiguration();
                     OnPropertyChanged(nameof(StartupVolume));
                 }

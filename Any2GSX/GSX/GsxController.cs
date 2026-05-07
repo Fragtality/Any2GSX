@@ -635,9 +635,9 @@ namespace Any2GSX.GSX
                     SimStore[GsxConstants.VarSetAutoMode]?.WriteValue(acPref ? 1 : -1);
                 }
 
-                gsxMode = SimStore[GsxConstants.VarReadProgFuel]?.GetNumber() > 0 || SimStore[GsxConstants.VarSetProgFuel]?.GetNumber() >= 0;
+                var setProgFuel = SimStore[GsxConstants.VarSetProgFuel]?.GetNumber();
                 acPref = await Aircraft.GetSettingProgRefuel();
-                if (gsxMode != acPref)
+                if (setProgFuel == 0 || (acPref && setProgFuel < 0) || (!acPref && setProgFuel >= 0))
                 {
                     Logger.Debug($"Set GSX Setting ProgRefuel to '{acPref}'");
                     SimStore[GsxConstants.VarSetProgFuel]?.WriteValue(acPref ? 1 : -1);

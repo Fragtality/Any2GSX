@@ -3,6 +3,7 @@ using CFIT.AppLogger;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -20,6 +21,18 @@ namespace Any2GSX.Aircraft
         public virtual bool HasUpdateAvail { get; set; } = false;
         public virtual Version VersionApp { get; set; }
         public virtual List<ChannelDefinition> ChannelDefinitions { get; set; } = [];
+
+        public virtual ChannelDefinition GetDefinition(string id)
+        {
+            try
+            {
+                return ChannelDefinitions?.FirstOrDefault(c => c.Name == id);
+            }
+            catch
+            {
+                return null;
+            }
+        }
 
         public static AircraftChannels LoadChannelFile(string id)
         {

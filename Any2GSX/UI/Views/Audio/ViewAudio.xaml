@@ -53,6 +53,7 @@
                         Set Volume Knob on Startup to
                     </CheckBox>
                     <TextBox Name="InputStartupVolume" IsEnabled="{Binding SetStartupVolume}" Margin="8,0,0,0" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">%</TextBlock>
                 </StackPanel>
 
                 <CheckBox IsChecked="{Binding StartupUnmute}" Grid.Column="0" Grid.Row="2" Style="{StaticResource CheckBoxSettingItem}"

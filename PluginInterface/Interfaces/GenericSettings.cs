@@ -48,6 +48,7 @@ namespace Any2GSX.PluginInterface.Interfaces
         public const string OptionAircraftFuelDialog = "Generic.Option.Aircraft.FuelDialog";
         public const string OptionAircraftInitDelay = "Generic.Option.Aircraft.InitDelay";
         public const string OptionAircraftGsxGpu = "Generic.Option.Aircraft.GsxGpu";
+        public const string OptionAircraftGsxProgFuel = "Generic.Option.Aircraft.GsxProgFuel";
 
         public static List<PluginSetting> GetGenericSettings()
         {
@@ -173,6 +174,17 @@ namespace Any2GSX.PluginInterface.Interfaces
                 DefaultValue = false,
                 Description = "Aircraft: Uses Refuel Dialog",
                 Tooltip = "When enabled, the App will automatically wait for and the Refuel Level Dialog and automatically select the Simbrief Fuel.\nThis Option is needed for (GSX) Aircraft Profiles with the Option 'Default Fuel System' checked (i.e. some iniBuilds Aircrafts)"
+            };
+            list.Add(setting);
+
+            //GSX Progressive Fuel
+            setting = new PluginSetting()
+            {
+                Key = OptionAircraftGsxProgFuel,
+                Type = PluginSettingType.Bool,
+                DefaultValue = false,
+                Description = "GSX: Progressive Fuel Option",
+                Tooltip = "The State/Value to set for GSX' Progressive Fuel Option (GSX Settings).\nThis Setting should be OFF, if the Aircraft is refueling progressively (steadily increasing/decreasing FOB)."
             };
             list.Add(setting);
 

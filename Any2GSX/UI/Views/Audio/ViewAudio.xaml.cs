@@ -1,4 +1,5 @@
 ﻿using Any2GSX.Audio;
+using CFIT.AppFramework.UI.Validations;
 using CFIT.AppFramework.UI.ViewModels;
 using CFIT.AppLogger;
 using CFIT.AppTools;
@@ -29,7 +30,7 @@ namespace Any2GSX.UI.Views.Audio
 
             ViewModelChannels = new(SelectorCurrentChannel, ViewModel.ChannelCollection, AppWindow.IconLoader);
 
-            ViewModel.BindStringNumber(nameof(ViewModel.StartupVolume), InputStartupVolume, "0");
+            ViewModel.BindStringNumber(nameof(ViewModel.StartupVolume), InputStartupVolume, "0", new ValidationRuleRange<double>(0.0, 100.0));
 
             ViewModelMappings = new(GridAudioMappings, ViewModel.AppMappingCollection, AppWindow.IconLoader);
             ButtonAddMapping.Command = ViewModelMappings.BindAddUpdateButton(ButtonAddMapping, ImageAddMapping, GetMappingItem);

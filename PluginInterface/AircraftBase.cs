@@ -411,7 +411,10 @@ namespace Any2GSX.PluginInterface
 
         public virtual Task<bool> GetSettingProgRefuel()
         {
-            return Task.FromResult(false);
+            if (ISettingProfile.HasSetting<bool>(GenericSettings.OptionAircraftGsxProgFuel, out bool value))
+                return Task.FromResult(value);
+            else
+                return Task.FromResult(false);
         }
 
         public virtual Task<bool> GetSettingDetectCustFuel()
