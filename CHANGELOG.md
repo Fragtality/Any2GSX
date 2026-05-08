@@ -1,6 +1,12 @@
 # Changelog
 
 
+## v0.4.4
+
+### App
+- Added Option (App Setting) to enable/disable opening the Menu on Taxi-In
+
+<br/><br/>
 ## v0.4.3
 
 ### App
