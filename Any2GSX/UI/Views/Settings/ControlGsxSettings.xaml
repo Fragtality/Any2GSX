@@ -92,7 +92,8 @@
                 </TextBlock>
                 <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Horizontal" Style="{StaticResource SettingItemPanel}"
                             ToolTip="Open the GSX Menu when the App switched to its Taxi-In Phase after the configured Amount of Seconds.">
-                    <TextBlock Margin="0,0,4,0" Style="{StaticResource TextBlockDefault}">After</TextBlock>
+                    <CheckBox IsChecked="{Binding OpenMenuOnTaxiIn}" Style="{StaticResource CheckBoxSettingItem}"/>
+                    <TextBlock Margin="6,0,4,0" Style="{StaticResource TextBlockDefault}">Delay</TextBlock>
                     <TextBox Name="InputDelayOpenMenuTaxiIn" Style="{StaticResource TextBoxCentered}"/>
                     <TextBlock Margin="2,0,0,0" Style="{StaticResource TextBlockDefault}">s</TextBlock>
                 </StackPanel>

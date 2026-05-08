@@ -94,6 +94,7 @@ namespace Any2GSX.AppConfig
         public virtual bool GsxMenuTimeoutFix { get; set; } = true;
         public virtual int SpeedTresholdTaxiOut { get; set; } = 2;
         public virtual int SpeedTresholdTaxiIn { get; set; } = 30;
+        public virtual bool OpenMenuOnTaxiIn { get; set; } = true;
         public virtual int DelayOpenTaxiInMenu { get; set; } = 15;
         public virtual int RefuelDisconnectTimeout { get; set; } = 30000;
         public virtual int CargoPercentChangePerSec { get; set; } = 5;

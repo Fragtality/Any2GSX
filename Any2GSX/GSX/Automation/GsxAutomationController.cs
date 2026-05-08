@@ -444,7 +444,7 @@ namespace Any2GSX.GSX.Automation
                             await AppService.Instance.RestartGsx();
                         }
 
-                        if (Config.DelayOpenTaxiInMenu > 0 && Menu.MenuCommandsAllowed && !Tracker.HasCapture)
+                        if (Config.OpenMenuOnTaxiIn && Config.DelayOpenTaxiInMenu > 0 && !Tracker.HasCapture)
                         {
                             Logger.Information($"Automation: Open Menu in {Config.DelayOpenTaxiInMenu}s for Gate Selection ...");
                             NotificationManager.MenuOpenDelayed = DateTime.Now + TimeSpan.FromSeconds(Config.DelayOpenTaxiInMenu);

@@ -37,6 +37,7 @@ namespace Any2GSX.PluginInterface.Interfaces
         public int DelayServiceStateChange { get; }
         public int SpeedTresholdTaxiOut { get; }
         public int SpeedTresholdTaxiIn { get; }
+        public bool OpenMenuOnTaxiIn { get; }
         public int DelayOpenTaxiInMenu { get; }
         public Dictionary<string, double> FuelFobSaved { get; }
         public double FuelResetPercent { get; }

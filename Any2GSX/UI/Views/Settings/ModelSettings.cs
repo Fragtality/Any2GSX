@@ -78,6 +78,7 @@ namespace Any2GSX.UI.Views.Settings
         public virtual int GsxMenuStartupMaxFail { get => Source.GsxMenuStartupMaxFail; set => SetModelValue<int>(value); }
         public virtual int SpeedTresholdTaxiIn { get => Source.SpeedTresholdTaxiIn; set => SetModelValue<int>(value); }
 
+        public virtual bool OpenMenuOnTaxiIn { get => Source.OpenMenuOnTaxiIn; set => SetModelValue<bool>(value); }
         public virtual int DelayOpenTaxiInMenu { get => Source.DelayOpenTaxiInMenu; set => SetModelValue<int>(value); }
         public virtual int PanelRefuelOpenDelayUnderground { get => Source.PanelRefuelOpenDelayUnderground; set => SetModelValue<int>(value); }
         public virtual int PanelRefuelCloseDelayUnderground { get => Source.PanelRefuelCloseDelayUnderground; set => SetModelValue<int>(value); }
