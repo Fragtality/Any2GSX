@@ -199,24 +199,24 @@ namespace Any2GSX.Plugins
             if (manifest == null || entryManifest == null)
             {
                 Logger.Error("Manifest not found!");
-                MessageBox.Show(Any2GSX.Instance.AppWindow, "Manifest not found!", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Manifest not found!", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             if (string.IsNullOrWhiteSpace(manifest.Id))
             {
                 Logger.Error("PluginID is empty!");
-                MessageBox.Show(Any2GSX.Instance.AppWindow, "PluginID is empty!", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("PluginID is empty!", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             if (manifest.VersionApp > Version.Parse(Config.Definition.ProductVersion.ToString(3)))
             {
                 Logger.Error($"Plugin '{manifest}' requires Any2GSX Version '{manifest.VersionApp}'");
-                MessageBox.Show(Any2GSX.Instance.AppWindow, $"Plugin '{manifest}' requires Any2GSX Version '{manifest.VersionApp}'", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Plugin '{manifest}' requires Any2GSX Version '{manifest.VersionApp}'", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             if (AppService.Instance.PluginController.LoadedPluginsBinary.Contains(manifest.Id))
             {
-                MessageBox.Show(Any2GSX.Instance.AppWindow, $"The Plugin DLL is already loaded!\r\nPlease close Any2GSX and install/update the Plugin before it was loaded.", "Already loaded", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"The Plugin DLL is already loaded!\r\nPlease close Any2GSX and install/update the Plugin before it was loaded.", "Already loaded", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
@@ -247,7 +247,7 @@ namespace Any2GSX.Plugins
             if (entryPluginFile == null)
             {
                 Logger.Error("Plugin File not found!");
-                MessageBox.Show(Any2GSX.Instance.AppWindow, "Plugin File not found!", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Plugin File not found!", "Installation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
@@ -276,7 +276,7 @@ namespace Any2GSX.Plugins
             if (hasAircraftProfiles && foundProfiles == manifest.AircraftProfileEntries?.Count)
             {
                 Logger.Debug($"Installing Aircraft Profiles ...");
-                if (Config.AutoInstallGsxProfiles || MessageBox.Show(Any2GSX.Instance.AppWindow, $"The Plugin {manifest.Id} wants to install GSX Aircraft Profile(s) for:\r\n- {string.Join("\r\n- ", manifest.AircraftProfileEntries)}\r\nAny existing Profiles will be overwritten.\r\nDo you want to install these Profile(s)?", "Install GSX Aircraft Profile", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                if (Config.AutoInstallGsxProfiles || MessageBox.Show($"The Plugin {manifest.Id} wants to install GSX Aircraft Profile(s) for:\r\n- {string.Join("\r\n- ", manifest.AircraftProfileEntries)}\r\nAny existing Profiles will be overwritten.\r\nDo you want to install these Profile(s)?", "Install GSX Aircraft Profile", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
                 {
                     foreach (var profile in manifest.AircraftProfileEntries)
                     {

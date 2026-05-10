@@ -88,7 +88,7 @@ namespace Any2GSX.UI.Views
 
             if (IsSessionRunning)
             {
-                var result = MessageBox.Show(Any2GSX.Instance.AppWindow, "The Simulator is already running and an Aircraft Profile & Plugin have been loaded!\nLoading a Profile manually during an active Session is not recommended - in normal Usage.\n\nStill Switch the Profile now?", "Session active!", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+                var result = MessageBox.Show("The Simulator is already running and an Aircraft Profile & Plugin have been loaded!\nLoading a Profile manually during an active Session is not recommended - in normal Usage.\n\nStill Switch the Profile now?", "Session active!", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
                 if (result == MessageBoxResult.No)
                     return;
             }

@@ -74,7 +74,7 @@ namespace Any2GSX.UI.Views.Profiles
 
             ViewProfileSelector.BindRemoveButton(ButtonRemoveProfile, () => ViewModel.IsEditAllowed).Executed += () => ViewModel.OnProfileRemoved();
             ViewProfileSelector.AskConfirmation = true;
-            ViewProfileSelector.ConfirmationFunc = () => MessageBox.Show(Any2GSX.Instance.AppWindow, "Delete the selected Profile?", "Delete Profile", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+            ViewProfileSelector.ConfirmationFunc = () => MessageBox.Show("Delete the selected Profile?", "Delete Profile", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
         }
 
         protected virtual void OnAddExecuted()

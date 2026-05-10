@@ -302,7 +302,7 @@ namespace Any2GSX
 
                 if (string.IsNullOrWhiteSpace(Config?.SimbriefUser))
                 {
-                    MessageBox.Show(Any2GSX.Instance.AppWindow, "SimBrief User is not set!\r\nConfigure your User Name or ID in the App Settings.", "SimBrief User", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("SimBrief User is not set!\r\nConfigure your User Name or ID in the App Settings.", "SimBrief User", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
 
                 Logger.Debug($"Refresh Token");

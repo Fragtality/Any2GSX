@@ -149,7 +149,7 @@ namespace Any2GSX.Plugins
 
                 if (LoadedAssemblies.ContainsKey(manifest.Id))
                 {
-                    MessageBox.Show(Any2GSX.Instance.AppWindow, $"The Plugin {manifest.Id} was already loaded by Any2GSX!\r\nRestart the Application (preferably without the Sim running) and try again!", "Plugin already loaded", MessageBoxButton.OK, MessageBoxImage.Stop);
+                    MessageBox.Show($"The Plugin {manifest.Id} was already loaded by Any2GSX!\r\nRestart the Application (preferably without the Sim running) and try again!", "Plugin already loaded", MessageBoxButton.OK, MessageBoxImage.Stop);
                     return false;
                 }
 

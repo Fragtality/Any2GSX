@@ -264,7 +264,7 @@ namespace Any2GSX.AppConfig
             if (query.Any())
             {
                 Logger.Debug($"The Profile '{profile.Name}' is already configured");
-                if (MessageBox.Show(Any2GSX.Instance.AppWindow, $"The Profile '{profile.Name}' is already configured.\r\nDo you want to override it?", "Profile already exists", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                if (MessageBox.Show($"The Profile '{profile.Name}' is already configured.\r\nDo you want to override it?", "Profile already exists", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                     return result;
                 else
                 {
