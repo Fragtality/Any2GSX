@@ -164,25 +164,6 @@ namespace Any2GSX.AppConfig
 
         protected override void UpdateConfiguration(int buildConfigVersion)
         {
-            if (ConfigVersion < 2 && buildConfigVersion >= 2)
-            {
-                foreach (var profile in SettingProfiles)
-                {
-                    if (profile.MatchType == ProfileMatchType.Default)
-                        profile.IsReadOnly = true;
-                    else if (profile.MatchType == ProfileMatchType.Airline)
-                        profile.ProfileMatches.Add(new(MatchData.Airline, MatchOperation.StartsWith, profile.MatchString));
-                    else if (profile.MatchType == ProfileMatchType.Title)
-                        profile.ProfileMatches.Add(new(MatchData.Title, MatchOperation.Contains, profile.MatchString));
-                    else if (profile.MatchType == ProfileMatchType.AtcId)
-                        profile.ProfileMatches.Add(new(MatchData.AtcId, MatchOperation.Equals, profile.MatchString));
-                    else if (profile.MatchType == ProfileMatchType.AircraftString)
-                        profile.ProfileMatches.Add(new(MatchData.SimObject, MatchOperation.Contains, profile.MatchString));
-                    profile.MatchType = null;
-                    profile.MatchString = null;
-                }
-            }
-
             if (ConfigVersion < 6 && buildConfigVersion >= 6)
             {
                 GsxMenuStartupMaxFail = 4;

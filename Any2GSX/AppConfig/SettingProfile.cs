@@ -27,11 +27,6 @@ namespace Any2GSX.AppConfig
         public virtual string ChannelFileId { get; set; } = GenericId;
         public virtual bool IsReadOnly { get; set; } = false;
         public virtual List<ProfileMatching> ProfileMatches { get; set; } = [];
-        //Legacy
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public virtual ProfileMatchType? MatchType { get; set; } = null;
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public virtual string MatchString { get; set; } = null;
 
         public virtual void Copy(SettingProfile profile)
         {

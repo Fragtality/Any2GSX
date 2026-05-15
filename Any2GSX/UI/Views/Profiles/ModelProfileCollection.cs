@@ -43,6 +43,7 @@ namespace Any2GSX.UI.Views.Profiles
                     }
                     else if (!Source.Where(p => p.Name.Equals(newItem.Name, StringComparison.InvariantCultureIgnoreCase)).Any())
                     {
+                        newItem.ProfileMatches.AddRange([.. oldItem.ProfileMatches]);
                         AppService.Instance.UpdateSettingProfile(oldItem, newItem);
                         return true;
                     }

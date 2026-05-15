@@ -19,16 +19,6 @@ namespace Any2GSX.AppConfig
         Contains = 3,
     }
 
-    //Legacy
-    public enum ProfileMatchType
-    {
-        Default = 0,
-        Airline = 1,
-        Title = 2,
-        AtcId = 3,
-        AircraftString = 4,
-    }
-
     public class ProfileMatching
     {
         public MatchData MatchData { get; set; } = MatchData.SimObject;
