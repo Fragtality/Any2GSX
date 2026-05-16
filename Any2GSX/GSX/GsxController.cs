@@ -301,6 +301,7 @@ namespace Any2GSX.GSX
                     {
                         Logger.Debug($"Couatl Variables NOT valid! (started: {CouatlLastStarted} / progress: {CouatlLastProgress})");
                         CouatlVarsValid = false;
+                        _ = TaskTools.RunPool(() => ServiceStairs.ResetVehicleState());
                         _ = TaskTools.RunPool(() => OnCouatlStopped?.Invoke(this));
                     }
                     else

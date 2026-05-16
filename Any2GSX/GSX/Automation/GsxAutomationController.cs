@@ -994,7 +994,7 @@ namespace Any2GSX.GSX.Automation
             }
             await ServiceStairs.Cancel(GsxCancelService.Abort);
             await Task.Delay(Config.MenuOpenTimeout, RequestToken);
-            return !ServiceStairs.IsOperating || ServiceStairs.IsAnyStair((state) => state == GsxVehicleStairState.Idle);
+            return !ServiceStairs.IsOperating || ServiceStairs.AllStairs((state) => state <= GsxVehicleStairState.Idle);
         }
 
         protected virtual async Task<bool> ConnectStairsAndFuel()

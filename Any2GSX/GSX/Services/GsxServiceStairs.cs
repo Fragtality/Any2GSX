@@ -197,7 +197,7 @@ namespace Any2GSX.GSX.Services
 
         public virtual bool StairsExtending()
         {
-            return AllStairs((state) => state == GsxVehicleStairState.Extending || state == GsxVehicleStairState.Completing || state == GsxVehicleStairState.InPosition);
+            return AllStairs((state) => state == GsxVehicleStairState.Extending || state == GsxVehicleStairState.Completing || state == GsxVehicleStairState.InPosition || state == GsxVehicleStairState.Unknown);
         }
 
         public virtual async Task ResetVehicleState()

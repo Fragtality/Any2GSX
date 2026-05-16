@@ -87,6 +87,7 @@ namespace Any2GSX.Aircraft
             GsxController.ServiceJetway.OnOperationChanged += OnJetwayOperationChange;
             GsxController.ServiceStairs.OnStateChanged += OnStairStateChanged;
             GsxController.ServiceStairs.OnOperationChanged += OnStairOperationChange;
+            GsxController.ServiceStairs.OnVehicleChanged += OnStairVehicleChange;
             GsxController.ServicePushBack.OnStateChanged += OnPushStateChange;
             GsxController.ServicePushBack.OnPushStatus += OnPushOperationChange;
             GsxController.ServiceGpu.OnGpuConnection += OnGpuConnectionChange;
@@ -182,6 +183,7 @@ namespace Any2GSX.Aircraft
                 GsxController.ServiceJetway.OnOperationChanged -= OnJetwayOperationChange;
                 GsxController.ServiceStairs.OnStateChanged -= OnStairStateChanged;
                 GsxController.ServiceStairs.OnOperationChanged -= OnStairOperationChange;
+                GsxController.ServiceStairs.OnVehicleChanged -= OnStairVehicleChange;
                 GsxController.ServicePushBack.OnStateChanged -= OnPushStateChange;
                 GsxController.ServicePushBack.OnPushStatus -= OnPushOperationChange;
                 GsxController.ServiceGpu.OnGpuConnection -= OnGpuConnectionChange;
@@ -434,7 +436,7 @@ namespace Any2GSX.Aircraft
         protected virtual Task OnStairVehicleChange(GsxVehicleStair stair, GsxVehicleStairState state)
         {
             if (IsValidState && IsValidGroundPhase && !GsxController.ServiceStairs.IsStateOverridden)
-                return Aircraft.OnStairVerhicleChange(stair, state, SettingProfile.DoorPaxHandling && SettingProfile.DoorStairHandling);
+                return Aircraft.OnStairVehicleChange(stair, state, SettingProfile.DoorPaxHandling && SettingProfile.DoorStairHandling);
             return Task.CompletedTask;
         }
 

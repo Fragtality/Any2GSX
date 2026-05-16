@@ -598,7 +598,7 @@ namespace Any2GSX.PluginInterface
             return Task.CompletedTask;
         }
 
-        public virtual Task OnStairVerhicleChange(GsxVehicleStair stair, GsxVehicleStairState state, bool paxDoorAllowed)
+        public virtual Task OnStairVehicleChange(GsxVehicleStair stair, GsxVehicleStairState state, bool paxDoorAllowed)
         {
             return Task.CompletedTask;
         }

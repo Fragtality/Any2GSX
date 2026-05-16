@@ -1124,12 +1124,12 @@ namespace Any2GSX.Aircraft
                 return base.OnStairOperationChange(state, paxDoorAllowed);
         }
 
-        public override Task OnStairVerhicleChange(GsxVehicleStair stair, GsxVehicleStairState state, bool paxDoorAllowed)
+        public override Task OnStairVehicleChange(GsxVehicleStair stair, GsxVehicleStairState state, bool paxDoorAllowed)
         {
             if (HasLuaFunction(out LuaFunction func))
                 return CallLua<object>(func, stair, state, paxDoorAllowed);
             else
-                return base.OnStairVerhicleChange(stair, state, paxDoorAllowed);
+                return base.OnStairVehicleChange(stair, state, paxDoorAllowed);
         }
 
         public override Task SetPanelRefuel(bool target)
