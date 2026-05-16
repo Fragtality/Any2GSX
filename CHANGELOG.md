@@ -1,6 +1,14 @@
 # Changelog
 
 
+## v0.4.6
+
+### App
+- Changes due to GSX Behavior Change (Fix?) on Stair Vehicle Status
+- Fixed Interface Method 'OnStairVehicleChange' not being calledd
+- Fixed Type in Plugin Interface
+
+<br/><br/>
 ## v0.4.5
 
 ### App
