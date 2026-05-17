@@ -293,9 +293,9 @@ namespace Any2GSX.PluginInterface
         {
             try
             {
-
                 if (SmartButtonReceived)
                 {
+                    SmartButtonReceived = false;
                     string code = ISettingProfile.GetSetting<string>(GenericSettings.VarSmartButtonReset);
                     if (!string.IsNullOrWhiteSpace(code))
                     {
@@ -303,7 +303,6 @@ namespace Any2GSX.PluginInterface
                         return CommBus.ExecuteCalculatorCode(code);
                     }
                 }
-                SmartButtonReceived = false;
             }
             catch (Exception ex)
             {
