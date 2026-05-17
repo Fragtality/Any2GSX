@@ -1,6 +1,12 @@
 # Changelog
 
 
+## v0.4.7
+
+### App
+- Fixed Issue on continously resetting the SmartButton
+
+<br/><br/>
 ## v0.4.6
 
 ### App
