@@ -167,6 +167,16 @@ namespace Any2GSX.Aircraft
             try
             {
                 LoaderConnectPhase = AutomationState.Unknown;
+                FuelFobCounter = 0;
+                FuelProgress = 0;
+                FuelRate = 0;
+                PaxProgress = 0;
+                CargoApplyProgress = 0;
+                CargoApplyActive = false;
+                IsBoarding = false;
+                IsDeboarding = false;
+                PluginId = "NULL";
+                HasFuelDialog = false;
 
                 foreach (var callback in SubscriptionCallbacks)
                     callback.Unsubscribe();
@@ -275,6 +285,8 @@ namespace Any2GSX.Aircraft
                 LoaderConnectPhase = AutomationState.Unknown;
             else if (state == AutomationState.Preparation)
                 await SetInitialFuelPayload();
+            else if (state == AutomationState.Departure)
+                IsDeboarding = false;
             else if (state == AutomationState.Arrival)
             {
                 if (await Aircraft.GetHasFobSaveRestore() && SettingProfile.FuelSaveLoadFob)
@@ -284,9 +296,10 @@ namespace Any2GSX.Aircraft
                     Logger.Information($"Fuel saved for Aircraft '{Title}': {Math.Round(Config.ConvertKgToDisplayUnit(fob), 0)} {Config.DisplayUnitCurrentString}");
                 }
             }
-            else if (state == AutomationState.TaxiOut || state == AutomationState.Flight)
+            else if (state == AutomationState.TaxiOut || state == AutomationState.Flight || state == AutomationState.TaxiIn)
             {
                 IsBoarding = false;
+                IsDeboarding = false;
                 LoaderConnectPhase = AutomationState.Unknown;
             }
             else if (state == AutomationState.TurnAround)
@@ -616,6 +629,7 @@ namespace Any2GSX.Aircraft
 
         protected virtual async Task OnBoardStateChanged(IGsxService service)
         {
+            Logger.Debug($"OnBoardStateChanged - IsValidState {IsValidState} | IsValidGroundPhase {IsValidGroundPhase} | State {service.State} | IsBoarding {IsBoarding}");
             if (!IsValidState || !IsValidGroundPhase)
                 return;
 

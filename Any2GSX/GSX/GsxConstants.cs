@@ -92,10 +92,10 @@ namespace Any2GSX.GSX
         public static string MenuParkingSelect { get; } = "Select Position at";
         public static string MenuParkingChange { get; } = "Change parking or service";
         public static Regex MenuRegexFacility { get; } = new(@"^Change Facility \[(.+)\]$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        public static Regex MenuRegexGate { get; } = new(@"\s{0,1}([A-Z]{1,2}[0-9]{1,3}[A-Z]{0,2})\s{0,1}|\s{0,1}([A-Z]{0,2}[0-9]{1,3}[A-Z]{1,2})\s{0,1}", RegexOptions.Compiled | RegexOptions.RightToLeft);
+        public static Regex MenuRegexGate { get; } = new(@"\s{0,1}([A-Z]{1,2}[0-9]{1,3}[A-Z]{0,2})\s{0,1}|\s{0,1}([A-Z]{0,2}[0-9]{1,3}[A-Z]{1,2})\s{0,1}|\w+\s{0,1}([0-9]{1,3})\s{0,1}", RegexOptions.Compiled | RegexOptions.RightToLeft);
         public static string MenuRequestDeice { get; } = "Request DeIce";
         public static string MenuLineDeice { get; } = "De-icing service";
-        public static string MenuAdditionalServices { get; } = "Activate Ground Services";
+        public static string MenuAdditionalServices { get; } = "Additional Services";
         public static string MenuOperatorHandling { get; } = "Select handling operator";
         public static string MenuOperatorCater { get; } = "Select catering operator";
         public static string MenuTugAttach { get; } = "Attach Pushback Tug";
