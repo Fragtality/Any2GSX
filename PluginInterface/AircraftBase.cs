@@ -246,7 +246,7 @@ namespace Any2GSX.PluginInterface
                 trigger = CompareValues(comp, value, target);
             }
 
-            return await GetAvionicPowered() && await GetExternalPowerConnected() && await GetLightNav() && trigger;
+            return await GetAvionicPowered() && (await GetExternalPowerConnected() || await GetApuRunning()) && await GetLightNav() && trigger;
         }
 
         public virtual Task<bool> GetSmartButtonRequest()
