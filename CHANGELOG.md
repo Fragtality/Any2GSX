@@ -1,6 +1,15 @@
 # Changelog
 
 
+## v0.4.8
+
+### App
+- Added ApuRunning to ReadyDeparture State in Plugin Interface
+- Changed Menu Title for Additional Services (after GSX 4.0.0)
+- Refined Gate Number Capture (Numbers only)
+- Fixed Cargo Doors not opening on Boarding Service Activation when App was restarted before during Boarding
+
+<br/><br/>
 ## v0.4.7
 
 ### App
