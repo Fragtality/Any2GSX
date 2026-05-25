@@ -178,7 +178,7 @@ namespace Any2GSX.Notifications
                     {
                         var matches = GsxConstants.MenuRegexGate.Matches(parking);
                         if (matches.Count > 0)
-                            capture = matches[0].Value.Trim().Replace("Gate", "", StringComparison.InvariantCultureIgnoreCase);
+                            capture = matches[0].Value.Trim().Replace("Gate", "", StringComparison.InvariantCultureIgnoreCase).Replace("Stand", "", StringComparison.InvariantCultureIgnoreCase).Trim();
                     }
                 }
             }

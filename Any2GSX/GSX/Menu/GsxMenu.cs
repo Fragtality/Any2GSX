@@ -665,6 +665,8 @@ namespace Any2GSX.GSX.Menu
             int waitTime = 0;
             if (!ReadyReceived)
                 Logger.Debug($"Wait for Menu Ready ...");
+            else
+                Logger.Debug($"No Wait - Menu Ready already received");
             while (!ReadyReceived && !RequestToken.IsCancellationRequested && waitTime <= timeout)
                 waitTime += await WaitInterval(0.5);
 
@@ -695,6 +697,7 @@ namespace Any2GSX.GSX.Menu
             await WaitInterval(0.5);
             if (second)
                 await SubMenuOpen.WriteValue(1);
+            Logger.Debug($"Menu Open set.");
         }
 
         protected virtual async Task<bool> Open(bool enableToolbar, int timeout = 0, bool forceEnable = false) //GSX Workaround (forcing enable on fail else not ready ...)
@@ -793,7 +796,7 @@ namespace Any2GSX.GSX.Menu
             bool result = allowed();
             if (!result)
             {
-                Logger.Debug($"{type} Execution blocked - waiting ...");
+                Logger.Debug($"{type} Execution blocked - waiting ... (IsSequenceActive {IsSequenceActive} | IsCommandActive {IsCommandActive})");
                 do
                 {
                     await Task.Delay(1000, RequestToken);

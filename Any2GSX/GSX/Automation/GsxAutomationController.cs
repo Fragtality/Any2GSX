@@ -451,6 +451,10 @@ namespace Any2GSX.GSX.Automation
                         }
                     }
                 }
+                else if (IsOnGround)
+                {
+                    Logger.Debug($"IsOnGround while in Flight: Speed {Speed} >= Config {Config.SpeedTresholdTaxiIn}");
+                }
             }
             //TaxiIn => Arrival
             else if (State == AutomationState.TaxiIn)
