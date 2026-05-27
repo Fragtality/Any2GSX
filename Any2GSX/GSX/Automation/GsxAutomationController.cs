@@ -65,6 +65,7 @@ namespace Any2GSX.GSX.Automation
         public virtual PayloadReport PayloadArrival { get; set; } = new(0);
         public virtual long OfpArrivalId => PayloadArrival?.Id ?? 0;
         public virtual bool RunDepartureOnArrival { get; protected set; } = false;
+        public virtual bool SkippedToTurn { get; protected set; } = false;
 
         public virtual bool HasSmartButtonRequest { get; protected set; } = false;
         public virtual bool ReadyDepartureServices { get; protected set; } = false;
@@ -126,6 +127,7 @@ namespace Any2GSX.GSX.Automation
             FinalDelay = 0;
             PayloadArrival = new(0);
             RunDepartureOnArrival = false;
+            SkippedToTurn = false;
 
             EquipManager.Reset();
             ReadyDepartureServices = false;
@@ -163,6 +165,7 @@ namespace Any2GSX.GSX.Automation
             FinalDelay = 0;
             PayloadArrival = new(0);
             RunDepartureOnArrival = false;
+            SkippedToTurn = false;
             LastBrake = false;
         }
 
@@ -530,7 +533,7 @@ namespace Any2GSX.GSX.Automation
             //Turnaround => Departure
             else if (State == AutomationState.TurnAround)
             {
-                if (ReadyDepartureServices && !Flightplan.IsLoaded && TimeNextTurnCheck <= DateTime.Now && await Flightplan.CheckNewOfp())
+                if (ReadyDepartureServices && !Flightplan.IsLoaded && (SkippedToTurn || TimeNextTurnCheck <= DateTime.Now) && await Flightplan.CheckNewOfp())
                     await Flightplan.Import();
                 if (!Flightplan.IsLoaded && TimeNextTurnCheck <= DateTime.Now)
                 {
@@ -565,6 +568,15 @@ namespace Any2GSX.GSX.Automation
                 else if (State != AutomationState.TurnAround)
                     Tracker.Clear(AppNotification.GateDepart);
             }
+        }
+
+        public virtual void SkipToTurnaround()
+        {
+            Logger.Debug("Skip to Turnaround requested");
+            DepartureQueue.ResetFlight();
+            SkippedToTurn = true;
+            StateChange(AutomationState.TurnAround);
+            GsxController.Menu.BlockMenuUpdates(false);
         }
 
         public virtual async Task RefreshCheckGateMenu(Func<bool> enableCondition = null)

@@ -98,6 +98,13 @@ namespace Any2GSX.UI.Views.Automation
             window.ShowDialog();
         }
 
+        [RelayCommand]
+        public virtual void SkipToTurn()
+        {
+            if (AppService.Instance.GsxController.AutomationState == AutomationState.Preparation)
+                AppService.Instance.GsxController.AutomationController.SkipToTurnaround();
+        }
+
         public virtual string DisplayUnitCurrentString => Config.DisplayUnitCurrentString;
         [ObservableProperty]
         public partial PluginCapabilities PluginCapabilities { get; set; } = new();

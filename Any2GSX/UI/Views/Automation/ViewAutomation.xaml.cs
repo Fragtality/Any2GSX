@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using Any2GSX.PluginInterface.Interfaces;
+using System.Collections.Generic;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace Any2GSX.UI.Views.Automation
@@ -45,12 +47,28 @@ namespace Any2GSX.UI.Views.Automation
 
             ControlProfileSelector = new();
             ViewProfileSelector.Content = ControlProfileSelector;
+
+            AppService.Instance.GsxController.AutomationController.OnStateChange += (_) => ViewModel.RunOnDispatcher(OnAutomationStateChanged);
         }
 
         protected virtual void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (SelectorSettingGroup?.SelectedValue is AutomationSettingControl controlKey && SettingControls.TryGetValue(controlKey, out var control))
                 ViewSettingGroup.Content = control;
+        }
+
+        protected virtual void OnAutomationStateChanged()
+        {
+            try
+            {
+                var state = AppService.Instance.GsxController.AutomationState;
+
+                if (state == AutomationState.Preparation)
+                    ButtonSkipTurn.Visibility = Visibility.Visible;
+                else
+                    ButtonSkipTurn.Visibility = Visibility.Collapsed;
+            }
+            catch { }
         }
 
         public virtual void Start()

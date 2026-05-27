@@ -25,7 +25,12 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <ContentControl Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0" Name="ViewProfileSelector" Margin="10,6,6,6" ToolTip="Select the active Profile."/>
+        <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0" Orientation="Horizontal">
+            <ContentControl Name="ViewProfileSelector" Margin="10,6,6,6" ToolTip="Select the active Profile."/>
+            <Button Name="ButtonSkipTurn" Command="{Binding SkipToTurnCommand}" Foreground="OrangeRed" HorizontalAlignment="Left" MinHeight="28" Margin="4" Padding="4" FontWeight="DemiBold">
+                Skip to Turn
+            </Button>
+        </StackPanel>        
 
         <ListView Grid.Column="0" Grid.Row="1" Margin="12,4,12,12" MinWidth="164" MinHeight="148" Name="SelectorSettingGroup" SelectedValuePath="Key" BorderThickness="0">
             <ListView.ItemTemplate>
