@@ -30,6 +30,7 @@ namespace Any2GSX.GSX.Automation
         public virtual bool RunFlag { get; protected set; } = false;
         public virtual bool IsStarted { get; protected set; } = false;
         public virtual bool FirstRun { get; protected set; } = true;
+        public virtual bool ExternalServiceControl => DepartureQueue.ExternalServiceControl;
         public virtual AutomationState State { get; protected set; } = AutomationState.SessionStart;
         public virtual bool IsOnGround => GsxController.IsOnGround;
         public virtual DepartureServiceQueue DepartureQueue { get; } = new();
@@ -167,6 +168,8 @@ namespace Any2GSX.GSX.Automation
             RunDepartureOnArrival = false;
             SkippedToTurn = false;
             LastBrake = false;
+            if (DepartureQueue.ExternalServiceControl)
+                DepartureQueue.SetExternalControl(false);
         }
 
         public virtual async Task RefreshAircraft()
@@ -409,7 +412,7 @@ namespace Any2GSX.GSX.Automation
             //Departure => PushBack
             else if (State == AutomationState.Departure)
             {
-                if (DepartureQueue.ServicesCompleted)
+                if (DepartureQueue.ServicesCompleted || IsFinalReceived)
                 {
                     await SetPushback();
                 }
@@ -656,8 +659,8 @@ namespace Any2GSX.GSX.Automation
                 await ServiceStairs.Remove();
             }
 
-            if (State == AutomationState.Departure)
-                _ = FinalLoadsheet();
+            if (State == AutomationState.Departure && !IsFinalReceived)
+                _ = TaskTools.RunPool(() => FinalLoadsheet());
             StateChange(AutomationState.Pushback);
         }
 
@@ -722,6 +725,11 @@ namespace Any2GSX.GSX.Automation
             }
 
             return Task.CompletedTask;
+        }
+
+        public virtual void SendExternalLoadsheet()
+        {
+            _ = TaskTools.RunPool(() => FinalLoadsheet());
         }
 
         protected virtual Task RunServices()
@@ -870,24 +878,27 @@ namespace Any2GSX.GSX.Automation
         {
             await EquipManager.RemoveDepartureEquip();
 
-            //Skip Departure on BoardingCompleted
-            bool skip = false;
-            if (!DepartureQueue.ServicesCompleted && IsBoardingCompleted && !ServiceRefuel.IsRunning && !ServiceBoard.IsRunning && State == AutomationState.Departure)
+            if (!ExternalServiceControl)
             {
-                Logger.Information($"Automation: Skip Departure Services - Plane already boarded");
-                DepartureQueue.FinishServices();
-                skip = true;
-            }
+                //Skip Departure on BoardingCompleted
+                bool skip = false;
+                if (!DepartureQueue.ServicesCompleted && IsBoardingCompleted && !ServiceRefuel.IsRunning && !ServiceBoard.IsRunning && State == AutomationState.Departure)
+                {
+                    Logger.Information($"Automation: Skip Departure Services - Plane already boarded");
+                    DepartureQueue.FinishServices();
+                    skip = true;
+                }
 
-            //Apply Service Skips (Activation, Constraints, State)
-            await DepartureQueue.CheckQueueSkips();
+                //Apply Service Skips (Activation, Constraints, State)
+                await DepartureQueue.CheckQueueSkips();
 
-            //Departure Queue finished
-            if (DepartureQueue.ServicesCompleted)
-            {
-                if (!skip)
-                    Logger.Information($"Automation: All Departure Services completed");
-                return;
+                //Departure Queue finished
+                if (DepartureQueue.ServicesCompleted)
+                {
+                    if (!skip)
+                        Logger.Information($"Automation: All Departure Services completed");
+                    return;
+                }
             }
 
             //Skip when Commands active
@@ -898,7 +909,8 @@ namespace Any2GSX.GSX.Automation
             }
 
             //Apply Run Time Constraint
-            await DepartureQueue.ApplyRunTime();
+            if (!ExternalServiceControl)
+                await DepartureQueue.ApplyRunTime();
 
             //Skip when certain Services are blocked
             if (!await CheckServiceBlocks())
@@ -930,7 +942,7 @@ namespace Any2GSX.GSX.Automation
             }
 
             //Run Service Queue
-            if ((DepartureQueue.HasNext && HasSmartButtonRequest) || DepartureQueue.IsNextCallable())
+            if ((DepartureQueue.HasNext && HasSmartButtonRequest && !ExternalServiceControl) || DepartureQueue.IsNextCallable() || (ExternalServiceControl && DepartureQueue.HasNext && DepartureQueue.NextConfig.ServiceActivation == GsxServiceActivation.Manual))
             {
                 if (NextType == GsxServiceType.Boarding)
                     await ServiceBoard.SetPaxTarget(Flightplan.CountPax);
@@ -1089,15 +1101,19 @@ namespace Any2GSX.GSX.Automation
                 if (IsFinalReceived)
                     return;
 
-                FinalDelay = new Random().Next(Profile.FinalDelayMin, Profile.FinalDelayMax);
-                Logger.Debug($"Final LS in {FinalDelay}s");
-                Logger.Information($"Waiting for Final Loadsheet (ETA {FinalDelay}s) ...");
-                Tracker.TrackTimeout(AppNotification.SheetFinal, FinalDelay * 1000);
-                while (FinalDelay > 0)
+                if (!ExternalServiceControl)
                 {
-                    await Task.Delay(1000, RequestToken);
-                    FinalDelay--;
+                    FinalDelay = new Random().Next(Profile.FinalDelayMin, Profile.FinalDelayMax);
+                    Logger.Debug($"Final LS in {FinalDelay}s");
+                    Logger.Information($"Waiting for Final Loadsheet (ETA {FinalDelay}s) ...");
+                    Tracker.TrackTimeout(AppNotification.SheetFinal, FinalDelay * 1000);
+                    while (FinalDelay > 0)
+                    {
+                        await Task.Delay(1000, RequestToken);
+                        FinalDelay--;
+                    }
                 }
+
                 Logger.Debug("Generate Final LS ...");
                 await Aircraft.GenerateLoadsheetFinal();
                 Logger.Information($"Final Loadsheet received!");
@@ -1158,7 +1174,7 @@ namespace Any2GSX.GSX.Automation
                 if (Profile.ClearGroundEquipOnBeacon)
                     await EquipManager.RemoveGroundEquip("Beacon");
 
-                if (Profile.CallPushbackOnBeacon && !ServicePushBack.IsCalled && ServicePushBack.State < GsxServiceState.Requested && !ServicePushBack.WasActive)
+                if (Profile.CallPushbackOnBeacon && !ServicePushBack.IsCalled && ServicePushBack.State < GsxServiceState.Requested && !ServicePushBack.WasActive && !ExternalServiceControl)
                 {
                     Logger.Information($"Automation: Call Pushback (Beacon / Prepared for Push)");
                     await ServicePushBack.Call();
@@ -1175,7 +1191,7 @@ namespace Any2GSX.GSX.Automation
             }
 
             //Pushback Call handling
-            if (ServicePushBack.TugAttachedOnBoarding && Profile.CallPushbackWhenTugAttached > 0 && !ServicePushBack.IsCalled && ServicePushBack.State < GsxServiceState.Requested)
+            if (ServicePushBack.TugAttachedOnBoarding && Profile.CallPushbackWhenTugAttached > 0 && !ServicePushBack.IsCalled && ServicePushBack.State < GsxServiceState.Requested && !ExternalServiceControl)
             {
                 if (Profile.CallPushbackWhenTugAttached == 1)
                 {
@@ -1229,21 +1245,24 @@ namespace Any2GSX.GSX.Automation
                 if (ServicePushBack.PushStatus < 5)
                 {
                     await EquipManager.RemoveGroundEquip("SmartButton");
-                    Logger.Information($"Automation: Call Pushback on SmartButton");
-                    await ServicePushBack.Call();
-                    if (ServicePushBack.IsWaitingForDirection)
+                    if (!ExternalServiceControl)
                     {
-                        Menu.ExternalSequence = true;
-                        await Menu.WaitInterval(5);
+                        Logger.Information($"Automation: Call Pushback on SmartButton");
+                        await ServicePushBack.Call();
+                        if (ServicePushBack.IsWaitingForDirection)
+                        {
+                            Menu.ExternalSequence = true;
+                            await Menu.WaitInterval(5);
 
-                        if (Menu.IsReady && Menu.MatchTitle(GsxConstants.MenuPushbackInterrupt) && Menu.MatchMenuLine(2, GsxConstants.MenuPushbackChange))
-                            await Menu.RunCommand(GsxMenuCommand.Select(3), Profile.EnableMenuForSelection);
+                            if (Menu.IsReady && Menu.MatchTitle(GsxConstants.MenuPushbackInterrupt) && Menu.MatchMenuLine(2, GsxConstants.MenuPushbackChange))
+                                await Menu.RunCommand(GsxMenuCommand.Select(3), Profile.EnableMenuForSelection);
 
-                        await Menu.WaitInterval(2);
-                        Menu.ExternalSequence = false;
+                            await Menu.WaitInterval(2);
+                            Menu.ExternalSequence = false;
+                        }
                     }
                 }
-                else if (ServicePushBack.PushStatus >= 5 && ServicePushBack.PushStatus < 9)
+                else if (ServicePushBack.PushStatus >= 5 && ServicePushBack.PushStatus < 9 && !ExternalServiceControl)
                     await ServicePushBack.EndPushback();
             }
         }

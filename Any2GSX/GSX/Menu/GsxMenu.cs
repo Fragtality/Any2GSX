@@ -42,10 +42,12 @@ namespace Any2GSX.GSX.Menu
         public virtual bool IsCommandActive { get; protected set; } = false;
         public virtual GsxMenuCommandType LastCommandType { get; protected set; } = (GsxMenuCommandType)(-1);
         public virtual bool MenuUpdatesBlocked => Tracker?.IsActive(AppNotification.UpdatesBlocked) == true;
-        public virtual bool MenuCommandsAllowed => !IsSequenceActive && !IsCommandActive && !MenuUpdatesBlocked && !ExternalSequence;
-        public virtual bool IsSequenceAllowed => !IsSequenceActive && !IsCommandActive;
-        public virtual bool IsCommandAllowed => !IsCommandActive;
+        public virtual bool MenuCommandsAllowed => !IsSequenceActive && !IsCommandActive && !MenuUpdatesBlocked && !ExternalSequence && !SettingMenuDetected;
+        public virtual bool IsSequenceAllowed => !IsSequenceActive && !IsCommandActive && !SettingMenuDetected;
+        public virtual bool IsCommandAllowed => !IsCommandActive && !SettingMenuDetected;
         public virtual bool IsToolbarEnabled { get; protected set; } = false;
+        public virtual bool NoJetwayDetected { get; protected set; } = false;
+        public virtual bool SettingMenuDetected { get; protected set; } = false;
         protected virtual bool WasOperatorSelected { get; set; }
         public virtual bool WasOperatorPreferred { get; protected set; } = false;
         public virtual bool WasOperatorHandlingSelected { get; protected set; } = false;
@@ -171,12 +173,15 @@ namespace Any2GSX.GSX.Menu
             WasOperatorHandlingSelected = false;
             WasOperatorCateringSelected = false;
             ExternalSequence = false;
+            NoJetwayDetected = false;
+            SettingMenuDetected = false;
         }
 
         public virtual void ResetFlight()
         {
             DeiceGateQuestionAnswered = false;
             IsSequenceActive = false;
+            IsCommandActive = false;
             LastCommandType = (GsxMenuCommandType)(-1);
             IsToolbarEnabled = false;
             LastReady = DateTime.Now;
@@ -184,6 +189,8 @@ namespace Any2GSX.GSX.Menu
             WasOperatorHandlingSelected = false;
             WasOperatorCateringSelected = false;
             ExternalSequence = false;
+            NoJetwayDetected = false;
+            SettingMenuDetected = false;
         }
 
         public virtual void AddMenuCallback(string title, Func<IGsxMenu, Task> callback)
@@ -405,7 +412,8 @@ namespace Any2GSX.GSX.Menu
             if (doSelection > 0)
             {
                 SetOperatorSelected(true);
-                await Select(doSelection);
+                if (MenuLineCount > 1)
+                    await Select(doSelection);
             }
         }
 
@@ -427,6 +435,7 @@ namespace Any2GSX.GSX.Menu
             }
             else if (num == -1)
             {
+                SettingMenuDetected = false;
                 Logger.Debug($"Received Menu Selection: Timeout ({num})");
                 LastTimeout = DateTime.Now;
             }
@@ -467,6 +476,14 @@ namespace Any2GSX.GSX.Menu
                 Logger.Debug($"Received Menu Selection: {num + 1} - '{GetMenuLine(num)}'");
             else
                 Logger.Debug($"Received Menu Selection: {num + 1}");
+
+            if (num == 5 && GetMenuLine(5).Contains(GsxConstants.MenuNoJetway, StringComparison.InvariantCultureIgnoreCase))
+                NoJetwayDetected = true;
+            if (num == 12)
+            {
+                Logger.Debug("Setting Menu detected");
+                SettingMenuDetected = true;
+            }
 
             if (num >= -1)
                 Tracker.Clear(AppNotification.GsxQuestion);
@@ -552,6 +569,8 @@ namespace Any2GSX.GSX.Menu
 
                     if (MenuState == GsxMenuState.DISABLED)
                         IsToolbarEnabled = false;
+
+                    SettingMenuDetected = false;
                 }
 
                 LastSelectionTime = DateTime.MaxValue;

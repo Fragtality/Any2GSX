@@ -67,7 +67,7 @@ namespace Any2GSX
         public virtual PluginCapabilities PluginCapabilities { get; protected set; } = new();
         public virtual ApiController ApiController { get; protected set; }
         public virtual AppResetRequest ResetRequested { get; set; } = AppResetRequest.None;
-        protected virtual bool IsSessionInitialized { get; set; } = false;
+        public virtual bool IsSessionInitialized { get; protected set; } = false;
         protected virtual DateTime NextGarbageCollection { get; set; } = DateTime.Now + TimeSpan.FromSeconds(300);
 
         public virtual string AircraftAtcAirline { get; protected set; } = "";
@@ -522,6 +522,18 @@ namespace Any2GSX
             catch { }
 
             return Task.CompletedTask;
+        }
+
+        public virtual void UpdatePortFile()
+        {
+            try
+            {
+                File.WriteAllText(".port", CommBus.Port.ToString());
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
         }
     }
 }

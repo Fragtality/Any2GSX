@@ -19,6 +19,7 @@ namespace Any2GSX.PluginInterface.Interfaces
         public PayloadReport PayloadArrival { get; }
         public long OfpArrivalId { get; }
         public bool RunDepartureOnArrival { get; }
+        public bool ExternalServiceControl { get; }
 
         public AutomationState State { get; }
 

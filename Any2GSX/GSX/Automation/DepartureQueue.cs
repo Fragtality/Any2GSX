@@ -4,9 +4,9 @@ using Any2GSX.GSX.Services;
 using Any2GSX.PluginInterface;
 using Any2GSX.PluginInterface.Interfaces;
 using CFIT.AppLogger;
+using CFIT.AppTools;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -22,21 +22,37 @@ namespace Any2GSX.GSX.Automation
         protected virtual AircraftBase Aircraft => AircraftController?.Aircraft;
         protected virtual Flightplan Flightplan => AppService.Instance?.Flightplan;
         protected virtual ConcurrentDictionary<GsxServiceType, GsxService> GsxServices => GsxController?.GsxServices;
-        protected virtual Queue<DepartureService> ServiceQueue { get; } = [];
-        public virtual DepartureService Next => ServiceQueue?.TryPeek(out DepartureService service) == true ? service : null;
+        protected virtual ConcurrentQueue<DepartureService> ServiceQueue { get; } = [];
+        public virtual bool ExternalServiceControl { get; set; } = false;
+        public virtual ConcurrentQueue<DepartureService> ExternalServiceQueue { get; } = [];
+        public virtual DepartureService Next => GetNext();
         public virtual ServiceConfig NextConfig => Next?.Config ?? null;
         public virtual GsxService NextService => Next?.Service ?? null;
         public virtual GsxServiceType NextType => NextService?.Type ?? GsxServiceType.Unknown;
         public virtual bool HasNext => Next != null;
         protected virtual bool IsFirst => !ServicesCalled.Any(s => !s.Service.IsSkipped);
-        protected virtual Queue<DepartureService> ServicesCalled { get; } = [];
+        protected virtual ConcurrentQueue<DepartureService> ServicesCalled { get; } = [];
         public virtual DepartureService LastCalled => ServicesCalled?.LastOrDefault((s) => !s.Service.IsSkipped) ?? null;
         protected virtual DateTime LastCallTime { get; set; } = DateTime.MinValue;
         public virtual bool HasLastService => LastCalled != null;
-        public virtual bool ServicesCompleted => !HasNext && AllCalledCompleted();
+        public virtual bool ServicesCompleted => !HasNext && AllCalledCompleted() && !ExternalServiceControl;
         public virtual int CountTotal => ServiceQueue.Count(s => s.Config.ServiceActivation != GsxServiceActivation.Skip) + ServicesCalled.Count(s => s.Config.ServiceActivation != GsxServiceActivation.Skip);
         public virtual int CountRunning => ServicesCalled.Count(s => s.Service.IsRunning);
         public virtual int CountCompleted => ServicesCalled.Count(s => s.Service.IsCompleted || s.Service.IsSkipped);
+
+        public event Func<Task> ExternalControlChanged;
+
+        protected virtual DepartureService GetNext()
+        {
+            if (!AutomationController.ExternalServiceControl)
+            {
+                return ServiceQueue?.TryPeek(out DepartureService service) == true ? service : null;
+            }
+            else
+            {
+                return ExternalServiceQueue?.TryPeek(out DepartureService service) == true ? service : null;
+            }
+        }
 
         public virtual DepartureService GetQueuedService(GsxServiceType serviceType)
         {
@@ -70,6 +86,8 @@ namespace Any2GSX.GSX.Automation
 
         public virtual void Reset()
         {
+            SetExternalState(false);
+            ExternalServiceQueue.Clear();
             BuildQueue();
             ResetActivations();
         }
@@ -90,7 +108,7 @@ namespace Any2GSX.GSX.Automation
             ServicesCalled.Clear();
             LastCallTime = DateTime.MinValue;
 
-            if (Profile?.DepartureServices != null)
+            if (Profile?.DepartureServices != null && !GsxController.GsxServices.IsEmpty)
             {
                 foreach (var config in Profile.DepartureServices.Values)
                     ServiceQueue.Enqueue(new(GsxController.GsxServices[config.ServiceType], config));
@@ -132,7 +150,12 @@ namespace Any2GSX.GSX.Automation
         {
             if (HasNext)
             {
-                var service = ServiceQueue.Dequeue();
+                DepartureService service;
+                if (!ExternalServiceControl)
+                    service = ServiceQueue.Dequeue();
+                else
+                    service = ExternalServiceQueue.Dequeue();
+
                 if (asSkipped)
                     service.Service.IsSkipped = true;
                 LastCallTime = DateTime.Now;
@@ -279,9 +302,42 @@ namespace Any2GSX.GSX.Automation
             Logger.Information($"Automation: Call Departure Service {NextType}{(!string.IsNullOrWhiteSpace(message) ? " " : "")}{message}");
             await NextService.Call();
 
-            if (NextService.IsCalled)
+            if (NextService.IsCalled || NextService.IsCompleted)
             {
                 MoveQueue();
+                return true;
+            }
+            else
+                return false;
+        }
+
+        protected virtual void SetExternalState(bool state)
+        {
+            bool notify = ExternalServiceControl != state;
+            ExternalServiceControl = state;
+            if (notify)
+            {
+                Logger.Information($"External Service Control is set to: {(state ? "On" : "Off")}");
+                try { ExternalControlChanged?.Invoke(); } catch { }
+            }
+        }
+
+        public virtual void SetExternalControl(bool state)
+        {
+            SetExternalState(state);
+            if (!ExternalServiceControl)
+            {
+                ExternalServiceQueue.Clear();
+                BuildQueue();
+            }
+        }
+
+        public virtual bool QueueExternalService(GsxServiceType serviceType, GsxServiceActivation serviceActivation)
+        {
+            if (serviceType >= GsxServiceType.Refuel && serviceType != GsxServiceType.Jetway && serviceType != GsxServiceType.Stairs && serviceType != GsxServiceType.Pushback
+                && !ExternalServiceQueue.Any(svc => svc.Service.Type == serviceType) && GsxController.GsxServices.ContainsKey(serviceType))
+            {
+                ExternalServiceQueue.Enqueue(new(GsxController.GsxServices[serviceType], new ServiceConfig(serviceType, serviceActivation)));
                 return true;
             }
             else

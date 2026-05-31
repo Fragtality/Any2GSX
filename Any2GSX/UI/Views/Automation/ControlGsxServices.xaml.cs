@@ -57,6 +57,7 @@ namespace Any2GSX.UI.Views.Automation
 
             AppService.Instance.GsxController.AutomationController.OnStateChange += (_) => ViewModel.RunOnDispatcher(OnAutomationStateChanged);
             AppService.Instance.Flightplan.OnImport += (_) => ViewModel.RunOnDispatcher(OnAutomationStateChanged);
+            AppService.Instance.GsxController.AutomationController.DepartureQueue.ExternalControlChanged += () => ViewModel.RunOnDispatcher(OnExternalControlChanged);
         }
 
         protected virtual void OnAutomationStateChanged()
@@ -66,12 +67,36 @@ namespace Any2GSX.UI.Views.Automation
                 var state = AppService.Instance.GsxController.AutomationState;
                 var rundepart = AppService.Instance.GsxController.AutomationController.RunDepartureOnArrival;
 
-                if (state == AutomationState.Departure || (state == AutomationState.Arrival && rundepart))
+                if ((state == AutomationState.Departure || (state == AutomationState.Arrival && rundepart)) && !AppService.Instance.GsxController.AutomationController.ExternalServiceControl)
                     LabelQueueInUse.Visibility = Visibility.Visible;
                 else
                     LabelQueueInUse.Visibility = Visibility.Collapsed;
             }
             catch { }
+        }
+
+        protected virtual void OnExternalControlChanged()
+        {
+            var state = AppService.Instance.GsxController.AutomationController.ExternalServiceControl;
+            if (state && LabelQueueInUse.Visibility == Visibility.Visible)
+                LabelQueueInUse.Visibility = Visibility.Collapsed;
+
+            if (state)
+            {
+                LabelExternalControl.Visibility = Visibility.Visible;
+                GridDepartureServices.IsEnabled = false;
+                GridDepartureServices.IsHitTestVisible = false;
+            }
+            else
+            {
+                LabelExternalControl.Visibility = Visibility.Collapsed;
+                GridDepartureServices.IsEnabled = true;
+                GridDepartureServices.IsHitTestVisible = true;
+                var phase = AppService.Instance.GsxController.AutomationState;
+                var rundepart = AppService.Instance.GsxController.AutomationController.RunDepartureOnArrival;
+                if (phase == AutomationState.Departure || (phase == AutomationState.Arrival && rundepart))
+                    LabelQueueInUse.Visibility = Visibility.Visible;
+            }
         }
 
         protected virtual void OnControlLoaded(object sender, RoutedEventArgs e)

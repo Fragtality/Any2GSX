@@ -72,6 +72,12 @@
                     </Italic>
                 </TextBlock>
 
+                <TextBlock Grid.Column="0" Grid.Row="5" Name="LabelExternalControl" Style="{StaticResource TextBlockDefault}" Margin="6,8,0,0" Visibility="Collapsed">
+                    <Italic>
+                        <Bold>Note:</Bold> External Service Control is activated - Service Calls &amp; Order are handled through an external Application.
+                    </Italic>
+                </TextBlock>
+
                 <Grid Grid.Column="0" Grid.Row="6">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>

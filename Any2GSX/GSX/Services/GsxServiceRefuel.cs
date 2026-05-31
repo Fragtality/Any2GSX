@@ -64,11 +64,14 @@ namespace Any2GSX.GSX.Services
         {
             base.RunStateRequested();
             WasHoseConnected = false;
+            WasCompleted = false;
         }
 
         protected override void RunStateActive()
         {
             base.RunStateActive();
+            WasHoseConnected = false;
+            WasCompleted = false;
             int delay = AppService.Instance.AircraftController.HasFuelDialog ? Controller.Config.MenuOpenTimeout : Controller.Config.OperatorSelectTimeout;
             _ = TaskTools.RunDelayed(() => Controller.Tracker.Clear(AppNotification.UpdatesBlocked), delay, Controller.Token);
         }

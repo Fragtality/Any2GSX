@@ -114,6 +114,7 @@ namespace Any2GSX.GSX
         public static string MenuLineAbortService { get; } = "Abort service";
         public static string MenuRefuelLevel { get; } = "Select refueling";
         public static string MenuRefuelLevelCustom { get; } = "Custom refueling";
+        public static string MenuNoJetway { get; } = "No Jetways here";
         public static readonly Dictionary<GsxStopPush, string[]> MenuLinesPush = new()
         {
             { GsxStopPush.Pause, ["Pause", "Resume"] },

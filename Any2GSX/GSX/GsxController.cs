@@ -370,7 +370,10 @@ namespace Any2GSX.GSX
                 if (!IsExecutionAllowed || RequestToken.IsCancellationRequested)
                     return;
 
+                bool external = AutomationController.DepartureQueue.ExternalServiceControl;
                 await AutomationController.Reset();
+                if (external)
+                    AutomationController.DepartureQueue.SetExternalControl(external);
                 IsActive = true;
                 Logger.Debug($"GsxService active (VarsReceived: {CouatlVarsReceived} | FirstReady: {Menu.FirstReadyReceived})");
                 Logger.Information($"GsxController active - GSX Ready: {CouatlVarsReceived && IsProcessRunning} | GSX Menu: {Menu.FirstReadyReceived} | Aircraft Ready: {AircraftController.IsConnected} | Walkaround: {IsWalkaround}");
