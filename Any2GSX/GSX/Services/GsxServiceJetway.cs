@@ -18,8 +18,8 @@ namespace Any2GSX.GSX.Services
         public virtual GsxServiceState OperatingState => (GsxServiceState)(int)(SubOperating?.GetNumber() ?? 0);
 
         public virtual bool IsAvailable => State != GsxServiceState.NotAvailable;
-        public virtual bool IsConnected => SubService.GetNumber() == (int)GsxServiceState.Active && SubOperating.GetNumber() < 3;
-        public virtual bool IsOperating => SubService.GetNumber() == (int)GsxServiceState.Requested || SubOperating.GetNumber() > 3;
+        public virtual bool IsConnected => SubService.GetNumber() == (int)GsxServiceState.Active && (SubOperating.GetNumber() < 3 || SubOperating.GetNumber() == 6);
+        public virtual bool IsOperating => SubService.GetNumber() == (int)GsxServiceState.Requested || (SubOperating.GetNumber() > 3 && SubOperating.GetNumber() != 6);
         public virtual bool IsConnectable => IsAvailable && !IsConnected && !CheckCalled() && !Controller.Menu.NoJetwayDetected;
         public event Func<GsxServiceState, Task> OnOperationChanged;
 
