@@ -96,6 +96,7 @@ namespace Any2GSX.GSX
         public static string MenuRequestDeice { get; } = "Request DeIce";
         public static string MenuLineDeice { get; } = "De-icing service";
         public static string MenuAdditionalServices { get; } = "Additional Services";
+        public static string MenuOperatorFuel { get; } = "Select fueltruck operator";
         public static string MenuOperatorHandling { get; } = "Select handling operator";
         public static string MenuOperatorCater { get; } = "Select catering operator";
         public static string MenuTugAttach { get; } = "Attach Pushback Tug";

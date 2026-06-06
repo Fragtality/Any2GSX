@@ -419,7 +419,7 @@ namespace Any2GSX.Notifications
             }
             else if (Profile.AttachTugDuringBoarding == 0 && menu.MatchTitle(GsxConstants.MenuTugAttach))
                 Tracker.TrackMessage(AppNotification.GsxQuestion, "Tug?");
-            else if (!Profile.OperatorAutoSelect && (menu.MatchTitle(GsxConstants.MenuOperatorHandling) || menu.MatchTitle(GsxConstants.MenuOperatorCater)))
+            else if (!Profile.OperatorAutoSelect && (menu.MatchTitle(GsxConstants.MenuOperatorHandling) || menu.MatchTitle(GsxConstants.MenuOperatorFuel) || menu.MatchTitle(GsxConstants.MenuOperatorCater)))
                 Tracker.TrackMessage(AppNotification.GsxQuestion, "Operator?");
             else if (Profile.AnswerCrewBoardQuestion == 0 && menu.MatchTitle(GsxConstants.MenuBoardCrew))
                 Tracker.TrackMessage(AppNotification.GsxQuestion, "Crew?");

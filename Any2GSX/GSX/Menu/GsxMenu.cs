@@ -48,16 +48,18 @@ namespace Any2GSX.GSX.Menu
         public virtual bool IsToolbarEnabled { get; protected set; } = false;
         public virtual bool NoJetwayDetected { get; protected set; } = false;
         public virtual bool SettingMenuDetected { get; protected set; } = false;
+        public virtual bool WasFollowMeAnswered { get; protected set; } = false;
         protected virtual bool WasOperatorSelected { get; set; }
         public virtual bool WasOperatorPreferred { get; protected set; } = false;
         public virtual bool WasOperatorHandlingSelected { get; protected set; } = false;
+        public virtual bool WasOperatorFuelSelected { get; protected set; } = false;
         public virtual bool WasOperatorCateringSelected { get; protected set; } = false;
 
         public virtual bool IsGateMenu => MatchTitle(GsxConstants.MenuGate);
         public virtual bool IsDeicePad => IsGateMenu && (MatchMenuLine(0, GsxConstants.MenuRequestDeice) || GetMenuLine(0).Contains("treatment", StringComparison.InvariantCultureIgnoreCase));
         public virtual bool IsSelectGateMenu => MatchTitle(GsxConstants.MenuParkingSelect);
         public virtual bool IsChangeGateMenu => MatchTitle(GsxConstants.MenuParkingChange);
-        public virtual bool IsOperatorMenu => MatchTitle(GsxConstants.MenuOperatorHandling) || MatchTitle(GsxConstants.MenuOperatorCater);
+        public virtual bool IsOperatorMenu => MatchTitle(GsxConstants.MenuOperatorHandling) || MatchTitle(GsxConstants.MenuOperatorFuel) || MatchTitle(GsxConstants.MenuOperatorCater);
         protected virtual ConcurrentDictionary<string, Func<GsxMenu, Task>> MenuCallbacks { get; } = [];
 
         protected virtual ISimResourceSubscription SubMenuEvent { get; set; }
@@ -95,6 +97,7 @@ namespace Any2GSX.GSX.Menu
                 MenuCallbacks.Add(GsxConstants.MenuBoardCrew, OnCrewBoardQuestion);
                 MenuCallbacks.Add(GsxConstants.MenuDeboardCrew, OnCrewDeboardQuestion);
                 MenuCallbacks.Add(GsxConstants.MenuOperatorHandling, OnOperatorSelection);
+                MenuCallbacks.Add(GsxConstants.MenuOperatorFuel, OnOperatorSelection);
                 MenuCallbacks.Add(GsxConstants.MenuOperatorCater, OnOperatorSelection);
                 MenuCallbacks.Add(GsxConstants.MenuRefuelLevel, OnRefuelLevelQuestion);
                 Controller.ServiceDeice.OnStateChanged += OnDeiceStateChanged;
@@ -139,7 +142,9 @@ namespace Any2GSX.GSX.Menu
             ReadyReceived = false;
             WasOperatorPreferred = false;
             WasOperatorHandlingSelected = false;
+            WasOperatorFuelSelected = false;
             WasOperatorCateringSelected = false;
+            WasFollowMeAnswered = false;
             return Task.CompletedTask;
         }
 
@@ -149,8 +154,10 @@ namespace Any2GSX.GSX.Menu
             LastReady = DateTime.Now;
             WasOperatorPreferred = false;
             WasOperatorHandlingSelected = false;
+            WasOperatorFuelSelected = false;
             WasOperatorCateringSelected = false;
             DeiceGateQuestionAnswered = false;
+            WasFollowMeAnswered = false;
         }
 
         public virtual void Reset()
@@ -171,10 +178,12 @@ namespace Any2GSX.GSX.Menu
             IsToolbarEnabled = false;
             WasOperatorPreferred = false;
             WasOperatorHandlingSelected = false;
+            WasOperatorFuelSelected = false;
             WasOperatorCateringSelected = false;
             ExternalSequence = false;
             NoJetwayDetected = false;
             SettingMenuDetected = false;
+            WasFollowMeAnswered = false;
         }
 
         public virtual void ResetFlight()
@@ -187,10 +196,12 @@ namespace Any2GSX.GSX.Menu
             LastReady = DateTime.Now;
             WasOperatorPreferred = false;
             WasOperatorHandlingSelected = false;
+            WasOperatorFuelSelected = false;
             WasOperatorCateringSelected = false;
             ExternalSequence = false;
             NoJetwayDetected = false;
             SettingMenuDetected = false;
+            WasFollowMeAnswered = false;
         }
 
         public virtual void AddMenuCallback(string title, Func<IGsxMenu, Task> callback)
@@ -290,20 +301,24 @@ namespace Any2GSX.GSX.Menu
             _ = TaskTools.RunDelayed(() => this.BlockMenuUpdates(false), Config.OperatorSelectTimeout, RequestToken);
         }
 
-        protected virtual Task OnFollowMeQuestion(GsxMenu menu)
+        protected virtual async Task OnFollowMeQuestion(GsxMenu menu)
         {
             Logger.Debug($"FollowMe Question active");
-            if (Profile.RunAutomationService && Profile.SkipFollowMe)
+            WasFollowMeAnswered = false;
+            await WaitInterval(1.5);
+
+            if (Profile.RunAutomationService && Profile.SkipFollowMe && !WasFollowMeAnswered)
             {
                 var sequence = new GsxMenuSequence();
                 sequence.Commands.Add(GsxMenuCommand.Select(2, GsxConstants.MenuFollowMe, ["No"]));
                 sequence.Commands.Add(GsxMenuCommand.Operator());
-                sequence.ResetMenuCheck = () => true;
+                sequence.ResetMenuCheck = () => WasFollowMeAnswered == false;
                 sequence.EnableMenuAfterResetCheck = () => Profile.EnableMenuForSelection;
-                return RunSequence(sequence);
+                if (await RunSequence(sequence))
+                    WasFollowMeAnswered = true;
             }
-            else
-                return Task.CompletedTask;
+            else if (WasFollowMeAnswered)
+                Logger.Debug($"Skipped Follow Me Sequence");
         }
 
         protected virtual Task OnDeiceQuestion(GsxMenu menu)
@@ -345,6 +360,7 @@ namespace Any2GSX.GSX.Menu
         {
             Logger.Debug($"Change Parking active");
             WasOperatorHandlingSelected = false;
+            WasOperatorFuelSelected = false;
             WasOperatorCateringSelected = false;
 
             Tracker.Clear(AppNotification.GateSelect);
@@ -421,6 +437,8 @@ namespace Any2GSX.GSX.Menu
         {
             if (MatchTitle(GsxConstants.MenuOperatorHandling))
                 WasOperatorHandlingSelected = value;
+            else if (MatchTitle(GsxConstants.MenuOperatorFuel))
+                WasOperatorFuelSelected = value;
             else
                 WasOperatorCateringSelected = value;
             WasOperatorSelected = value;
@@ -472,6 +490,11 @@ namespace Any2GSX.GSX.Menu
             }
             else if (IsSelectGateMenu && Controller.AutomationState == AutomationState.TaxiOut && Controller.IsDeiceAvail && GetMenuLine(num).Contains(GsxConstants.MenuLineDeice, StringComparison.InvariantCultureIgnoreCase))
                 Tracker.Track(AppNotification.GateSelect);
+            else if (MatchTitle(GsxConstants.MenuFollowMe) && (num == 0 || num == 1))
+            {
+                Logger.Debug("Follow Me answered externally");
+                WasFollowMeAnswered = true;
+            }
             else if (!string.IsNullOrWhiteSpace(GetMenuLine(num)))
                 Logger.Debug($"Received Menu Selection: {num + 1} - '{GetMenuLine(num)}'");
             else
@@ -846,7 +869,7 @@ namespace Any2GSX.GSX.Menu
             sequence.IsExecuting = true;
             Tracker.Track(AppNotification.MenuSequence);
 
-            bool enableOperator = sequence.HasOperatorSelection && !Profile.OperatorAutoSelect && ((!sequence.IsHandlingOperator && !WasOperatorCateringSelected) || (sequence.IsHandlingOperator && !WasOperatorHandlingSelected));
+            bool enableOperator = sequence.HasOperatorSelection && !Profile.OperatorAutoSelect && ((!sequence.IsHandlingOperator && (!WasOperatorCateringSelected || !WasOperatorFuelSelected)) || (sequence.IsHandlingOperator && !WasOperatorHandlingSelected));
             bool result = false;
             int counter = 0;
             LastCommandType = (GsxMenuCommandType)(-1);

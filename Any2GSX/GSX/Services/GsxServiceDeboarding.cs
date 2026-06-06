@@ -98,6 +98,7 @@ namespace Any2GSX.GSX.Services
                 Logger.Debug($"Skip Crew Deboarding");
                 await SimStore[GsxConstants.VarNoCrewDeboard].WriteValue(1);
                 await SimStore[GsxConstants.VarNoPilotsDeboard].WriteValue(1);
+                Logger.Debug($"Crew Deboarding Variables set");
             }
 
             if (!Profile.SkipCrewDeboardQuestion && Profile.AnswerCrewDeboardQuestion != 1)
@@ -111,6 +112,7 @@ namespace Any2GSX.GSX.Services
                 await Controller?.SubCrewTarget?.WriteValue(Controller.Profile.DefaultCrewTarget);
             }
 
+            Logger.Debug($"Eval Pax Target");
             if (!await Controller.AircraftController.GetIsCargo() && Profile?.PluginId != SettingProfile.GenericId)
             {
                 WasTargetSet = true;

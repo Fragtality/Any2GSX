@@ -466,6 +466,9 @@ namespace Any2GSX.GSX.Automation
             else if (State == AutomationState.TaxiIn)
             {
                 bool switchArrival = false;
+                if (!EnginesRunning)
+                    Logger.Debug($"Engines shutdown while in Taxi-In - BrakeSet: {EquipManager.BrakeSet} | LightBeacon {LightBeacon}");
+
                 if (!EnginesRunning && EquipManager.BrakeSet && !LightBeacon)
                 {
                     if (Profile.RunAutomationService && Menu.MenuCommandsAllowed && !Menu.IsReady)
@@ -474,7 +477,7 @@ namespace Any2GSX.GSX.Automation
                         await RefreshCheckGateMenu(() => Profile.EnableMenuForSelection && !Profile.CallDeboardOnArrival && !Profile.CallJetwayStairsOnArrival);
                     }
                     await ServiceDeboard.SetPaxTarget(PayloadArrival.CountPax);
-
+                    Logger.Debug($"Arrival Condition met");
                     switchArrival = true;
                 }
                 else if (ServiceDeboard.IsRunning)
