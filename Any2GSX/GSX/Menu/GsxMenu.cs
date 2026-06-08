@@ -45,6 +45,7 @@ namespace Any2GSX.GSX.Menu
         public virtual bool MenuCommandsAllowed => !IsSequenceActive && !IsCommandActive && !MenuUpdatesBlocked && !ExternalSequence && !SettingMenuDetected;
         public virtual bool IsSequenceAllowed => !IsSequenceActive && !IsCommandActive && !SettingMenuDetected;
         public virtual bool IsCommandAllowed => !IsCommandActive && !SettingMenuDetected;
+        public virtual bool OperatorCallbackActive { get; protected set; } = false;
         public virtual bool IsToolbarEnabled { get; protected set; } = false;
         public virtual bool NoJetwayDetected { get; protected set; } = false;
         public virtual bool SettingMenuDetected { get; protected set; } = false;
@@ -145,6 +146,7 @@ namespace Any2GSX.GSX.Menu
             WasOperatorFuelSelected = false;
             WasOperatorCateringSelected = false;
             WasFollowMeAnswered = false;
+            OperatorCallbackActive = false;
             return Task.CompletedTask;
         }
 
@@ -158,6 +160,7 @@ namespace Any2GSX.GSX.Menu
             WasOperatorCateringSelected = false;
             DeiceGateQuestionAnswered = false;
             WasFollowMeAnswered = false;
+            OperatorCallbackActive = false;
         }
 
         public virtual void Reset()
@@ -184,6 +187,7 @@ namespace Any2GSX.GSX.Menu
             NoJetwayDetected = false;
             SettingMenuDetected = false;
             WasFollowMeAnswered = false;
+            OperatorCallbackActive = false;
         }
 
         public virtual void ResetFlight()
@@ -202,6 +206,7 @@ namespace Any2GSX.GSX.Menu
             NoJetwayDetected = false;
             SettingMenuDetected = false;
             WasFollowMeAnswered = false;
+            OperatorCallbackActive = false;
         }
 
         public virtual void AddMenuCallback(string title, Func<IGsxMenu, Task> callback)
@@ -396,41 +401,56 @@ namespace Any2GSX.GSX.Menu
 
         protected virtual async Task OnOperatorSelection(GsxMenu menu)
         {
+            OperatorCallbackActive = true;
             Logger.Debug($"Operator Question active");
-            SetOperatorSelected(false);
 
-            if (!Profile.RunAutomationService)
-                return;
-
-            var gsxOperator = GsxOperator.OperatorSelection(Profile, MenuLines);
-            int doSelection = 0;
-            if (gsxOperator != null)
+            try
             {
-                if (gsxOperator.Preferred && (Profile.OperatorAutoSelect || Profile.OperatorPreferenceSelect))
+                SetOperatorSelected(false);
+                if (!Profile.RunAutomationService)
                 {
-                    Logger.Information($"Selecting Operator '{gsxOperator.Title}' (Preferred)");
-                    if (!WasOperatorPreferred)
-                        WasOperatorPreferred = MatchTitle(GsxConstants.MenuOperatorHandling);
-                    doSelection = gsxOperator.Number;
+                    OperatorCallbackActive = false;
+                    return;
+                }
+
+                var gsxOperator = GsxOperator.OperatorSelection(Profile, MenuLines);
+                int doSelection = 0;
+                if (gsxOperator != null)
+                {
+                    if (gsxOperator.Preferred && (Profile.OperatorAutoSelect || Profile.OperatorPreferenceSelect))
+                    {
+                        Logger.Information($"Selecting Operator '{gsxOperator.Title}' (Preferred)");
+                        if (!WasOperatorPreferred)
+                            WasOperatorPreferred = MatchTitle(GsxConstants.MenuOperatorHandling);
+                        doSelection = gsxOperator.Number;
+                    }
+                    else if (Profile.OperatorAutoSelect)
+                    {
+                        Logger.Information($"Selecting Operator '{gsxOperator.Title}' (GSX Choice)");
+                        doSelection = gsxOperator.Number;
+                    }
                 }
                 else if (Profile.OperatorAutoSelect)
                 {
-                    Logger.Information($"Selecting Operator '{gsxOperator.Title}' (GSX Choice)");
-                    doSelection = gsxOperator.Number;
+                    Logger.Warning($"Selecting Operator #1 - no Matches found");
+                    doSelection = 1;
+                }
+
+                if (doSelection > 0)
+                {
+                    SetOperatorSelected(true);
+                    if (MenuLineCount > 1 && MenuState <= GsxMenuState.HIDE)
+                        await Select(doSelection);
+                    else
+                        Logger.Debug($"Automatic Operation Selection skipped - Count: {MenuLineCount} | State: {MenuState}");
                 }
             }
-            else if (Profile.OperatorAutoSelect)
+            catch (Exception ex)
             {
-                Logger.Warning($"Selecting Operator #1 - no Matches found");
-                doSelection = 1;
+                Logger.LogException(ex);
             }
 
-            if (doSelection > 0)
-            {
-                SetOperatorSelected(true);
-                if (MenuLineCount > 1)
-                    await Select(doSelection);
-            }
+            OperatorCallbackActive = false;
         }
 
         protected virtual void SetOperatorSelected(bool value)
@@ -1050,7 +1070,7 @@ namespace Any2GSX.GSX.Menu
 
         protected virtual async Task<bool> RunCommandOperator(GsxMenuCommand command)
         {
-            await WaitInterval();
+            await WaitInterval(1.5);
             int timeWaited = 0;
             if (!ReadyReceived && !IsOperatorMenu)
                 Logger.Debug("Waiting for Operator Menu ...");
@@ -1067,7 +1087,9 @@ namespace Any2GSX.GSX.Menu
                 timeWaited = 0;
                 if (!WasOperatorSelected)
                     Logger.Information($"Waiting for {(Profile.OperatorAutoSelect ? "automatic" : "manual")} Operator Selection (Timeout {Config.OperatorSelectTimeout / 1000}s) ... ");
-                while (timeWaited <= Config.OperatorSelectTimeout && IsOperatorMenu && MenuState < GsxMenuState.TIMEOUT && !WasOperatorSelected && !RequestToken.IsCancellationRequested)
+                else
+                    Logger.Debug($"Operator was already selected");
+                while (timeWaited <= Config.OperatorSelectTimeout && IsOperatorMenu && (OperatorCallbackActive || (MenuState < GsxMenuState.TIMEOUT && WasOperatorSelected && !RequestToken.IsCancellationRequested)))
                     timeWaited += await WaitInterval(0.5);
 
                 if (timeWaited > Config.OperatorSelectTimeout && !WasOperatorSelected)
