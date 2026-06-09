@@ -629,7 +629,9 @@ Since Fenix has its own native GSX 'Integration' and Volume Control there are mu
 
 <br/><br/><br/>
 
-## 5 - NOTAMs (Usage Tips)
+## 5 - Plugin NOTAMs (Known Issues)
+
+See the NOTAMs in the [Plugin-Repository](https://github.com/Fragtality/Any2GSX-Plugins/blob/master/README.md#22---notams-known-issues).
 
 <br/><br/><br/>
 
