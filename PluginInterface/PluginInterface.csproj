@@ -16,7 +16,7 @@
   
   <PropertyGroup>
     <SourceRevisionId>build$([System.DateTime]::UtcNow.ToString("yyyy.MM.dd.HHmm"))</SourceRevisionId>
-    <Version>0.4.9</Version>
+    <Version>0.4.10</Version>
     <Title>$(AssemblyName)</Title>
     <Authors>Fragtality</Authors>
     <Company>Fragtality</Company>
@@ -31,10 +31,10 @@
   </Target>
 
   <ItemGroup>
-    <PackageReference Include="CFIT.AppFramework" Version="2026.135.21.1304" />
-    <PackageReference Include="CFIT.AppLogger" Version="2026.111.20.1067" />
-    <PackageReference Include="CFIT.AppTools" Version="2026.135.21.1274" />
-    <PackageReference Include="CFIT.SimConnectLib" Version="2026.135.21.1293" />
+    <PackageReference Include="CFIT.AppFramework" Version="2026.162.13.2819" />
+    <PackageReference Include="CFIT.AppLogger" Version="2026.162.13.2773" />
+    <PackageReference Include="CFIT.AppTools" Version="2026.162.13.2782" />
+    <PackageReference Include="CFIT.SimConnectLib" Version="2026.162.13.2807" />
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
