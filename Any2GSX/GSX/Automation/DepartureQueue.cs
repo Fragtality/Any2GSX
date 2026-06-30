@@ -335,9 +335,9 @@ namespace Any2GSX.GSX.Automation
         public virtual bool QueueExternalService(GsxServiceType serviceType, GsxServiceActivation serviceActivation)
         {
             if (serviceType >= GsxServiceType.Refuel && serviceType != GsxServiceType.Jetway && serviceType != GsxServiceType.Stairs && serviceType != GsxServiceType.Pushback
-                && !ExternalServiceQueue.Any(svc => svc.Service.Type == serviceType) && GsxController.GsxServices.ContainsKey(serviceType))
+                && !ExternalServiceQueue.Any(svc => svc.Service.Type == serviceType) && GsxController.GsxServices.TryGetValue(serviceType, out GsxService? gsxService))
             {
-                ExternalServiceQueue.Enqueue(new(GsxController.GsxServices[serviceType], new ServiceConfig(serviceType, serviceActivation)));
+                ExternalServiceQueue.Enqueue(new(gsxService, new ServiceConfig(serviceType, serviceActivation)));
                 return true;
             }
             else

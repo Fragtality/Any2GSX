@@ -725,10 +725,10 @@ namespace Any2GSX.GSX.Menu
                 timeout = Config.MenuOpenTimeout;
 
             int waitTime = 0;
-            if (!ReadyReceived)
-                Logger.Debug($"Wait for Menu Ready ...");
-            else
-                Logger.Debug($"No Wait - Menu Ready already received");
+
+            Logger.Debug($"Wait for Menu Ready ...");
+            await WaitInterval(1.5);
+
             while (!ReadyReceived && !RequestToken.IsCancellationRequested && waitTime <= timeout)
                 waitTime += await WaitInterval(0.5);
 
@@ -752,24 +752,21 @@ namespace Any2GSX.GSX.Menu
             return SubMenuEvent.WriteValue((int)state);
         }
 
-        protected virtual async Task WriteMenuOpen(bool second = true)
+        protected virtual async Task WriteMenuOpen()
         {
             Logger.Debug($"Open Menu ...");
             await SubMenuOpen.WriteValue(1);
-            await WaitInterval(0.5);
-            if (second)
-                await SubMenuOpen.WriteValue(1);
             Logger.Debug($"Menu Open set.");
         }
 
-        protected virtual async Task<bool> Open(bool enableToolbar, int timeout = 0, bool forceEnable = false) //GSX Workaround (forcing enable on fail else not ready ...)
+        protected virtual async Task<bool> Open(bool enableToolbar, int timeout = 0) //GSX Workaround (forcing enable on fail else not ready ...)
         {
             bool result;
             try
             {
-                Logger.Debug($"Open - IsToolbarEnabled {IsToolbarEnabled} | enableToolbar {enableToolbar} | PilotsDeckIntegration {Profile.PilotsDeckIntegration} | forceEnable {forceEnable}");
+                Logger.Debug($"Open - IsToolbarEnabled {IsToolbarEnabled} | enableToolbar {enableToolbar} | PilotsDeckIntegration {Profile.PilotsDeckIntegration}");
                 ReadyReceived = false;
-                if (((IsToolbarEnabled && !enableToolbar) || (IsToolbarEnabled && Profile.PilotsDeckIntegration)) && !forceEnable)
+                if ((IsToolbarEnabled && !enableToolbar) || (IsToolbarEnabled && Profile.PilotsDeckIntegration))
                 {
                     Logger.Debug("Disable GSX Toolbar ...");
                     if (Controller.IsWalkaround)
@@ -780,26 +777,21 @@ namespace Any2GSX.GSX.Menu
                     await WaitInterval();
                     await WriteMenuOpen();
                 }
-                else if ((!IsToolbarEnabled && enableToolbar && Profile.EnableMenuForSelection && !Profile.PilotsDeckIntegration) || forceEnable)
+                else if (!IsToolbarEnabled && enableToolbar && Profile.EnableMenuForSelection && !Profile.PilotsDeckIntegration)
                 {
                     Logger.Information($"Enable GSX Toolbar ...");
                     await AppService.Instance.CommBus.SendGsxMenu("Open");
                     IsToolbarEnabled = true;
                     await WaitInterval(2);
                     if (!ReadyReceived)
-                        await WriteMenuOpen(false);
+                        await WriteMenuOpen();
                 }
                 else
-                    await WriteMenuOpen(!IsToolbarEnabled);
+                    await WriteMenuOpen();
 
                 result = await WaitMenuReady(timeout == 0 ? Config.MenuOpenTimeout : timeout);
                 if (!result)
-                {
-                    if (forceEnable)
-                        await Close();
-                    else
-                        await Disable();
-                }
+                    await Disable();
             }
             catch (Exception ex)
             {
@@ -1014,7 +1006,7 @@ namespace Any2GSX.GSX.Menu
                 if (!await Open(enableMenu))
                 {
                     await WaitInterval();
-                    if (await Open(enableMenu, Config.MenuOpenTimeout, Config.GsxMenuTimeoutFix))
+                    if (await Open(enableMenu, Config.MenuOpenTimeout/*, Config.GsxMenuTimeoutFix*/))
                     {
                         await WaitInterval();
                         return true;
@@ -1089,7 +1081,7 @@ namespace Any2GSX.GSX.Menu
                     Logger.Information($"Waiting for {(Profile.OperatorAutoSelect ? "automatic" : "manual")} Operator Selection (Timeout {Config.OperatorSelectTimeout / 1000}s) ... ");
                 else
                     Logger.Debug($"Operator was already selected");
-                while (timeWaited <= Config.OperatorSelectTimeout && IsOperatorMenu && (OperatorCallbackActive || (MenuState < GsxMenuState.TIMEOUT && WasOperatorSelected && !RequestToken.IsCancellationRequested)))
+                while (timeWaited <= Config.OperatorSelectTimeout && IsOperatorMenu && !RequestToken.IsCancellationRequested && (OperatorCallbackActive || (MenuState < GsxMenuState.TIMEOUT && !WasOperatorSelected)))
                     timeWaited += await WaitInterval(0.5);
 
                 if (timeWaited > Config.OperatorSelectTimeout && !WasOperatorSelected)
