@@ -440,7 +440,7 @@ namespace Any2GSX.GSX
                             }
                         }
 
-                        if (IsGsxRunning && Menu.MenuCommandsAllowed)
+                        if (IsGsxRunning && Menu.MenuCommandsAllowed && AutomationState == AutomationState.SessionStart)
                         {
                             Menu.ExternalSequence = true;
                             Logger.Information($"Open GSX Menu on Startup ...");

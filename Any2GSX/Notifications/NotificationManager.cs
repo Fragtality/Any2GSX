@@ -338,31 +338,27 @@ namespace Any2GSX.Notifications
                         MenuOpenDelayed = DateTime.MaxValue;
                     }
                 }
-                //Timeout Handling
-                else if ((autoRefresh || deckRefresh) && isTimeout)
+                //Keep Direction Menu open
+                else if (autoRefresh && Profile.KeepDirectionMenuOpen && ServicePushBack.IsWaitingForDirection && ServicePushBack.State == GsxServiceState.Callable && automation == AutomationState.Pushback)
                 {
-                    //Keep Direction Menu open
-                    if (autoRefresh && Profile.KeepDirectionMenuOpen && ServicePushBack.IsWaitingForDirection && ServicePushBack.State == GsxServiceState.Callable && automation == AutomationState.Pushback)
-                    {
-                        Logger.Debug($"Menu Refresh: Reopen Direction Menu");
-                        await ServicePushBack.Call();
-                        GsxMenu.ExternalSequence = true;
-                        await GsxMenu.WaitInterval(5);
+                    Logger.Debug($"Menu Refresh: Reopen Direction Menu");
+                    await ServicePushBack.Call();
+                    GsxMenu.ExternalSequence = true;
+                    await GsxMenu.WaitInterval(5);
 
-                        if (GsxMenu.IsReady && GsxMenu.MatchTitle(GsxConstants.MenuPushbackInterrupt) && GsxMenu.MatchMenuLine(2, GsxConstants.MenuPushbackChange))
-                            await GsxMenu.RunCommand(GsxMenuCommand.Select(3), GsxController.IsDeiceAvail || Profile.EnableMenuForSelection);
+                    if (GsxMenu.IsReady && GsxMenu.MatchTitle(GsxConstants.MenuPushbackInterrupt) && GsxMenu.MatchMenuLine(2, GsxConstants.MenuPushbackChange))
+                        await GsxMenu.RunCommand(GsxMenuCommand.Select(3), GsxController.IsDeiceAvail || Profile.EnableMenuForSelection);
 
-                        await GsxMenu.WaitInterval(2);
-                        GsxMenu.ExternalSequence = false;
-                    }
-                    //Deck/EFB: Open after Timeout on Gate
-                    else if (deckRefresh &&
-                                (((GsxMenu.IsGateMenu || GsxMenu.LastTitle?.StartsWith(GsxConstants.MenuGate, StringComparison.InvariantCultureIgnoreCase) == true) && (automation <= AutomationState.Departure || automation >= AutomationState.Arrival))
-                                || (automation == AutomationState.Pushback && !ServicePushBack.IsTugConnected && !ServicePushBack.IsRunning && !ServiceDeice.IsRunning)))
-                    {
-                        Logger.Debug($"Menu Refresh: After Timeout");
-                        await GsxController.Menu.RunCommand(GsxMenuCommand.Open(), false);
-                    }
+                    await GsxMenu.WaitInterval(2);
+                    GsxMenu.ExternalSequence = false;
+                }
+                //Deck/EFB: Open after Timeout on Gate
+                else if (deckRefresh && isTimeout &&
+                            (((GsxMenu.IsGateMenu || GsxMenu.LastTitle?.StartsWith(GsxConstants.MenuGate, StringComparison.InvariantCultureIgnoreCase) == true) && (automation <= AutomationState.Departure || automation >= AutomationState.Arrival))
+                            || (automation == AutomationState.Pushback && !ServicePushBack.IsTugConnected && !ServicePushBack.IsRunning && !ServiceDeice.IsRunning)))
+                {
+                    Logger.Debug($"Menu Refresh: After Timeout");
+                    await GsxController.Menu.RunCommand(GsxMenuCommand.Open(), false);
                 }
                 //Deck/EFB: Open after Selection
                 else if (deckRefresh && noInhibit && !ServiceDeice.IsRunning && !ServicePushBack.IsTugConnected && !ServicePushBack.IsRunning)

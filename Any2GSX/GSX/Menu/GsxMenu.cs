@@ -50,6 +50,7 @@ namespace Any2GSX.GSX.Menu
         public virtual bool NoJetwayDetected { get; protected set; } = false;
         public virtual bool SettingMenuDetected { get; protected set; } = false;
         public virtual bool WasFollowMeAnswered { get; protected set; } = false;
+        public virtual bool IsFollowMeCallbackActive { get; protected set; } = false;
         protected virtual bool WasOperatorSelected { get; set; }
         public virtual bool WasOperatorPreferred { get; protected set; } = false;
         public virtual bool WasOperatorHandlingSelected { get; protected set; } = false;
@@ -187,6 +188,7 @@ namespace Any2GSX.GSX.Menu
             NoJetwayDetected = false;
             SettingMenuDetected = false;
             WasFollowMeAnswered = false;
+            IsFollowMeCallbackActive = false;
             OperatorCallbackActive = false;
         }
 
@@ -206,6 +208,7 @@ namespace Any2GSX.GSX.Menu
             NoJetwayDetected = false;
             SettingMenuDetected = false;
             WasFollowMeAnswered = false;
+            IsFollowMeCallbackActive = false;
             OperatorCallbackActive = false;
         }
 
@@ -314,13 +317,15 @@ namespace Any2GSX.GSX.Menu
 
             if (Profile.RunAutomationService && Profile.SkipFollowMe && !WasFollowMeAnswered)
             {
+                IsFollowMeCallbackActive = true;
                 var sequence = new GsxMenuSequence();
                 sequence.Commands.Add(GsxMenuCommand.Select(2, GsxConstants.MenuFollowMe, ["No"]));
                 sequence.Commands.Add(GsxMenuCommand.Operator());
-                sequence.ResetMenuCheck = () => WasFollowMeAnswered == false;
-                sequence.EnableMenuAfterResetCheck = () => Profile.EnableMenuForSelection;
+                sequence.ResetMenuCheck = () => WasFollowMeAnswered == true;
+                sequence.EnableMenuAfterResetCheck = () => WasFollowMeAnswered == false;
                 if (await RunSequence(sequence))
                     WasFollowMeAnswered = true;
+                IsFollowMeCallbackActive = false;
             }
             else if (WasFollowMeAnswered)
                 Logger.Debug($"Skipped Follow Me Sequence");
@@ -512,7 +517,8 @@ namespace Any2GSX.GSX.Menu
                 Tracker.Track(AppNotification.GateSelect);
             else if (MatchTitle(GsxConstants.MenuFollowMe) && (num == 0 || num == 1))
             {
-                Logger.Debug("Follow Me answered externally");
+                if (!IsFollowMeCallbackActive)
+                    Logger.Debug("Follow Me answered externally");
                 WasFollowMeAnswered = true;
             }
             else if (!string.IsNullOrWhiteSpace(GetMenuLine(num)))
