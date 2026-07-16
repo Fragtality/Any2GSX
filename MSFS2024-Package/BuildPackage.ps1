@@ -1,5 +1,5 @@
 $msBuildDir = "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64"
-$msfsSdkDir = "F:\MSFS2020\MSFS 2024 SDK"
+$msfsSdkDir = "F:\Addons\SDK2024"
 
 #####
 
