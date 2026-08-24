@@ -22,7 +22,7 @@ namespace Any2GSX.GSX.Services
         protected virtual ConcurrentDictionary<GsxVehicleStair, Func<ISimResourceSubscription, object, Task>> SubVehicleCallbacks { get; } = [];
         public virtual bool OverrideActive { get; protected set; } = false;
 
-        public virtual bool IsAvailable => State != GsxServiceState.NotAvailable;
+        public virtual bool IsAvailable => State != GsxServiceState.NotAvailable && State != GsxServiceState.Unknown;
         public virtual bool IsConnected => SubService.GetNumber() == (int)GsxServiceState.Active && SubOperating.GetNumber() < 3 || IsAnyStair((state) => state == GsxVehicleStairState.InPosition);
         public virtual bool IsOperating => (SubService.GetNumber() == (int)GsxServiceState.Requested || SubOperating.GetNumber() > 3 || IsAnyStair((state) => state > GsxVehicleStairState.Idle && state != GsxVehicleStairState.InPosition)) && !AllStairs((state) => state == GsxVehicleStairState.InPosition);
         public virtual bool IsConnectable => IsAvailable && !IsConnected && !CheckCalled();

@@ -424,7 +424,7 @@ namespace Any2GSX.GSX
                     //GSX Startup handling
                     if (!Menu.FirstReadyReceived && NextMenuStartupCheck <= DateTime.Now && IsOnGround)
                     {
-                        if (IsGsxRunning && Profile.RunAutomationService && NextMenuStartupCheck != DateTime.MinValue && !AutomationController.IsStarted && AircraftController.IsConnected
+                        if (Profile.SecureAircraftOnSessionStart && IsGsxRunning && Profile.RunAutomationService && NextMenuStartupCheck != DateTime.MinValue && !AutomationController.IsStarted && AircraftController.IsConnected
                             && SkippedWalkAround && await Aircraft.GetSpeed() < 1 && !await Aircraft.GetEngineRunning() && !await Aircraft.GetLightBeacon() && ServicePushBack.PushStatus == 0)
                         {
                             Logger.Debug($"HasChocks {await Aircraft.GetHasChocks()} | EquipmentChocks {await Aircraft.GetEquipmentChocks()} | IsBrakeSet {await Aircraft.GetBrakeSet()} | Type {Aircraft.GetType().Name}");

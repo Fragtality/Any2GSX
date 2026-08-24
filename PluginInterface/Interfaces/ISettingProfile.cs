@@ -13,6 +13,7 @@ namespace Any2GSX.PluginInterface.Interfaces
         //OFP
         public bool FuelRoundUp100 { get; }
         public bool RandomizePax { get; }
+        public bool UseActualCount { get; }
         public int RandomizePaxMaxDiff { get; }
         public bool ApplyPaxToCargo { get; }
         public int DelayTurnAroundSeconds { get; }
@@ -39,6 +40,7 @@ namespace Any2GSX.PluginInterface.Interfaces
         public bool CallJetwayStairsDuringDeparture { get; }
         public bool CallJetwayStairsOnArrival { get; }
         public int RemoveStairsAfterDepature { get; }
+        public bool SecureAircraftOnSessionStart { get; }
         public bool AttemptConnectStairRefuel { get; }
         public bool SkipFuelOnTankering { get; }
         public bool CallPushbackOnBeacon { get; }

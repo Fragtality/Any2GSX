@@ -305,7 +305,7 @@ namespace Any2GSX.GSX.Automation
 
         protected virtual bool GetPowerPlaced()
         {
-            return (!HasGpuInternal && UseGpuGsx == GsxGpuUsage.Never) || (HasGpuInternal && (EquipmentGpu || (!EquipmentGpu && !GetPowerWithApuAllowed()))) || (ServiceGpu.IsConnected && UseGpuGsx != GsxGpuUsage.Never);
+            return (!HasGpuInternal && UseGpuGsx == GsxGpuUsage.Never) || (HasGpuInternal && (EquipmentGpu || (!EquipmentGpu && !GetPowerWithApuAllowed()))) || (ServiceGpu.IsConnected && UseGpuGsx != GsxGpuUsage.Never) || (GsxController.ServiceJetway.IsConnected && UseGpuGsx == GsxGpuUsage.NoJetway);
         }
 
         protected virtual bool GetChocksPlaced()

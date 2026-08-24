@@ -139,6 +139,7 @@ namespace Any2GSX.UI.Views.Automation
         public virtual bool ClearChocksOnTugAttach { get => Source.ClearChocksOnTugAttach; set => SetModelValue<bool>(value); }
         public virtual bool GradualGroundEquipRemoval { get => Source.GradualGroundEquipRemoval; set => SetModelValue<bool>(value); }
         public virtual bool ConnectGpuWithApuRunning { get => Source.ConnectGpuWithApuRunning; set => SetModelValue<bool>(value); }
+        public virtual bool SecureAircraftOnSessionStart { get => Source.SecureAircraftOnSessionStart; set => SetModelValue<bool>(value); }
         public virtual int ConnectPca { get => Source.ConnectPca; set => SetModelValue<int>(value); }
         public virtual bool PcaOverride { get => Source.PcaOverride; set => SetModelValue<bool>(value); }
         public virtual bool CallJetwayStairsInWalkaround { get => Source.CallJetwayStairsInWalkaround; set => SetModelValue<bool>(value); }
@@ -168,6 +169,7 @@ namespace Any2GSX.UI.Views.Automation
         //OFP Import
         public virtual bool FuelRoundUp100 { get => Source.FuelRoundUp100; set => SetModelValue<bool>(value); }
         public virtual bool RandomizePax { get => Source.RandomizePax; set => SetModelValue<bool>(value); }
+        public virtual bool UseActualCount { get => Source.UseActualCount; set => SetModelValue<bool>(value); }
         public virtual int RandomizePaxMaxDiff { get => Source.RandomizePaxMaxDiff; set => SetModelValue<int>(value); }
         public virtual bool ApplyPaxToCargo { get => Source.ApplyPaxToCargo; set => SetModelValue<bool>(value); }
         public virtual int DelayTurnAroundSeconds { get => Source.DelayTurnAroundSeconds; set => SetModelValue<int>(value); }

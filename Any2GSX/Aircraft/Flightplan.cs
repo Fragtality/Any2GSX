@@ -201,7 +201,11 @@ namespace Any2GSX.Aircraft
                 else
                     return false;
 
-                if (GetJsonInt(json["weights"]!["pax_count"], out int pax))
+                string countField = "_actual";
+                if (!SettingProfile.UseActualCount)
+                    countField = "";
+
+                if (GetJsonInt(json["weights"]![$"pax_count{countField}"], out int pax))
                 {
                     DiffPax = 0;
                     CountPaxPlanned = pax;
@@ -209,7 +213,7 @@ namespace Any2GSX.Aircraft
                 else
                     return false;
 
-                if (GetJsonInt(json["weights"]!["bag_count"], out int bag))
+                if (GetJsonInt(json["weights"]![$"bag_count{countField}"], out int bag))
                 {
                     DiffBags = 0;
                     CountBagsPlanned = bag;

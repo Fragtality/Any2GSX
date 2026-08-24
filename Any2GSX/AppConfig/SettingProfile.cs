@@ -116,6 +116,7 @@ namespace Any2GSX.AppConfig
         //OFP
         public virtual bool FuelRoundUp100 { get; set; } = true;
         public virtual bool RandomizePax { get; set; } = true;
+        public virtual bool UseActualCount { get; set; } = true;
         public virtual int RandomizePaxMaxDiff { get; set; } = 5;
         public virtual bool ApplyPaxToCargo { get; set; } = true;
         public virtual int DelayTurnAroundSeconds { get; set; } = 90;
@@ -143,6 +144,7 @@ namespace Any2GSX.AppConfig
         public virtual bool CallJetwayStairsDuringDeparture { get; set; } = true;
         public virtual bool CallJetwayStairsOnArrival { get; set; } = true;
         public virtual int RemoveStairsAfterDepature { get; set; } = 2; // 0 => false | 1 => true | 2 => only on jetway stand
+        public virtual bool SecureAircraftOnSessionStart { get; set; } = true;
         public virtual bool AttemptConnectStairRefuel { get; set; } = true;
         public virtual int DelayCallRefuelAfterStair { get; set; } = 60;
         public virtual bool SkipFuelOnTankering { get; set; } = true;

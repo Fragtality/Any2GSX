@@ -1313,7 +1313,7 @@ namespace Any2GSX.GSX.Automation
                     await ServiceJetway.Call();
                 }
 
-                if (!ServiceStairs.IsConnectable && CheckAirStairs())
+                if (ServiceStairs.IsConnectable && CheckAirStairs())
                 {
                     Logger.Information("Automation: Call Stairs on Arrival");
                     await ServiceStairs.Call();
