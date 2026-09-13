@@ -6,4 +6,3 @@ export declare class ProgressBar extends ProgressComponent {
     protected updateProgress(progressRatio: number): void;
     render(): VNode;
 }
-//# sourceMappingURL=ProgressBar.d.ts.map

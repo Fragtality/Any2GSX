@@ -1,4 +1,5 @@
 export * from './Accordion';
+export * from './BearingDisplay';
 export * from './Button';
 export * from './Date';
 export * from './Facility';
@@ -17,4 +18,3 @@ export * from './Tag';
 export * from './TextArea';
 export * from './Timer';
 export * from './Tooltip';
-//# sourceMappingURL=index.d.ts.map

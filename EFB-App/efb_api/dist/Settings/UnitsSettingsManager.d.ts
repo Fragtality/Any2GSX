@@ -1,4 +1,5 @@
-import { DefaultUserSettingManager, EventBus, NavAngleUnit, Subscribable, Unit, UserSettingDefinition, UserSettingManagerEntry, UserSettingValue } from '@microsoft/msfs-sdk';
+import { EventBus, NavAngleUnit, Subscribable, Unit, UserSettingDefinition, UserSettingManagerEntry, UserSettingValue } from '@microsoft/msfs-sdk';
+import { EfbCommonSettingsManager } from './EfbCommonSettingsManager';
 
 /**
  * Setting modes for nav angle units.
@@ -92,7 +93,7 @@ export type UnitsSettingsTypes = {
     /** The time units setting. */
     unitsTime: UnitsTimeSettingMode;
 };
-export declare class UnitsSettingsManager extends DefaultUserSettingManager<UnitsSettingsTypes> {
+export declare class UnitsSettingsManager extends EfbCommonSettingsManager<UnitsSettingsTypes> {
     private static readonly TRUE_BEARING;
     private static readonly MAGNETIC_BEARING;
     private readonly navAngleUnitsSub;
@@ -107,6 +108,10 @@ export declare class UnitsSettingsManager extends DefaultUserSettingManager<Unit
      */
     checkLoadedValues(): void;
     protected updateUnitsSubjects(settingName: string, value: UserSettingValue): void;
+    /**
+     * Gets a unit type subscribable from a unit setting name
+     * @param settingName the name of the unit setting
+     * @returns a Subscribable containing the unit type. If the value in the dataStorage is unvalid, it returns the default unitType
+     */
     getSettingUnitType<F extends string = string>(settingName: keyof UnitsSettingsTypes): Subscribable<Unit<F>>;
 }
-//# sourceMappingURL=UnitsSettingsManager.d.ts.map

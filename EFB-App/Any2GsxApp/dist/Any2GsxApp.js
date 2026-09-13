@@ -66,6 +66,148 @@
     AppSuspendMode2[AppSuspendMode2["TERMINATE"] = 1] = "TERMINATE";
     return AppSuspendMode2;
   })(AppSuspendMode || {});
+  var uid = 0;
+  var _Container = class _Container {
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    constructor() {
+      this._uid = uid++;
+      this._registeredAppsPromises = [];
+      this._installedApps = import_msfs_sdk.ArraySubject.create();
+    }
+    /**
+     * Static singleton instance of Efb container
+     * @internal
+     */
+    static get instance() {
+      return window.EFB_API = _Container._instance = window.EFB_API || _Container._instance || new _Container();
+    }
+    /** @internal */
+    apps() {
+      return this._installedApps;
+    }
+    /** @internal */
+    allAppsLoaded() {
+      return this._registeredAppsPromises.length === this._installedApps.length;
+    }
+    /**
+     * Method used by the OS to share the bus to apps
+     * @internal
+     */
+    setBus(bus) {
+      this.bus = bus;
+      return this;
+    }
+    /**
+     * Method used by the OS to share the units settings manager to the apps
+     * @internal
+     */
+    setUnitsSettingManager(unitsSettingManager) {
+      this.unitsSettingManager = unitsSettingManager;
+      return this;
+    }
+    /**
+     * Method used by the OS to share the settings manager to the apps
+     * @internal
+     */
+    setEfbSettingManager(efbSettingsManager) {
+      this.efbSettingsManager = efbSettingsManager;
+      return this;
+    }
+    setOnboardingManager(onboardingManager) {
+      this.onboardingManager = onboardingManager;
+      return this;
+    }
+    /**
+     * Method used by the OS to share the notification manager to the apps
+     * @internal
+     */
+    setNotificationManager(notificationManager) {
+      this.notificationManager = notificationManager;
+      return this;
+    }
+    /**
+     * Load stylesheet
+     * @param uri
+     * @returns Promise which is resolved when stylesheet is loaded or rejected if an error occur.
+     */
+    async loadCss(uri) {
+      if (document.querySelector(`link[href*="${uri}"]`)) {
+        return Promise.reject(`${uri} already loaded.`);
+      }
+      const linkTag = document.createElement("link");
+      linkTag.rel = "stylesheet";
+      linkTag.href = uri;
+      document.head.append(linkTag);
+      return new Promise((resolve, reject) => {
+        linkTag.onload = () => resolve();
+        linkTag.onerror = reject;
+      });
+    }
+    /**
+     * Load script file
+     * @param uri
+     * @returns Promise which is resolved when script is loaded or rejected if an error occur.
+     */
+    async loadJs(uri) {
+      if (document.querySelector(`script[src*="${uri}"]`)) {
+        return Promise.reject(`${uri} already loaded.`);
+      }
+      const scriptTag = document.createElement("script");
+      scriptTag.type = "text/javascript";
+      scriptTag.src = uri;
+      document.head.append(scriptTag);
+      return new Promise((resolve, reject) => {
+        scriptTag.onload = () => resolve();
+        scriptTag.onerror = reject;
+      });
+    }
+    /**
+     * Register an app in EFB
+     * @template T - App registration options
+     * @param app The app you wan't to register
+     * @param options Options you'r app might need when installing
+     * @returns EFB instance
+     * @throws Throw an error if App install went wrong.
+     */
+    use(app, ...options) {
+      var _a13;
+      try {
+        if (!this.bus) {
+          throw new Error(`Bus has not been initialized yet.`);
+        }
+        const appInstance = app instanceof App ? app : new app();
+        const installProps = {
+          bus: this.bus,
+          unitsSettingManager: this.unitsSettingManager,
+          efbSettingsManager: this.efbSettingsManager,
+          notificationManager: this.notificationManager,
+          onboardingManager: this.onboardingManager,
+          options: Object.keys(options).filter((key) => key !== "isCoreApp").reduce((acc, key) => {
+            return Object.assign(acc, options[key]);
+          }, {})
+        };
+        const appInstaller = appInstance._install.apply(appInstance, [installProps]);
+        const name = appInstance.internalName;
+        if (/\s/.test(name)) {
+          throw new Error(`The App name can't have any whitespace character. "${name}"`);
+        }
+        this._registeredAppsPromises.push(
+          appInstaller.then(() => {
+            this._installedApps.insert(appInstance);
+          })
+        );
+      } catch (e) {
+        (_a13 = document.currentScript) == null ? void 0 : _a13.remove();
+        console.error(`App can't be installed`, e);
+        throw e;
+      }
+      return this;
+    }
+  };
+  __name(_Container, "Container");
+  var Container = _Container;
+  var Efb = Container.instance;
+  var EfbApiVersion = "1.0.3";
   var _App = class _App {
     constructor() {
       this._isInstalled = false;
@@ -80,7 +222,7 @@
      * @internal
      */
     async _install(props) {
-      var _a10;
+      var _a13;
       if (this._isInstalled) {
         return Promise.reject("App already installed.");
       }
@@ -90,10 +232,11 @@
       this._efbSettingsManager = props.efbSettingsManager;
       this._notificationManager = props.notificationManager;
       this._onboardingManager = props.onboardingManager;
-      this._favoriteIndex = (_a10 = props.favoriteIndex) != null ? _a10 : -1;
+      this._favoriteIndex = (_a13 = props.favoriteIndex) != null ? _a13 : -1;
       this.options = props.options;
       await this.install(props);
       this._isReady = true;
+      Coherent.trigger("EFB_APP_INSTALLED", this.name, this.internalName, EfbApiVersion, this.getVersion());
       return Promise.resolve();
     }
     /**
@@ -171,6 +314,29 @@
     set favoriteIndex(index2) {
       this._favoriteIndex = index2;
     }
+    /**
+     * @since 1.0.3
+     * @returns True if the app is searchable (ie: app list)
+     */
+    getIsSearchable() {
+      var _a13;
+      return (_a13 = this.options.isSearchable) != null ? _a13 : true;
+    }
+    /**
+     * @since 1.0.3
+     * @returns True if the app can be added to favorites
+     */
+    getIsFavoritable() {
+      var _a13;
+      return (_a13 = this.options.isFavoritable) != null ? _a13 : true;
+    }
+    /**
+     * @since 1.0.3
+     * @returns Return app version
+     */
+    getVersion() {
+      return "";
+    }
   };
   __name(_App, "App");
   var App = _App;
@@ -235,8 +401,8 @@
      * @internal
      */
     setBus(bus) {
-      var _a10;
-      (_a10 = this.onFlightPhaseStateChangedSubscription) == null ? void 0 : _a10.destroy();
+      var _a13;
+      (_a13 = this.onFlightPhaseStateChangedSubscription) == null ? void 0 : _a13.destroy();
       this.onFlightPhaseStateChangedSubscription = bus.on("FlightPhaseChanged", (flightPhase) => {
         switch (flightPhase) {
           case "PREFLIGHT_RTC":
@@ -372,7 +538,9 @@
         4
         /* FREEFLIGHT */
       ));
+      this.isInMenu = import_msfs_sdk.Subject.create(true);
       this.onGameModeChangedSubscription = null;
+      this.onIsInMenuSubscription = null;
     }
     /**
      * Static singleton instance of the Game mode manager
@@ -386,10 +554,17 @@
      * @internal
      */
     setBus(bus) {
-      var _a10;
-      (_a10 = this.onGameModeChangedSubscription) == null ? void 0 : _a10.destroy();
+      var _a13, _b;
+      (_a13 = this.onGameModeChangedSubscription) == null ? void 0 : _a13.destroy();
+      (_b = this.onIsInMenuSubscription) == null ? void 0 : _b.destroy();
       this.onGameModeChangedSubscription = bus.on("GameModeChanged", (gameMode) => {
         switch (gameMode) {
+          case "":
+            this._gameMode.set(
+              0
+              /* UNKNOWN */
+            );
+            break;
           case "CAREER GAMEMODE":
             this._gameMode.set(
               1
@@ -422,6 +597,7 @@
             );
         }
       });
+      this.onIsInMenuSubscription = bus.on("IsInMenuUpdate", (isInMenu) => this.isInMenu.set(isInMenu));
     }
   };
   __name(__GameModeManager, "_GameModeManager");
@@ -431,8 +607,8 @@
     return new Promise((resolve, reject) => {
       const fileReader = new FileReader();
       fileReader.onload = function(event) {
-        var _a10;
-        const arrayBuffer = (_a10 = event.target) == null ? void 0 : _a10.result;
+        var _a13;
+        const arrayBuffer = (_a13 = event.target) == null ? void 0 : _a13.result;
         if (typeof arrayBuffer === "string" || arrayBuffer === null || arrayBuffer === void 0) {
           reject("ArrayBuffer is null");
           return;
@@ -473,10 +649,10 @@
      * @returns A function which formats measurement units to strings representing their abbreviated names.
      */
     static create(defaultString = "", charCase = "normal") {
-      var _a10, _b;
+      var _a13, _b;
       switch (charCase) {
         case "upper":
-          (_a10 = _a.UNIT_TEXT_UPPER) != null ? _a10 : _a.UNIT_TEXT_UPPER = _a.createUpperCase();
+          (_a13 = _a.UNIT_TEXT_UPPER) != null ? _a13 : _a.UNIT_TEXT_UPPER = _a.createUpperCase();
           return (unit) => {
             var _a22, _b2;
             return (
@@ -725,8 +901,205 @@
     GamepadEvents2["JOYDIR_DOWN"] = "JOYDIR_DOWN";
     return GamepadEvents2;
   })(GamepadEvents || {});
+  var InputAction = /* @__PURE__ */ ((InputAction2) => {
+    InputAction2[InputAction2["SECONDARY"] = 0] = "SECONDARY";
+    InputAction2[InputAction2["TERTIARY"] = 1] = "TERTIARY";
+    InputAction2[InputAction2["PREV"] = 2] = "PREV";
+    InputAction2[InputAction2["NEXT"] = 3] = "NEXT";
+    InputAction2[InputAction2["PREV_SUB"] = 4] = "PREV_SUB";
+    InputAction2[InputAction2["NEXT_SUB"] = 5] = "NEXT_SUB";
+    InputAction2[InputAction2["ZOOM_OUT"] = 6] = "ZOOM_OUT";
+    InputAction2[InputAction2["ZOOM_IN"] = 7] = "ZOOM_IN";
+    InputAction2[InputAction2["SCROLL_UP"] = 8] = "SCROLL_UP";
+    InputAction2[InputAction2["SCROLL_RIGHT"] = 9] = "SCROLL_RIGHT";
+    InputAction2[InputAction2["SCROLL_DOWN"] = 10] = "SCROLL_DOWN";
+    InputAction2[InputAction2["SCROLL_LEFT"] = 11] = "SCROLL_LEFT";
+    return InputAction2;
+  })(InputAction || {});
+  var InputActions = {
+    [
+      0
+      /* SECONDARY */
+    ]: "KEY_EFB_SECONDARY",
+    [
+      1
+      /* TERTIARY */
+    ]: "KEY_EFB_TERTIARY",
+    [
+      2
+      /* PREV */
+    ]: "KEY_EFB_NAV_TABS_PREV",
+    [
+      3
+      /* NEXT */
+    ]: "KEY_EFB_NAV_TABS_NEXT",
+    [
+      4
+      /* PREV_SUB */
+    ]: "KEY_EFB_ZOOM_OUT",
+    [
+      5
+      /* NEXT_SUB */
+    ]: "KEY_EFB_ZOOM_IN",
+    [
+      6
+      /* ZOOM_OUT */
+    ]: "KEY_EFB_ZOOM_OUT",
+    [
+      7
+      /* ZOOM_IN */
+    ]: "KEY_EFB_ZOOM_IN",
+    [
+      8
+      /* SCROLL_UP */
+    ]: "KEY_EFB_SCROLL_UP",
+    [
+      9
+      /* SCROLL_RIGHT */
+    ]: "KEY_EFB_SCROLL_RIGHT",
+    [
+      10
+      /* SCROLL_DOWN */
+    ]: "KEY_EFB_SCROLL_DOWN",
+    [
+      11
+      /* SCROLL_LEFT */
+    ]: "KEY_EFB_SCROLL_LEFT"
+  };
+  var InternalInputAction = /* @__PURE__ */ ((InternalInputAction2) => {
+    InternalInputAction2[InternalInputAction2["VALID"] = 0] = "VALID";
+    InternalInputAction2[InternalInputAction2["BACK"] = 1] = "BACK";
+    InternalInputAction2[InternalInputAction2["SECONDARY"] = 2] = "SECONDARY";
+    InternalInputAction2[InternalInputAction2["TERTIARY"] = 3] = "TERTIARY";
+    InternalInputAction2[InternalInputAction2["PREV_TAB"] = 4] = "PREV_TAB";
+    InternalInputAction2[InternalInputAction2["NEXT_TAB"] = 5] = "NEXT_TAB";
+    InternalInputAction2[InternalInputAction2["ZOOM_OUT"] = 6] = "ZOOM_OUT";
+    InternalInputAction2[InternalInputAction2["ZOOM_IN"] = 7] = "ZOOM_IN";
+    InternalInputAction2[InternalInputAction2["UP"] = 8] = "UP";
+    InternalInputAction2[InternalInputAction2["RIGHT"] = 9] = "RIGHT";
+    InternalInputAction2[InternalInputAction2["DOWN"] = 10] = "DOWN";
+    InternalInputAction2[InternalInputAction2["LEFT"] = 11] = "LEFT";
+    InternalInputAction2[InternalInputAction2["PREV_APP"] = 12] = "PREV_APP";
+    InternalInputAction2[InternalInputAction2["NEXT_APP"] = 13] = "NEXT_APP";
+    InternalInputAction2[InternalInputAction2["OPEN_NOTIFICATION_MENU"] = 14] = "OPEN_NOTIFICATION_MENU";
+    InternalInputAction2[InternalInputAction2["SCROLL_UP"] = 15] = "SCROLL_UP";
+    InternalInputAction2[InternalInputAction2["SCROLL_RIGHT"] = 16] = "SCROLL_RIGHT";
+    InternalInputAction2[InternalInputAction2["SCROLL_DOWN"] = 17] = "SCROLL_DOWN";
+    InternalInputAction2[InternalInputAction2["SCROLL_LEFT"] = 18] = "SCROLL_LEFT";
+    InternalInputAction2[InternalInputAction2["TEXTBOX_VALID"] = 19] = "TEXTBOX_VALID";
+    InternalInputAction2[InternalInputAction2["TEXTBOX_UP"] = 20] = "TEXTBOX_UP";
+    InternalInputAction2[InternalInputAction2["TEXTBOX_RIGHT"] = 21] = "TEXTBOX_RIGHT";
+    InternalInputAction2[InternalInputAction2["TEXTBOX_DOWN"] = 22] = "TEXTBOX_DOWN";
+    InternalInputAction2[InternalInputAction2["TEXTBOX_LEFT"] = 23] = "TEXTBOX_LEFT";
+    return InternalInputAction2;
+  })(InternalInputAction || {});
+  var InternalInputActions = {
+    [
+      0
+      /* VALID */
+    ]: "KEY_EFB_VALID",
+    [
+      1
+      /* BACK */
+    ]: "KEY_EFB_BACK",
+    [
+      2
+      /* SECONDARY */
+    ]: "KEY_EFB_SECONDARY",
+    [
+      3
+      /* TERTIARY */
+    ]: "KEY_EFB_TERTIARY",
+    [
+      4
+      /* PREV_TAB */
+    ]: "KEY_EFB_NAV_TABS_PREV",
+    [
+      5
+      /* NEXT_TAB */
+    ]: "KEY_EFB_NAV_TABS_NEXT",
+    [
+      6
+      /* ZOOM_OUT */
+    ]: "KEY_EFB_ZOOM_OUT",
+    [
+      7
+      /* ZOOM_IN */
+    ]: "KEY_EFB_ZOOM_IN",
+    [
+      8
+      /* UP */
+    ]: "KEY_EFB_UP",
+    [
+      9
+      /* RIGHT */
+    ]: "KEY_EFB_NAV_APP_NEXT",
+    [
+      10
+      /* DOWN */
+    ]: "KEY_EFB_DOWN",
+    [
+      11
+      /* LEFT */
+    ]: "KEY_EFB_NAV_APP_PREV",
+    [
+      12
+      /* PREV_APP */
+    ]: "KEY_EFB_NAV_APP_PREV",
+    [
+      13
+      /* NEXT_APP */
+    ]: "KEY_EFB_NAV_APP_NEXT",
+    [
+      14
+      /* OPEN_NOTIFICATION_MENU */
+    ]: "KEY_EFB_NOTIFICATIONS_MENU",
+    [
+      15
+      /* SCROLL_UP */
+    ]: "KEY_EFB_SCROLL_UP",
+    [
+      16
+      /* SCROLL_RIGHT */
+    ]: "KEY_EFB_SCROLL_RIGHT",
+    [
+      17
+      /* SCROLL_DOWN */
+    ]: "KEY_EFB_SCROLL_DOWN",
+    [
+      18
+      /* SCROLL_LEFT */
+    ]: "KEY_EFB_SCROLL_LEFT",
+    [
+      19
+      /* TEXTBOX_VALID */
+    ]: "KEY_EFB_VALID_TEXT",
+    [
+      20
+      /* TEXTBOX_UP */
+    ]: "KEY_EFB_TEXTBOX_UP",
+    [
+      21
+      /* TEXTBOX_RIGHT */
+    ]: "KEY_EFB_TEXTBOX_RIGHT",
+    [
+      22
+      /* TEXTBOX_DOWN */
+    ]: "KEY_EFB_TEXTBOX_DOWN",
+    [
+      23
+      /* TEXTBOX_LEFT */
+    ]: "KEY_EFB_TEXTBOX_LEFT"
+  };
   var _a2;
   var _InputsListener = (_a2 = class extends ViewListener.ViewListener {
+    /**
+     * @deprecated
+     * @param context The input context.
+     * @param action The input action.
+     * @param callback The callback that will be called when the input is triggered.
+     * @returns The input watcher ID.
+     */
     static addInputChangeCallback(context, action, callback) {
       const idWatcher = "InputWatcher_" + context + "_" + action + "_" + import_msfs_sdk.UUID.GenerateUuid();
       _a2.inputsListener.trigger("ADD_INPUT_WATCHER", idWatcher, context, action);
@@ -737,6 +1110,10 @@
       });
       return idWatcher;
     }
+    /**
+     * @deprecated
+     * @param id The event ID.
+     */
     static removeInputChangeCallback(id) {
       _a2.inputsListener.trigger("REMOVE_INPUT_WATCHER", id);
     }
@@ -746,17 +1123,234 @@
     "JS_LISTENER_INPUTS",
     () => _InputsListener.isLoaded.set(true)
   );
-  var InputsListener = _InputsListener;
+  var _InputStackListener = class _InputStackListener {
+    constructor() {
+      this._isReady = import_msfs_sdk.Subject.create(false);
+      this.isReady = this._isReady;
+      this.inputActionMap = /* @__PURE__ */ new Map();
+      this.inputStackListener = RegisterViewListener(
+        "JS_LISTENER_INPUT_STACK",
+        () => this._isReady.set(true)
+      );
+      this.onInputTriggeredCallback = this._onInputTriggeredCallback.bind(this);
+      this.inputStackListener.on("ON_INPUT_TRIGGERED", this.onInputTriggeredCallback);
+    }
+    _onInputTriggeredCallback(task, value2, _activeId, uuid) {
+      var _a13;
+      (_a13 = this.inputActionMap.get(uuid)) == null ? void 0 : _a13(task, value2);
+    }
+    /**
+     * Add an action that will be executed when the given input is triggered.
+     * @param input The input that, when triggered, will execute the action.
+     * @param callback The action callback that will be called when the input is triggered.
+     * @param inputType The trigger type of the input between 'pressed', 'released' and 'axis'. Default to 'released'.
+     * @param context The context which the input will be applied to. Default to 'DEFAULT'.
+     * @returns A callback that has to be called when the input action is not needed anymore.
+     */
+    addInputAction(input, callback, inputType = "released", context = "DEFAULT") {
+      const uuid = import_msfs_sdk.UUID.GenerateUuid().toUpperCase();
+      const formattedUuid = `{${uuid}}`;
+      this.inputActionMap.set(uuid, (task, value2) => {
+        const isConsumed = callback(value2);
+        this.inputStackListener.call(`RESOLVE_${task}`, isConsumed);
+      });
+      this.inputStackListener.trigger("ADD_INPUT_ACTION", input, formattedUuid, "", inputType, context);
+      return () => {
+        this.inputStackListener.trigger("REMOVE_INPUT_ACTION", input, formattedUuid);
+        this.inputActionMap.delete(uuid);
+      };
+    }
+  };
+  __name(_InputStackListener, "InputStackListener");
+  var InputStackListener = _InputStackListener;
+  var _InternalInputManager = class _InternalInputManager {
+    constructor(inputActionRecord) {
+      this.inputActionRecord = inputActionRecord;
+      this.defaultInputType = "released";
+      this.defaultScrollAxis = "all";
+      this.defaultScrollSpeedFactor = 10;
+      this.inputStackListener = new InputStackListener();
+    }
+    //#region Add input action
+    /**
+     * Add an action that will be executed when the given input is triggered.
+     * @param inputAction The input that, when triggered, will execute the action.
+     * @param callback The action callback that will be called when the input is triggered.
+     * @param options The optional input action options.
+     * @returns A callback that has to be called when the input action is not needed anymore.
+     */
+    addInputAction(inputAction, callback, options) {
+      var _a13;
+      return this.inputStackListener.addInputAction(
+        this.inputActionRecord[inputAction],
+        callback,
+        (_a13 = options == null ? void 0 : options.inputType) != null ? _a13 : this.defaultInputType
+      );
+    }
+    //#endregion
+    //#region On hover
+    /**
+     * Add an action that will be executed when the given input is triggered on hover of the given HTML element.
+     * @param element The HTML element that will allow the action to be executed when hovered on.
+     * @param inputAction The input that, when triggered, will execute the action.
+     * @param callback The action callback that will be called when the input is triggered.
+     * @param options The optional input action options.
+     * @returns A callback that has to be called when the input action is not needed anymore.
+     */
+    addInputActionOnHover(element, inputAction, callback, options) {
+      let inputActionDestructor = null;
+      const mouseEnterCallback = /* @__PURE__ */ __name(() => {
+        var _a13;
+        if (inputActionDestructor) {
+          inputActionDestructor();
+        }
+        inputActionDestructor = this.inputStackListener.addInputAction(
+          this.inputActionRecord[inputAction],
+          callback,
+          (_a13 = options == null ? void 0 : options.inputType) != null ? _a13 : this.defaultInputType
+        );
+      }, "mouseEnterCallback");
+      const mouseLeaveCallback = /* @__PURE__ */ __name(() => {
+        inputActionDestructor == null ? void 0 : inputActionDestructor();
+      }, "mouseLeaveCallback");
+      element.addEventListener("mouseenter", mouseEnterCallback);
+      element.addEventListener("mouseleave", mouseLeaveCallback);
+      return () => {
+        element.removeEventListener("mouseenter", mouseEnterCallback);
+        element.removeEventListener("mouseleave", mouseLeaveCallback);
+        inputActionDestructor == null ? void 0 : inputActionDestructor();
+      };
+    }
+    //#endregion
+  };
+  __name(_InternalInputManager, "InternalInputManager");
+  var InternalInputManager = _InternalInputManager;
+  var _InputManager = class _InputManager extends InternalInputManager {
+    constructor() {
+      super(InputActions);
+    }
+    //#region Scroll
+    /**
+     * Add scroll input actions using the gamepad joystick for a given HTML element.
+     * @param element The scrollable HTML element.
+     * @param options The optional scroll input action options.
+     * @returns A callback that has to be called when the scroll input action is not needed anymore.
+     */
+    addScrollInputAction(element, options) {
+      var _a13;
+      const scrollSpeed = options == null ? void 0 : options.scrollSpeed;
+      let predicate;
+      if (scrollSpeed === void 0) {
+        predicate = /* @__PURE__ */ __name((axis) => this.computeScrollSpeedFactor(axis, this.defaultScrollSpeedFactor), "predicate");
+      } else if (typeof scrollSpeed === "number") {
+        predicate = /* @__PURE__ */ __name((axis) => this.computeScrollSpeedFactor(axis, scrollSpeed), "predicate");
+      } else {
+        predicate = scrollSpeed;
+      }
+      switch ((_a13 = options == null ? void 0 : options.scrollAxis) != null ? _a13 : this.defaultScrollAxis) {
+        case "vertical":
+        case "y":
+          return this.setupVerticalScroll(element, predicate);
+        case "horizontal":
+        case "x":
+          return this.setupHorizontalScroll(element, predicate);
+        default: {
+          const verticalScrollDestructor = this.setupVerticalScroll(element, predicate);
+          const horizontalScrollDestructor = this.setupHorizontalScroll(element, predicate);
+          return () => {
+            verticalScrollDestructor();
+            horizontalScrollDestructor();
+          };
+        }
+      }
+    }
+    setupVerticalScroll(element, predicate) {
+      const scrollUpInputActionDestructor = this.addInputActionOnHover(
+        element,
+        InputAction.SCROLL_UP,
+        (axisValue) => {
+          if (axisValue < 0) {
+            return false;
+          }
+          element.scroll({
+            top: element.scrollTop - predicate(axisValue)
+          });
+          return true;
+        },
+        { inputType: "axis" }
+      );
+      const scrollDownInputActionDestructor = this.addInputActionOnHover(
+        element,
+        InputAction.SCROLL_DOWN,
+        (axisValue) => {
+          if (axisValue < 0) {
+            return false;
+          }
+          element.scroll({
+            top: element.scrollTop + predicate(axisValue)
+          });
+          return true;
+        },
+        { inputType: "axis" }
+      );
+      return () => {
+        scrollUpInputActionDestructor();
+        scrollDownInputActionDestructor();
+      };
+    }
+    setupHorizontalScroll(element, predicate) {
+      const scrollLeftInputActionDestructor = this.addInputActionOnHover(
+        element,
+        InputAction.SCROLL_LEFT,
+        (axisValue) => {
+          if (axisValue < 0) {
+            return false;
+          }
+          element.scroll({
+            left: element.scrollLeft - predicate(axisValue)
+          });
+          return true;
+        },
+        { inputType: "axis" }
+      );
+      const scrollRightInputActionDestructor = this.addInputActionOnHover(
+        element,
+        InputAction.SCROLL_RIGHT,
+        (axisValue) => {
+          if (axisValue < 0) {
+            return false;
+          }
+          element.scroll({
+            left: element.scrollLeft + predicate(axisValue)
+          });
+          return true;
+        },
+        { inputType: "axis" }
+      );
+      return () => {
+        scrollLeftInputActionDestructor();
+        scrollRightInputActionDestructor();
+      };
+    }
+    computeScrollSpeedFactor(axisValue, factor) {
+      return axisValue * axisValue * factor;
+    }
+    //#endregion
+  };
+  __name(_InputManager, "InputManager");
+  var InputManager = _InputManager;
   var _a3;
   var _GamepadUiComponent = (_a3 = class extends import_msfs_sdk.DisplayComponent {
     constructor() {
-      var _a10, _b;
+      var _a13, _b;
       super(...arguments);
-      this._gamepadUiSubs = [];
+      this.classSubscriptions = [];
       this.gamepadUiComponentRef = import_msfs_sdk.FSComponent.createRef();
+      this.inputManager = new InputManager();
+      this.areGamepadInputsEnabled = import_msfs_sdk.Subject.create(false);
       this._nextHandler = import_msfs_sdk.Subject.create(void 0);
       this.nextHandler = this._nextHandler;
-      this.disabled = import_msfs_sdk.SubscribableUtils.toSubscribable((_a10 = this.props.disabled) != null ? _a10 : false, true);
+      this.disabled = import_msfs_sdk.SubscribableUtils.toSubscribable((_a13 = this.props.disabled) != null ? _a13 : false, true);
       this.visible = import_msfs_sdk.SubscribableUtils.toSubscribable((_b = this.props.visible) != null ? _b : true, true);
       this.componentClickListener = this.handleComponentClick.bind(this);
     }
@@ -771,34 +1365,33 @@
     }
     onAfterRender(node) {
       super.onAfterRender(node);
+      const gamepadUiComponentInstance = this.gamepadUiComponentRef.getOrDefault();
+      if (gamepadUiComponentInstance === null) {
+        return;
+      }
       const classes = mergeClassProp(this.props.class);
       Object.keys(classes).forEach((className) => {
         const subscribable = import_msfs_sdk.SubscribableUtils.toSubscribable(classes[className], true);
-        this._gamepadUiSubs.push(
+        this.classSubscriptions.push(
           subscribable.sub((value2) => {
-            this.gamepadUiComponentRef.instance.classList.toggle(className, value2);
+            gamepadUiComponentInstance.classList.toggle(className, value2);
           }, true)
         );
       });
-      this._gamepadUiSubs.push(
-        this.visible.sub((isVisible) => {
-          this.gamepadUiComponentRef.instance.hidden = !isVisible;
-        }, true)
-      );
+      this.isVisibleSubscription = this.visible.sub((isVisible) => {
+        gamepadUiComponentInstance.hidden = !isVisible;
+      }, true);
       if (import_msfs_sdk.SubscribableUtils.isSubscribable(this.props.disabled)) {
-        this._gamepadUiSubs.push(
-          this.props.disabled.sub((disabled) => {
-            disabled ? this.disable() : this.enable();
-          }, true)
-        );
+        this.isDisabledSubscription = this.props.disabled.sub((disabled) => {
+          disabled ? this.disable() : this.enable();
+        }, true);
       } else {
         this.props.disabled ? this.disable() : this.enable();
       }
       window.addEventListener("click", this.componentClickListener);
-      if (this.props.onboardingStepId === void 0) {
-        return;
+      if (this.props.onboardingStepId !== void 0) {
+        gamepadUiComponentInstance.setAttribute("id", this.props.onboardingStepId);
       }
-      this.gamepadUiComponentRef.instance.setAttribute("id", this.props.onboardingStepId);
     }
     handleComponentClick(e) {
       if (!this.gamepadUiComponentRef.instance.contains(e.target)) {
@@ -817,6 +1410,16 @@
     }
     onClickOutOfComponent(_e) {
       return;
+    }
+    enableGamepadInputs() {
+      if (this.areGamepadInputsEnabled.get()) {
+        console.warn("Trying to enable gamepad inputs that are already enabled. Operation cancelled.");
+        return;
+      }
+      this.areGamepadInputsEnabled.set(true);
+    }
+    disableGamepadInputs() {
+      this.areGamepadInputsEnabled.set(false);
     }
     enable() {
       this.gamepadUiComponentRef.instance.removeAttribute("disabled");
@@ -845,7 +1448,10 @@
       return this.gamepadUiComponentRef.instance.getBoundingClientRect();
     }
     destroy() {
-      this._gamepadUiSubs.forEach((s) => s.destroy());
+      var _a13, _b;
+      this.classSubscriptions.forEach((subscription) => subscription.destroy());
+      (_a13 = this.isVisibleSubscription) == null ? void 0 : _a13.destroy();
+      (_b = this.isDisabledSubscription) == null ? void 0 : _b.destroy();
       window.removeEventListener("click", this.componentClickListener);
       super.destroy();
     }
@@ -879,12 +1485,12 @@
       this.goDir("LEFT");
     }
     pushButtonA() {
-      var _a10;
-      (_a10 = this.currentElement) == null ? void 0 : _a10.instance.onButtonAPressed();
+      var _a13;
+      (_a13 = this.currentElement) == null ? void 0 : _a13.instance.onButtonAPressed();
     }
     pushButtonB() {
-      var _a10;
-      (_a10 = this.currentElement) == null ? void 0 : _a10.instance.onButtonBPressed();
+      var _a13;
+      (_a13 = this.currentElement) == null ? void 0 : _a13.instance.onButtonBPressed();
     }
     goDir(dir) {
       const HTMLElementList = this.parseDOM();
@@ -1013,22 +1619,45 @@
   __name(_GamepadUiParser, "GamepadUiParser");
   var GamepadUiParser = _GamepadUiParser;
   var _UiView = class _UiView extends import_msfs_sdk.DisplayComponent {
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    constructor() {
+      super(...arguments);
+      this.services = [];
+    }
     onOpen() {
+      var _a13;
+      for (const service of this.services) {
+        (_a13 = service.onOpen) == null ? void 0 : _a13.call(service);
+      }
     }
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     onClose() {
+      var _a13;
+      for (const service of this.services) {
+        (_a13 = service.onClose) == null ? void 0 : _a13.call(service);
+      }
     }
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     onResume() {
+      var _a13;
+      for (const service of this.services) {
+        (_a13 = service.onResume) == null ? void 0 : _a13.call(service);
+      }
     }
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     onPause() {
+      var _a13;
+      for (const service of this.services) {
+        (_a13 = service.onPause) == null ? void 0 : _a13.call(service);
+      }
     }
-    // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
     onUpdate(time) {
+      var _a13;
+      for (const service of this.services) {
+        (_a13 = service.onUpdate) == null ? void 0 : _a13.call(service, time);
+      }
     }
     destroy() {
+      var _a13;
+      for (const service of this.services) {
+        (_a13 = service.destroy) == null ? void 0 : _a13.call(service);
+      }
       super.destroy();
     }
   };
@@ -1041,10 +1670,72 @@
       this.gamepadUiParser = new GamepadUiParser();
       this._nextHandler = import_msfs_sdk.Subject.create(void 0);
       this.nextHandler = this._nextHandler;
+      this.inputManager = new InputManager();
+      this.gamepadComponentChildren = [];
+      this.areGamepadInputsEnabled = import_msfs_sdk.Subject.create(false);
+      this.viewCoreInputManager = new InternalInputManager(InternalInputActions);
+    }
+    /**
+     * Enable the gamepad inputs for this UI view.
+     * Gamepad inputs of any UI view shall be added in its own enableGamepadInputs function via inputManager.
+     */
+    enableGamepadInputs() {
+      if (this.areGamepadInputsEnabled.get()) {
+        console.warn("Trying to enable gamepad inputs that are already enabled. Operation cancelled.");
+        return;
+      }
+      this.goBackActionDestructor = this.viewCoreInputManager.addInputAction(
+        InternalInputAction.BACK,
+        () => {
+          if (this.props.appViewService === void 0) {
+            return false;
+          }
+          try {
+            this.props.appViewService.goBack();
+          } catch (e) {
+            return false;
+          }
+          return true;
+        }
+      );
+      this.gamepadComponentChildren.forEach((child) => child.enableGamepadInputs());
+      this.areGamepadInputsEnabled.set(true);
+    }
+    /**
+     * Disable the gamepad inputs for this UI view.
+     * Gamepad input destructors of any UI view shall be called in its own disableGamepadInputs function.
+     */
+    disableGamepadInputs() {
+      var _a13;
+      (_a13 = this.goBackActionDestructor) == null ? void 0 : _a13.call(this);
+      this.gamepadComponentChildren.forEach((child) => child.disableGamepadInputs());
+      this.areGamepadInputsEnabled.set(false);
+    }
+    onClose() {
+      super.onClose();
+      this.disableGamepadInputs();
+    }
+    onResume() {
+      super.onResume();
+      this.enableGamepadInputs();
+    }
+    onPause() {
+      super.onPause();
+      this.disableGamepadInputs();
     }
     onAfterRender(node) {
       super.onAfterRender(node);
       this.gamepadUiParser.bindVNodeReference(node);
+      import_msfs_sdk.FSComponent.visitNodes(node, (childNode) => {
+        if (childNode.instance instanceof GamepadUiComponent) {
+          this.gamepadComponentChildren.push(childNode.instance);
+        }
+        return false;
+      });
+    }
+    destroy() {
+      super.destroy();
+      this.disableGamepadInputs();
     }
     setNextGamepadEventHandler(ref) {
       this._nextHandler.set(ref);
@@ -1103,10 +1794,6 @@
       this.hasInitialized = false;
       this._currentUiView = import_msfs_sdk.Subject.create(null);
       this.currentUiView = this._currentUiView;
-      this.eventListener = {
-        pause: [],
-        resume: []
-      };
       this.bus = bus;
       this.goHomeSub = this.bus.on(
         "_efb_appviewservice_go_home",
@@ -1120,24 +1807,24 @@
       );
     }
     onOpen() {
-      var _a10, _b;
+      var _a13, _b;
       this.goHomeSub.resume();
-      (_b = (_a10 = this.activeUiViewEntry) == null ? void 0 : _a10.ref) == null ? void 0 : _b.onOpen();
+      (_b = (_a13 = this.getActiveUiViewEntry()) == null ? void 0 : _a13.ref) == null ? void 0 : _b.onOpen();
     }
     onClose() {
-      var _a10, _b;
+      var _a13, _b;
       this.goHomeSub.pause();
-      (_b = (_a10 = this.activeUiViewEntry) == null ? void 0 : _a10.ref) == null ? void 0 : _b.onClose();
+      (_b = (_a13 = this.getActiveUiViewEntry()) == null ? void 0 : _a13.ref) == null ? void 0 : _b.onClose();
     }
     onResume() {
-      var _a10, _b;
+      var _a13, _b;
       this.goHomeSub.resume();
-      (_b = (_a10 = this.activeUiViewEntry) == null ? void 0 : _a10.ref) == null ? void 0 : _b.onResume();
+      (_b = (_a13 = this.getActiveUiViewEntry()) == null ? void 0 : _a13.ref) == null ? void 0 : _b.onResume();
     }
     onPause() {
-      var _a10, _b;
+      var _a13, _b;
       this.goHomeSub.pause();
-      (_b = (_a10 = this.activeUiViewEntry) == null ? void 0 : _a10.ref) == null ? void 0 : _b.onPause();
+      (_b = (_a13 = this.getActiveUiViewEntry()) == null ? void 0 : _a13.ref) == null ? void 0 : _b.onPause();
     }
     /**
      * Registers and renders a view (page or popup) to be opened by the service.
@@ -1179,7 +1866,7 @@
       return this.registerView(key, "popup", vNodeFactory, options);
     }
     async killView(viewEntry) {
-      var _a10;
+      var _a13;
       if (viewEntry.isInit === false) {
         return;
       }
@@ -1187,7 +1874,7 @@
         throw new Error("You must close your view before killing it");
       }
       viewEntry.isInit = false;
-      (_a10 = viewEntry.ref) == null ? void 0 : _a10.destroy();
+      (_a13 = viewEntry.ref) == null ? void 0 : _a13.destroy();
       viewEntry.containerRef.instance.destroy();
       viewEntry.ref = null;
       viewEntry.containerRef = import_msfs_sdk.FSComponent.createRef();
@@ -1204,14 +1891,14 @@
      * @param shouldOpen opens the view on initialization, defaults to false
      */
     initViewEntry(entry, shouldOpen = false) {
-      var _a10;
+      var _a13;
       if (entry.isInit) {
         return;
       }
       entry.isInit = true;
       entry.vNode = value(entry.vNode);
       entry.ref = entry.vNode.instance;
-      (_a10 = this.appViewRef) == null ? void 0 : _a10.renderView(
+      (_a13 = this.appViewRef) == null ? void 0 : _a13.renderView(
         /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent(
           AppViewWrapper,
           {
@@ -1230,10 +1917,10 @@
      * Destroys every view in registered view entries and resets the view stack.
      */
     unload() {
-      var _a10;
+      var _a13;
       this.registeredUiViewPromises = [];
       for (const viewEntry of this.registeredUiViewEntries.values()) {
-        (_a10 = viewEntry.ref) == null ? void 0 : _a10.destroy();
+        (_a13 = viewEntry.ref) == null ? void 0 : _a13.destroy();
       }
       this.registeredUiViewEntries.clear();
       this.appViewStack.splice(0, this.appViewStack.length);
@@ -1256,16 +1943,12 @@
     /**
      * @returns the current active view entry.
      */
-    get activeUiViewEntry() {
+    getActiveUiViewEntry() {
       const activeViewEntry = import_msfs_sdk.ArrayUtils.peekLast(this.appViewStack);
       return activeViewEntry;
     }
-    on(event, viewKey, callback) {
-      if (!this.registeredUiViewEntries.has(viewKey)) {
-        console.error("Cannot listen for a non registered view.");
-        return this;
-      }
-      this.eventListener[event].push({ key: viewKey, callback });
+    /** @deprecated */
+    on(_event, _viewKey, _callback) {
       return this;
     }
     /**
@@ -1273,10 +1956,9 @@
      * @param page Page to close
      */
     handleCloseView(page) {
-      var _a10;
-      if (!page) return;
-      (_a10 = page.ref) == null ? void 0 : _a10.onPause();
-      this.eventListener.pause.forEach((e) => e.key === page.key && e.callback(page));
+      var _a13;
+      if (!page || page.isVisible.get() === false) return;
+      (_a13 = page.ref) == null ? void 0 : _a13.onPause();
       page.isVisible.set(false);
       this._currentUiView.set(null);
       if (page.viewOptions.SuspendMode === ViewSuspendMode.TERMINATE) {
@@ -1288,10 +1970,9 @@
      * @param page Page to open
      */
     handleOpenView(page) {
-      var _a10;
-      if (!page) return;
-      (_a10 = page.ref) == null ? void 0 : _a10.onResume();
-      this.eventListener.resume.forEach((e) => e.key === page.key && e.callback(page));
+      var _a13;
+      if (!page || page.isVisible.get() === true) return;
+      (_a13 = page.ref) == null ? void 0 : _a13.onResume();
       page.isVisible.set(true);
       this._currentUiView.set(page);
     }
@@ -1322,6 +2003,18 @@
     onAppContainerRendered(appViewRef) {
       this.appViewRef = appViewRef;
     }
+    isInViewStack(view) {
+      const key = typeof view === "string" ? view : view.key;
+      return this.appViewStack.findIndex((stackViewEntry) => key === stackViewEntry.key) !== -1;
+    }
+    isActive(view) {
+      const key = typeof view === "string" ? view : view.key;
+      const activeViewEntry = this.getActiveUiViewEntry();
+      if (activeViewEntry === void 0) {
+        return false;
+      }
+      return key === activeViewEntry.key;
+    }
     open(key) {
       const viewEntry = this.advanceViewStack(key);
       return viewEntry;
@@ -1333,9 +2026,8 @@
       } else if (steps >= this.appViewStack.length) {
         throw new RangeError(`Steps can't be superior to ${this.appViewStack.length} when called.`);
       }
-      const activeViewEntry = this.activeUiViewEntry;
+      const activeViewEntry = this.getActiveUiViewEntry();
       if (this.appViewStack.length > steps && activeViewEntry) {
-        this.eventListener.pause.forEach((e) => e.key === activeViewEntry.key && e.callback(activeViewEntry));
         const viewsToOpen = [];
         const viewsToClose = [];
         while (steps--) {
@@ -1355,7 +2047,7 @@
           this.handleOpenView(page);
         }
       }
-      return this.activeUiViewEntry;
+      return this.getActiveUiViewEntry();
     }
     /**
      * Handles view stack logic
@@ -1365,7 +2057,7 @@
     advanceViewStack(key) {
       const viewEntry = this.getUiViewEntry(key);
       if (this.appViewStack.includes(viewEntry)) {
-        if (this.activeUiViewEntry !== viewEntry) {
+        if (this.getActiveUiViewEntry() !== viewEntry) {
           throw new Error("Page or popup is already in the viewstack and can't be opened twice");
         }
         return viewEntry;
@@ -1402,9 +2094,9 @@
      */
     update(time) {
       this.registeredUiViewEntries.forEach((UiView2) => {
-        var _a10;
+        var _a13;
         if (UiView2.isInit && UiView2.isVisible.get()) {
-          (_a10 = UiView2.ref) == null ? void 0 : _a10.onUpdate(time);
+          (_a13 = UiView2.ref) == null ? void 0 : _a13.onUpdate(time);
         }
       });
     }
@@ -1413,7 +2105,7 @@
      * @param gamepadEvent the {@link GamepadEvents}
      */
     routeGamepadInteractionEvent(gamepadEvent) {
-      const _currentUiView = this.activeUiViewEntry;
+      const _currentUiView = this.getActiveUiViewEntry();
       if ((_currentUiView == null ? void 0 : _currentUiView.ref) instanceof GamepadUiView) {
         _currentUiView.ref.handleGamepadEvent(gamepadEvent);
       }
@@ -1446,10 +2138,10 @@
       );
     }
     destroy() {
-      var _a10;
+      var _a13;
       const root = this.rootRef.getOrDefault();
       if (root !== null) {
-        (_a10 = root.parentNode) == null ? void 0 : _a10.removeChild(root);
+        (_a13 = root.parentNode) == null ? void 0 : _a13.removeChild(root);
       }
       super.destroy();
     }
@@ -1468,12 +2160,12 @@
   }, "__decorateClass");
   var _AppView = class _AppView extends import_msfs_sdk.DisplayComponent {
     constructor(props) {
-      var _a10;
+      var _a13;
       super(props);
       this.rootRef = import_msfs_sdk.FSComponent.createRef();
       this.pageKeyActions = /* @__PURE__ */ new Map();
       this._appViewService = props.appViewService || (props.bus ? new AppViewService(props.bus) : void 0);
-      this._bus = (_a10 = this._appViewService) == null ? void 0 : _a10.bus;
+      this._bus = (_a13 = this._appViewService) == null ? void 0 : _a13.bus;
       this._unitsSettingManager = props.unitsSettingManager;
       this._efbSettingsManager = props.efbSettingsManager;
       this._notificationManager = props.notificationManager;
@@ -1531,37 +2223,37 @@
      * Called once when the view is opened for the first time.
      */
     onOpen() {
-      var _a10;
-      (_a10 = this._appViewService) == null ? void 0 : _a10.onOpen();
+      var _a13;
+      (_a13 = this._appViewService) == null ? void 0 : _a13.onOpen();
     }
     /**
      * Called once when the view is destroyed.
      */
     onClose() {
-      var _a10;
-      (_a10 = this._appViewService) == null ? void 0 : _a10.onClose();
+      var _a13;
+      (_a13 = this._appViewService) == null ? void 0 : _a13.onClose();
     }
     /**
      * Called each time the view is resumed.
      */
     onResume() {
-      var _a10;
-      (_a10 = this._appViewService) == null ? void 0 : _a10.onResume();
+      var _a13;
+      (_a13 = this._appViewService) == null ? void 0 : _a13.onResume();
     }
     /**
      * Called each time the view is closed.
      */
     onPause() {
-      var _a10;
-      (_a10 = this._appViewService) == null ? void 0 : _a10.onPause();
+      var _a13;
+      (_a13 = this._appViewService) == null ? void 0 : _a13.onPause();
     }
     /**
      * On Update loop - It update the `AppViewService` if it is used.
      * @param time in milliseconds
      */
     onUpdate(time) {
-      var _a10;
-      (_a10 = this._appViewService) == null ? void 0 : _a10.update(time);
+      var _a13;
+      (_a13 = this._appViewService) == null ? void 0 : _a13.update(time);
     }
     /**
      * Callback to register all views the app might use.
@@ -1573,8 +2265,8 @@
      * TODO : Need to be documented after Gamepad integration
      */
     routeGamepadInteractionEvent(gamepadEvent) {
-      var _a10;
-      (_a10 = this._appViewService) == null ? void 0 : _a10.routeGamepadInteractionEvent(gamepadEvent);
+      var _a13;
+      (_a13 = this._appViewService) == null ? void 0 : _a13.routeGamepadInteractionEvent(gamepadEvent);
     }
     /**
      * @internal
@@ -1618,17 +2310,17 @@
     }
     /** @inheritdoc */
     onAfterRender(node) {
-      var _a10;
+      var _a13;
       super.onAfterRender(node);
       this.registerViews();
       if (this.defaultView) {
-        (_a10 = this._appViewService) == null ? void 0 : _a10.initialize(this.defaultView);
+        (_a13 = this._appViewService) == null ? void 0 : _a13.initialize(this.defaultView);
       }
     }
     /** @internal */
     destroy() {
-      var _a10;
-      (_a10 = this._appViewService) == null ? void 0 : _a10.unload();
+      var _a13;
+      (_a13 = this._appViewService) == null ? void 0 : _a13.unload();
       super.destroy();
     }
   };
@@ -1651,9 +2343,9 @@
   ], AppView.prototype, "onboardingManager");
   var _Button = class _Button extends GamepadUiComponent {
     constructor() {
-      var _a10, _b, _c, _d;
+      var _a13, _b, _c, _d;
       super(...arguments);
-      this.isButtonDisabled = import_msfs_sdk.SubscribableUtils.toSubscribable((_a10 = this.props.disabled) != null ? _a10 : false, true);
+      this.isButtonDisabled = import_msfs_sdk.SubscribableUtils.toSubscribable((_a13 = this.props.disabled) != null ? _a13 : false, true);
       this.isButtonHoverable = import_msfs_sdk.MappedSubject.create(
         ([isHoverable, isDisabled]) => {
           return isHoverable && !isDisabled;
@@ -1699,11 +2391,11 @@
       super.onAfterRender(node);
       if (this.props.callback) {
         this.gamepadUiComponentRef.instance.onclick = (event) => {
-          var _a10;
+          var _a13;
           if (this.isButtonDisabled.get() === true) {
             return;
           }
-          (_a10 = this.props.callback) == null ? void 0 : _a10.call(this, event);
+          (_a13 = this.props.callback) == null ? void 0 : _a13.call(this, event);
         };
       }
     }
@@ -1714,15 +2406,154 @@
   };
   __name(_Button, "Button");
   var Button = _Button;
+  var _a4;
+  var _GamepadListNavigationManager = (_a4 = class {
+    constructor(data, toolbox) {
+      var _a13, _b;
+      this.data = data;
+      this.toolbox = toolbox;
+      this.allowedUpcomingNavigationMs = 0;
+      this.currentItemIndex = import_msfs_sdk.Subject.create(-1);
+      this.isListFocusedSubscriptions = [];
+      this.currentItemIndexSubscription = this.currentItemIndex.sub((index2) => {
+        var _a22, _b2;
+        const item = index2 < 0 || index2 >= this.data.length ? null : this.data.get(index2);
+        (_b2 = (_a22 = this.toolbox).onItemHovered) == null ? void 0 : _b2.call(_a22, item, index2);
+      });
+      this.internalInputManager = new InternalInputManager(InternalInputActions);
+      this.navigationBetweenItemsDelayMs = (_a13 = toolbox.navigationBetweenItemsDelayMs) != null ? _a13 : _a4.defaultNavigationBetweenItemsDelayMs;
+      if (toolbox.wrap) {
+        this.computeUpcomingItemIndex = (previousItemIndex, step) => (this.data.length + previousItemIndex + step) % this.data.length;
+      } else {
+        this.computeUpcomingItemIndex = (previousItemIndex, step) => {
+          const upcomingItemIndex = previousItemIndex + step;
+          if (upcomingItemIndex >= 0 && upcomingItemIndex < this.data.length) {
+            return upcomingItemIndex;
+          } else {
+            return previousItemIndex;
+          }
+        };
+      }
+      if (import_msfs_sdk.SubscribableUtils.isMutableSubscribable(toolbox.isListFocused)) {
+        this.isListFocused = toolbox.isListFocused;
+      } else if (import_msfs_sdk.SubscribableUtils.isSubscribable(toolbox.isListFocused)) {
+        this.isListFocused = import_msfs_sdk.Subject.create(toolbox.isListFocused.get());
+        this.isListFocusedSubscriptions.push(
+          toolbox.isListFocused.sub((value2) => this.isListFocused.set(value2))
+        );
+      } else {
+        this.isListFocused = import_msfs_sdk.Subject.create((_b = toolbox.isListFocused) != null ? _b : false);
+      }
+      this.isListFocusedSubscriptions.push(
+        import_msfs_sdk.MappedSubject.create(
+          ([is2D, isFocused]) => {
+            if (is2D && isFocused) {
+              this.enableGamepadNavigation();
+            } else {
+              this.disableGamepadNavigation();
+            }
+          },
+          window.PanelInfo.is2D,
+          this.isListFocused
+        )
+      );
+    }
+    navigateThroughList(step) {
+      const currentNavigationTryMs = Date.now();
+      if (currentNavigationTryMs < this.allowedUpcomingNavigationMs) {
+        return false;
+      }
+      this.allowedUpcomingNavigationMs = currentNavigationTryMs + this.navigationBetweenItemsDelayMs;
+      const currentItemIndex = this.currentItemIndex.get();
+      if (currentItemIndex === -1) {
+        return false;
+      }
+      const upcomingItemIndex = this.computeUpcomingItemIndex(currentItemIndex, step);
+      this.currentItemIndex.set(upcomingItemIndex);
+      return true;
+    }
+    enableGamepadNavigation() {
+      Coherent.trigger("SET_EFB_GAMEPAD_NAVIGATION", true);
+      this.currentItemIndex.set(0);
+      this.unfocusListActionDestructor = this.internalInputManager.addInputAction(
+        InternalInputAction.BACK,
+        () => {
+          this.isListFocused.set(false);
+          return true;
+        }
+      );
+      this.selectItemActionDestructor = this.internalInputManager.addInputAction(
+        InternalInputAction.VALID,
+        () => {
+          var _a13, _b;
+          const currentItemIndex = this.currentItemIndex.get();
+          try {
+            (_b = (_a13 = this.toolbox).onItemSelected) == null ? void 0 : _b.call(_a13, this.data.get(currentItemIndex), currentItemIndex);
+          } catch (e) {
+            return false;
+          }
+          return true;
+        }
+      );
+      this.allowedUpcomingNavigationMs = Date.now();
+      this.prevItemActionDestructor = this.internalInputManager.addInputAction(
+        InternalInputAction.UP,
+        () => this.navigateThroughList(
+          -1
+          /* UP */
+        ),
+        { inputType: "axis" }
+      );
+      this.nextItemActionDestructor = this.internalInputManager.addInputAction(
+        InternalInputAction.DOWN,
+        () => this.navigateThroughList(
+          1
+          /* DOWN */
+        ),
+        { inputType: "axis" }
+      );
+    }
+    disableGamepadNavigation() {
+      var _a13, _b, _c, _d;
+      (_a13 = this.unfocusListActionDestructor) == null ? void 0 : _a13.call(this);
+      this.unfocusListActionDestructor = void 0;
+      (_b = this.selectItemActionDestructor) == null ? void 0 : _b.call(this);
+      this.selectItemActionDestructor = void 0;
+      (_c = this.prevItemActionDestructor) == null ? void 0 : _c.call(this);
+      this.prevItemActionDestructor = void 0;
+      (_d = this.nextItemActionDestructor) == null ? void 0 : _d.call(this);
+      this.nextItemActionDestructor = void 0;
+      this.currentItemIndex.set(-1);
+      Coherent.trigger("SET_EFB_GAMEPAD_NAVIGATION", false);
+    }
+    pause() {
+      this.disableGamepadNavigation();
+      this.currentItemIndexSubscription.pause();
+      this.isListFocusedSubscriptions.forEach((subscription) => {
+        subscription.pause();
+      });
+    }
+    resume() {
+      this.currentItemIndexSubscription.resume(this.isListFocused.get());
+      this.isListFocusedSubscriptions.forEach((subscription) => {
+        subscription.resume(true);
+      });
+    }
+    destroy() {
+      this.currentItemIndexSubscription.destroy();
+      this.isListFocusedSubscriptions.forEach((subscription) => {
+        subscription.destroy();
+      });
+      this.disableGamepadNavigation();
+    }
+  }, __name(_a4, "_GamepadListNavigationManager"), _a4);
+  _GamepadListNavigationManager.defaultNavigationBetweenItemsDelayMs = 100;
   var _IconElement = class _IconElement extends import_msfs_sdk.DisplayComponent {
-    constructor(props) {
-      super(props);
+    constructor() {
+      super(...arguments);
       this.url = import_msfs_sdk.SubscribableUtils.toSubscribable(this.props.url, true);
       this.el = import_msfs_sdk.FSComponent.createRef();
-      this.classes = {
-        "icon-element": true
-      };
-      this.onIconLoaded = (found, svgAsString) => {
+      this.onSVGIconLoaded = (found, svgAsString) => {
         this.el.instance.innerText = "";
         if (!found) {
           console.error(`Image ${this.url.get()} was not found`);
@@ -1735,39 +2566,29 @@
           this.el.instance.appendChild(svgAsHtml);
         }
       };
-      const propsClass = props.class;
-      if (propsClass) {
-        Object.assign(this.classes, typeof propsClass === "string" ? { [propsClass]: true } : propsClass);
-      }
     }
     render() {
-      return /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("div", { ref: this.el, class: this.classes });
+      return /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("div", { ref: this.el, class: mergeClassProp("icon-element", this.props.class) });
     }
     onAfterRender(node) {
       super.onAfterRender(node);
       this.urlSub = this.url.sub((url) => {
-        if (!url.endsWith(".svg")) {
-          console.error(`IconElement doesn't support ".${url.split(".").pop()}" filetype.`);
-          return;
+        if (url.endsWith(".svg")) {
+          getIconCacheMgr().loadURL(url, this.onSVGIconLoaded);
+        } else {
+          this.el.instance.innerHTML = `<img src="${url}" onerror="console.error('Image ${url} was not found')" />`;
         }
-        getIconCacheMgr().loadURL(url, this.onIconLoaded);
       }, true);
     }
     destroy() {
-      var _a10;
-      (_a10 = this.urlSub) == null ? void 0 : _a10.destroy();
+      var _a13;
+      (_a13 = this.urlSub) == null ? void 0 : _a13.destroy();
       super.destroy();
     }
   };
   __name(_IconElement, "IconElement");
   var IconElement = _IconElement;
   var _IconButton = class _IconButton extends import_msfs_sdk.DisplayComponent {
-    iconRendering() {
-      if (this.props.iconPath) {
-        return /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent(IconElement, { url: this.props.iconPath });
-      }
-      return null;
-    }
     render() {
       return /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent(
         Button,
@@ -1781,29 +2602,124 @@
           disabled: this.props.disabled,
           onboardingStepId: this.props.onboardingStepId
         },
-        this.iconRendering()
+        /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent(IconElement, { url: this.props.iconPath })
       );
     }
   };
   __name(_IconButton, "IconButton");
   var IconButton = _IconButton;
+  var _a5;
+  var _BearingDisplay = (_a5 = class extends import_msfs_sdk.AbstractNumberUnitDisplay {
+    constructor() {
+      var _a13;
+      super(...arguments);
+      this.unitFormatter = (_a13 = this.props.unitFormatter) != null ? _a13 : _a5.DEFAULT_UNIT_FORMATTER;
+      this.unitTextBigDisplay = import_msfs_sdk.Subject.create("");
+      this.unitTextSmallDisplay = import_msfs_sdk.Subject.create("");
+      this.numberText = import_msfs_sdk.Subject.create("");
+      this.unitTextBig = import_msfs_sdk.Subject.create("");
+      this.unitTextSmall = import_msfs_sdk.Subject.create("");
+    }
+    /** @inheritdoc */
+    onValueChanged(value2) {
+      let displayUnit = this.displayUnit.get();
+      if (!displayUnit || !value2.unit.canConvert(displayUnit)) {
+        displayUnit = value2.unit;
+      }
+      const numberValue = value2.asUnit(displayUnit);
+      this.updateNumberText(numberValue);
+      this.updateUnitText(numberValue, displayUnit);
+      if (this.props.hideDegreeSymbolWhenNan === true) {
+        this.updateUnitTextVisibility(numberValue);
+      }
+    }
+    /** @inheritdoc */
+    onDisplayUnitChanged(displayUnit) {
+      const value2 = this.value.get();
+      if (!displayUnit || !value2.unit.canConvert(displayUnit)) {
+        displayUnit = value2.unit;
+      }
+      const numberValue = value2.asUnit(displayUnit);
+      this.updateNumberText(numberValue);
+      this.updateUnitText(numberValue, displayUnit);
+      this.updateUnitTextVisibility(numberValue);
+    }
+    /**
+     * Updates this component's displayed number text.
+     * @param numberValue The numeric value to display.
+     */
+    updateNumberText(numberValue) {
+      let numberText = this.props.formatter(numberValue);
+      if (this.props.use360 !== false && parseFloat(numberText) === 0) {
+        numberText = this.props.formatter(360);
+      }
+      this.numberText.set(numberText);
+    }
+    /**
+     * Updates this component's displayed unit text.
+     * @param numberValue The numeric value to display.
+     * @param displayUnit The unit type in which to display the value.
+     */
+    updateUnitText(numberValue, displayUnit) {
+      _a5.unitTextCache[0] = "";
+      _a5.unitTextCache[1] = "";
+      this.unitFormatter(_a5.unitTextCache, displayUnit, numberValue);
+      this.unitTextBig.set(_a5.unitTextCache[0]);
+      this.unitTextSmall.set(_a5.unitTextCache[1]);
+    }
+    /**
+     * Updates whether this component's unit text spans are visible.
+     * @param numberValue The numeric value displayed by this component.
+     */
+    updateUnitTextVisibility(numberValue) {
+      if (this.props.hideDegreeSymbolWhenNan === true) {
+        if (isNaN(numberValue)) {
+          this.unitTextBigDisplay.set("none");
+          this.unitTextSmallDisplay.set("none");
+          return;
+        }
+      }
+      this.unitTextBigDisplay.set(this.unitTextBig.get() === "" ? "none" : "");
+      this.unitTextSmallDisplay.set(this.unitTextSmall.get() === "" ? "none" : "");
+    }
+    /** @inheritdoc */
+    render() {
+      var _a13;
+      return /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("div", { class: (_a13 = this.props.class) != null ? _a13 : "", style: "white-space: nowrap;" }, /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("span", { class: "bearing-num" }, this.numberText), /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("span", { class: "bearing-unit", style: { display: this.unitTextBigDisplay } }, this.unitTextBig), /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("span", { class: "bearing-unit-small", style: { display: this.unitTextSmallDisplay } }, this.unitTextSmall));
+    }
+  }, __name(_a5, "_BearingDisplay"), _a5);
+  _BearingDisplay.DEFAULT_UNIT_FORMATTER = (out, unit) => {
+    out[0] = "\xB0";
+    out[1] = unit.isMagnetic() ? "" : "T";
+  };
+  _BearingDisplay.unitTextCache = ["", ""];
   var _Input = class _Input extends GamepadUiComponent {
     constructor() {
-      var _a10, _b;
+      var _a13, _b;
       super(...arguments);
       this.uuid = import_msfs_sdk.UUID.GenerateUuid();
-      this.input_id = "";
       this.inputRef = this.gamepadUiComponentRef;
       this.model = this.props.model || import_msfs_sdk.Subject.create(import_msfs_sdk.SubscribableUtils.toSubscribable(this.props.value || "", true).get());
+      this.internalInputManager = new InternalInputManager(InternalInputActions);
       this.dispatchFocusOutEvent = this._dispatchFocusOutEvent.bind(this);
-      this._onKeyPress = this.onKeyPress.bind(this);
-      this._onInput = this.onInput.bind(this);
+      this.setValueFromOS = this._setValueFromOS.bind(this);
+      this.onKeyDown = this._onKeyDown.bind(this);
+      this.onKeyUp = this._onKeyUp.bind(this);
+      this.onKeyPress = this._onKeyPress.bind(this);
+      this.onInput = this._onInput.bind(this);
       this.align = this.props.align || "left";
       this.debounce = new import_msfs_sdk.DebounceTimer();
       this.reloadLocalisation = this._reloadLocalisation.bind(this);
       this._isFocused = import_msfs_sdk.Subject.create(false);
       this.isFocused = this._isFocused;
-      this.placeholderKey = import_msfs_sdk.SubscribableUtils.toSubscribable((_a10 = this.props.placeholder) != null ? _a10 : "", true);
+      this.focusSubscription = this._isFocused.sub((focus) => {
+        if (focus) {
+          this.onFocusIn();
+        } else {
+          this.onFocusOut();
+        }
+      });
+      this.placeholderKey = import_msfs_sdk.SubscribableUtils.toSubscribable((_a13 = this.props.placeholder) != null ? _a13 : "", true);
       this.placeholderShown = import_msfs_sdk.Subject.create(true);
       this.placeholderTranslation = import_msfs_sdk.Subject.create(this.placeholderKey.get());
       this.hidePlaceholderOnFocus = (_b = this.props.hidePlaceholderOnFocus) != null ? _b : false;
@@ -1812,10 +2728,18 @@
     _reloadLocalisation() {
       this.placeholderTranslation.notify();
     }
-    onKeyPress(event) {
-      var _a10, _b;
+    _onKeyDown(event) {
+      var _a13, _b;
+      (_b = (_a13 = this.props).onKeyDown) == null ? void 0 : _b.call(_a13, event);
+    }
+    _onKeyUp(event) {
+      var _a13, _b;
+      (_b = (_a13 = this.props).onKeyUp) == null ? void 0 : _b.call(_a13, event);
+    }
+    _onKeyPress(event) {
+      var _a13, _b;
       const keyCode = event.keyCode || event.which;
-      (_b = (_a10 = this.props).onKeyPress) == null ? void 0 : _b.call(_a10, event);
+      (_b = (_a13 = this.props).onKeyPress) == null ? void 0 : _b.call(_a13, event);
       if (event.defaultPrevented) {
         return;
       }
@@ -1824,49 +2748,68 @@
         return;
       }
     }
-    onInput() {
-      var _a10;
+    _onInput() {
+      var _a13;
       this.debounce.schedule(() => {
         const value2 = this.inputRef.instance.value;
         if (value2 === this.model.get()) {
           return;
         }
         this.model.set(value2);
-      }, (_a10 = this.props.debounceDuration) != null ? _a10 : 0);
+      }, (_a13 = this.props.debounceDuration) != null ? _a13 : 0);
     }
     onInputUpdated(value2) {
-      var _a10, _b;
+      var _a13, _b;
       this.inputRef.instance.value = value2;
-      (_b = (_a10 = this.props).onInput) == null ? void 0 : _b.call(_a10, this.inputRef.instance);
+      (_b = (_a13 = this.props).onInput) == null ? void 0 : _b.call(_a13, this.inputRef.instance);
       if (!this.hidePlaceholderOnFocus && value2.length === 0) {
         this.placeholderShown.set(true);
       }
     }
     onFocusIn() {
-      var _a10, _b;
-      (_b = (_a10 = this.props).onFocusIn) == null ? void 0 : _b.call(_a10);
-      this.input_id = InputsListener.addInputChangeCallback("MENU_CORE", "KEY_MENU_SR_BACK", (down) => {
-        if (down) {
-          this.inputRef.instance.blur();
-        }
+      var _a13, _b;
+      Coherent.trigger("FOCUS_INPUT_FIELD", {
+        // TODO Allow the following parameters to be customized via props
+        title: "Title",
+        description: "",
+        default_text: "",
+        is_numeric: this.props.type === "number",
+        is_efb: true
       });
+      Coherent.on("mousePressOutsideView", this.dispatchFocusOutEvent);
+      Coherent.on("SetInputTextFromOS", this.setValueFromOS);
+      this.focusOutActionDestructor = this.internalInputManager.addInputAction(
+        InternalInputAction.BACK,
+        () => {
+          this.dispatchFocusOutEvent();
+          return true;
+        }
+      );
+      this.validateInputActionDestructor = this.internalInputManager.addInputAction(
+        InternalInputAction.TEXTBOX_VALID,
+        () => {
+          var _a22, _b2;
+          (_b2 = (_a22 = this.props).onValueValidated) == null ? void 0 : _b2.call(_a22, this.inputRef.instance.value);
+          this.dispatchFocusOutEvent();
+          return true;
+        }
+      );
       if (this.hidePlaceholderOnFocus && this.inputRef.instance.value.length === 0) {
         this.placeholderShown.set(false);
       }
+      (_b = (_a13 = this.props).onFocusIn) == null ? void 0 : _b.call(_a13);
     }
     onFocusOut() {
-      var _a10, _b;
-      (_b = (_a10 = this.props).onFocusOut) == null ? void 0 : _b.call(_a10);
-      InputsListener.removeInputChangeCallback(this.input_id);
+      var _a13, _b, _c, _d;
+      (_a13 = this.focusOutActionDestructor) == null ? void 0 : _a13.call(this);
+      (_b = this.validateInputActionDestructor) == null ? void 0 : _b.call(this);
+      Coherent.trigger("UNFOCUS_INPUT_FIELD", this.uuid);
+      Coherent.off("mousePressOutsideView", this.dispatchFocusOutEvent);
+      Coherent.off("SetInputTextFromOS", this.setValueFromOS);
       if (this.hidePlaceholderOnFocus && this.inputRef.instance.value.length === 0) {
         this.placeholderShown.set(true);
       }
-    }
-    focus() {
-      this.inputRef.instance.focus();
-    }
-    blur() {
-      this.inputRef.instance.blur();
+      (_d = (_c = this.props).onFocusOut) == null ? void 0 : _d.call(_c);
     }
     value() {
       return this.model.get();
@@ -1874,8 +2817,36 @@
     clearInput() {
       this.model.set("");
     }
+    focus() {
+      const inputInstance = this.inputRef.getOrDefault();
+      if (inputInstance !== null) {
+        inputInstance.focus();
+      }
+    }
+    blur() {
+      const inputInstance = this.inputRef.getOrDefault();
+      if (inputInstance !== null) {
+        inputInstance.blur();
+      }
+    }
     _dispatchFocusOutEvent() {
-      this.inputRef.instance.blur();
+      const inputInstance = this.inputRef.getOrDefault();
+      if (inputInstance !== null) {
+        inputInstance.blur();
+        inputInstance.dispatchEvent(new InputEvent("focusout"));
+      }
+    }
+    _setValueFromOS(text) {
+      var _a13, _b;
+      const inputInstance = this.inputRef.getOrDefault();
+      if (inputInstance !== null) {
+        inputInstance.value = text;
+        inputInstance.dispatchEvent(new InputEvent("change"));
+        inputInstance.dispatchEvent(new InputEvent("input"));
+        inputInstance.dispatchEvent(new InputEvent("submit"));
+        (_b = (_a13 = this.props).onValueValidated) == null ? void 0 : _b.call(_a13, text);
+        this.dispatchFocusOutEvent();
+      }
     }
     render() {
       return /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent(
@@ -1909,39 +2880,31 @@
           this.placeholderTranslation.set(key);
         }, true)
       );
-      this.inputRef.instance.addEventListener("focus", () => {
-        if (this._isFocused.get()) {
-          return;
-        }
-        this._isFocused.set(true);
-        Coherent.trigger("FOCUS_INPUT_FIELD", this.uuid, "", "", "", this.props.type === "number");
-        Coherent.on("mousePressOutsideView", this.dispatchFocusOutEvent);
-        this.onFocusIn();
-      });
-      this.inputRef.instance.addEventListener("focusout", () => {
-        if (!this._isFocused.get()) {
-          return;
-        }
-        this._isFocused.set(false);
-        Coherent.trigger("UNFOCUS_INPUT_FIELD", this.uuid);
-        Coherent.off("mousePressOutsideView", this.dispatchFocusOutEvent);
-        this.onFocusOut();
-      });
-      this.inputRef.instance.addEventListener("input", this._onInput);
-      this.inputRef.instance.addEventListener("keypress", this._onKeyPress);
+      this.inputRef.instance.addEventListener("focus", () => this._isFocused.set(true));
+      this.inputRef.instance.addEventListener("focusout", () => this._isFocused.set(false));
+      this.inputRef.instance.addEventListener("input", this.onInput);
+      this.inputRef.instance.addEventListener("keydown", this.onKeyDown);
+      this.inputRef.instance.addEventListener("keyup", this.onKeyUp);
+      this.inputRef.instance.addEventListener("keypress", this.onKeyPress);
       Coherent.on("RELOAD_LOCALISATION", this.reloadLocalisation);
       if (this.props.focusOnInit) {
         this.focus();
       }
     }
     destroy() {
+      var _a13;
       this.subs.forEach((s) => s.destroy());
+      this.focusSubscription.destroy();
+      (_a13 = this.focusOutActionDestructor) == null ? void 0 : _a13.call(this);
       if (this._isFocused.get()) {
         Coherent.trigger("UNFOCUS_INPUT_FIELD", this.uuid);
         Coherent.off("mousePressOutsideView", this.dispatchFocusOutEvent);
+        Coherent.off("SetInputTextFromOS", this.setValueFromOS);
       }
-      this.inputRef.instance.removeEventListener("keypress", this._onKeyPress);
-      this.inputRef.instance.removeEventListener("input", this._onInput);
+      this.inputRef.instance.removeEventListener("keydown", this.onKeyDown);
+      this.inputRef.instance.removeEventListener("keyup", this.onKeyUp);
+      this.inputRef.instance.removeEventListener("keypress", this.onKeyPress);
+      this.inputRef.instance.removeEventListener("input", this.onInput);
       Coherent.off("RELOAD_LOCALISATION", this.reloadLocalisation);
       super.destroy();
     }
@@ -1951,6 +2914,7 @@
   var addIconPath = "coui://html_ui/efb_ui/efb_os/Assets/icons/NoMargin/Close.svg";
   var _TextBox = class _TextBox extends GamepadUiComponent {
     constructor() {
+      var _a13, _b;
       super(...arguments);
       this.subscriptions = [];
       this.inputRef = import_msfs_sdk.FSComponent.createRef();
@@ -1971,8 +2935,8 @@
         this.props.suffix || "",
         true
       );
-      this.showPrefix = import_msfs_sdk.SubscribableUtils.toSubscribable(this.props.showPrefix || true, true);
-      this.showSuffix = import_msfs_sdk.SubscribableUtils.toSubscribable(this.props.showSuffix || true, true);
+      this.showPrefix = import_msfs_sdk.SubscribableUtils.toSubscribable((_a13 = this.props.showPrefix) != null ? _a13 : true, true);
+      this.showSuffix = import_msfs_sdk.SubscribableUtils.toSubscribable((_b = this.props.showSuffix) != null ? _b : true, true);
       this.prefixRef = import_msfs_sdk.FSComponent.createRef();
       this.suffixRef = import_msfs_sdk.FSComponent.createRef();
       this.showPrefixOrSuffixMapFunction = ([value2, show]) => {
@@ -1980,30 +2944,30 @@
       };
     }
     _onDelete(event) {
-      var _a10, _b;
+      var _a13, _b;
       event.preventDefault();
       this.hideDeleteTextButton.set(true);
       this.inputRef.instance.clearInput();
-      (_b = (_a10 = this.props).onDelete) == null ? void 0 : _b.call(_a10);
+      (_b = (_a13 = this.props).onDelete) == null ? void 0 : _b.call(_a13);
       if (this.props.focusOnClear) {
         this.inputRef.instance.focus();
       }
     }
     onInput(input) {
-      var _a10, _b;
-      (_b = (_a10 = this.props).onInput) == null ? void 0 : _b.call(_a10, input);
+      var _a13, _b;
+      (_b = (_a13 = this.props).onInput) == null ? void 0 : _b.call(_a13, input);
       if (this.props.showDeleteIcon) {
         this.hideDeleteTextButton.set(input.value.trim().length === 0);
       }
     }
     onFocusIn() {
-      var _a10, _b;
-      (_b = (_a10 = this.props).onFocusIn) == null ? void 0 : _b.call(_a10);
+      var _a13, _b;
+      (_b = (_a13 = this.props).onFocusIn) == null ? void 0 : _b.call(_a13);
       this.gamepadUiComponentRef.instance.classList.add("textbox--focused");
     }
     onFocusOut() {
-      var _a10, _b;
-      (_b = (_a10 = this.props).onFocusOut) == null ? void 0 : _b.call(_a10);
+      var _a13, _b;
+      (_b = (_a13 = this.props).onFocusOut) == null ? void 0 : _b.call(_a13);
       this.gamepadUiComponentRef.instance.classList.remove("textbox--focused");
     }
     render() {
@@ -2032,7 +2996,10 @@
           onFocusIn: this.onFocusIn.bind(this),
           onFocusOut: this.onFocusOut.bind(this),
           onInput: this.onInput.bind(this),
+          onValueValidated: this.props.onValueValidated,
           debounceDuration: this.props.debounceDuration,
+          onKeyDown: this.props.onKeyDown,
+          onKeyUp: this.props.onKeyUp,
           onKeyPress: this.props.onKeyPress,
           charFilter: this.props.charFilter
         }
@@ -2094,16 +3061,18 @@
   };
   __name(_TextBox, "TextBox");
   var TextBox = _TextBox;
-  var _a4;
-  var _UnitBox = (_a4 = class extends GamepadUiComponent {
+  var _a6;
+  var _UnitBox = (_a6 = class extends GamepadUiComponent {
     constructor() {
-      var _a10, _b;
+      var _a13, _b;
       super(...arguments);
       this.valueNumber = this.props.value;
-      this.unit = import_msfs_sdk.SubscribableUtils.toSubscribable((_a10 = this.props.unit) != null ? _a10 : null, true);
+      this.unit = import_msfs_sdk.SubscribableUtils.toSubscribable((_a13 = this.props.unit) != null ? _a13 : null, true);
       this.showUnitSuffix = import_msfs_sdk.SubscribableUtils.toSubscribable((_b = this.props.showSuffix) != null ? _b : true, true);
-      this.valueText = import_msfs_sdk.Subject.create("0");
+      this.textValue = import_msfs_sdk.Subject.create("0");
+      this.formattedTextValue = import_msfs_sdk.Subject.create("0");
       this.subs = [];
+      this.canUpdateDisplay = true;
       this.suffixSmall = import_msfs_sdk.Subject.create("");
       this.suffixBig = import_msfs_sdk.Subject.create("");
     }
@@ -2126,25 +3095,32 @@
       }
       return map;
     }
-    updateDisplay(value2, displayUnit) {
+    setValue(value2, displayUnit) {
+      var _a13;
       if (!displayUnit || !value2.unit.canConvert(displayUnit)) {
         displayUnit = value2.unit;
       }
-      const numberValue = value2.asUnit(displayUnit);
+      let numberValue = value2.asUnit(displayUnit);
+      if (this.props.min && numberValue < this.props.min.asUnit(displayUnit)) {
+        numberValue = this.props.min.asUnit(displayUnit);
+      }
+      if (this.props.max && numberValue > this.props.max.asUnit(displayUnit)) {
+        numberValue = this.props.max.asUnit(displayUnit);
+      }
       if (numberValue >= 9999999) {
-        this.valueText.set("9999999");
+        this.textValue.set("9999999");
         return;
       }
-      const numberText = import_msfs_sdk.NumberFormatter.create({
+      const numberText = import_msfs_sdk.NumberFormatter.create(__spreadValues({
         nanString: "0"
-      })(numberValue);
+      }, (_a13 = this.props.numberFormatterOptions) != null ? _a13 : {}))(numberValue);
       if (numberText.includes(".")) {
         const dotPos = numberText.indexOf(".");
-        this.valueText.set(numberText.substring(0, dotPos + 3));
+        this.textValue.set(numberText.substring(0, dotPos + 3));
       } else {
-        this.valueText.set(this.valueText.get().includes(".") ? `${numberText}.` : numberText);
+        this.textValue.set(this.textValue.get().includes(".") ? `${numberText}.` : numberText);
       }
-      const unitTexts = _a4.DEFAULT_UNIT_FORMATTER(displayUnit);
+      const unitTexts = _a6.DEFAULT_UNIT_FORMATTER(displayUnit);
       if (unitTexts === null) {
         this.suffixSmall.set("");
         this.suffixBig.set("");
@@ -2152,6 +3128,13 @@
       }
       this.suffixSmall.set(unitTexts[0]);
       this.suffixBig.set(unitTexts[1]);
+    }
+    updateDisplay() {
+      var _a13, _b;
+      (_b = (_a13 = this.props).onFocusOut) == null ? void 0 : _b.call(_a13);
+      if (this.canUpdateDisplay) {
+        this.formattedTextValue.set(this.textValue.get());
+      }
     }
     render() {
       return /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent(
@@ -2168,16 +3151,16 @@
             customDeleteIcon: this.props.customDeleteIcon,
             focusOnClear: this.props.focusOnClear,
             onDelete: this.props.onDelete,
-            model: this.valueText,
+            model: this.formattedTextValue,
             placeholder: this.props.placeholder,
             hidePlaceholderOnFocus: this.props.hidePlaceholderOnFocus,
             disabled: this.props.disabled,
             focusOnInit: this.props.focusOnInit,
             onFocusIn: this.props.onFocusIn,
-            onFocusOut: this.props.onFocusOut,
+            onFocusOut: this.updateDisplay.bind(this),
             onInput: this.props.onInput,
             onKeyPress: this.props.onKeyPress,
-            charFilter: /* @__PURE__ */ __name((char) => char >= "0" && char <= "9" || [",", "."].includes(char), "charFilter"),
+            charFilter: /* @__PURE__ */ __name((char) => char >= "0" && char <= "9" || [",", ".", "-"].includes(char), "charFilter"),
             suffix: /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent(import_msfs_sdk.FSComponent.Fragment, null, /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("span", null, this.suffixSmall), /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("span", null, this.suffixBig)),
             showSuffix: this.showUnitSuffix
           }
@@ -2187,21 +3170,24 @@
     onAfterRender(node) {
       super.onAfterRender(node);
       this.subs.push(
-        this.valueText.sub((value2) => {
+        this.formattedTextValue.sub((value2) => {
           value2 = value2.replace(",", ".").replace(/\.+$/, "");
           let displayUnit = this.unit.get();
           if (!displayUnit || !this.valueNumber.get().unit.canConvert(displayUnit)) {
             displayUnit = this.valueNumber.get().unit;
           }
           const unitValue = displayUnit.convertTo(Number(value2), this.valueNumber.get().unit);
+          this.canUpdateDisplay = false;
           this.valueNumber.set(unitValue);
-          this.updateDisplay(this.valueNumber.get(), this.unit.get());
+          this.canUpdateDisplay = true;
         }),
         this.valueNumber.sub((value2) => {
-          this.updateDisplay(value2, this.unit.get());
+          this.setValue(value2, this.unit.get());
+          this.updateDisplay();
         }, true),
         this.unit.sub((unit) => {
-          this.updateDisplay(this.valueNumber.get(), unit);
+          this.setValue(this.valueNumber.get(), unit);
+          this.updateDisplay();
         }, true)
       );
     }
@@ -2209,11 +3195,11 @@
       this.subs.forEach((s) => s.destroy());
       super.destroy();
     }
-  }, __name(_a4, "_UnitBox"), _a4);
+  }, __name(_a6, "_UnitBox"), _a6);
   _UnitBox.DEFAULT_UNIT_TEXT_MAP = _UnitBox.createDefaultUnitTextMap();
   _UnitBox.DEFAULT_UNIT_FORMATTER = (unit) => {
-    var _a10;
-    const text = (_a10 = _UnitBox.DEFAULT_UNIT_TEXT_MAP[unit.family]) == null ? void 0 : _a10[unit.name];
+    var _a13;
+    const text = (_a13 = _UnitBox.DEFAULT_UNIT_TEXT_MAP[unit.family]) == null ? void 0 : _a13[unit.name];
     if (text) {
       return text;
     }
@@ -2282,8 +3268,8 @@
           if (ctx === void 0) {
             ctx = null;
           }
-          for (var _i = 0, _a10 = this.__entries__; _i < _a10.length; _i++) {
-            var entry = _a10[_i];
+          for (var _i = 0, _a13 = this.__entries__; _i < _a13.length; _i++) {
+            var entry = _a13[_i];
             callback.call(ctx, entry[1], entry[0]);
           }
         };
@@ -2433,8 +3419,8 @@
         this.mutationEventsAdded_ = false;
         this.connected_ = false;
       };
-      ResizeObserverController2.prototype.onTransitionEnd_ = function(_a10) {
-        var _b = _a10.propertyName, propertyName = _b === void 0 ? "" : _b;
+      ResizeObserverController2.prototype.onTransitionEnd_ = function(_a13) {
+        var _b = _a13.propertyName, propertyName = _b === void 0 ? "" : _b;
         var isReflowProperty = transitionKeys.some(function(key) {
           return !!~propertyName.indexOf(key);
         });
@@ -2453,8 +3439,8 @@
     })()
   );
   var defineConfigurable = /* @__PURE__ */ __name(function(target, props) {
-    for (var _i = 0, _a10 = Object.keys(props); _i < _a10.length; _i++) {
-      var key = _a10[_i];
+    for (var _i = 0, _a13 = Object.keys(props); _i < _a13.length; _i++) {
+      var key = _a13[_i];
       Object.defineProperty(target, key, {
         value: props[key],
         enumerable: false,
@@ -2555,8 +3541,8 @@
     return getHTMLElementContentRect(target);
   }
   __name(getContentRect, "getContentRect");
-  function createReadOnlyRect(_a10) {
-    var x = _a10.x, y = _a10.y, width = _a10.width, height = _a10.height;
+  function createReadOnlyRect(_a13) {
+    var x = _a13.x, y = _a13.y, width = _a13.width, height = _a13.height;
     var Constr = typeof DOMRectReadOnly !== "undefined" ? DOMRectReadOnly : Object;
     var rect = Object.create(Constr.prototype);
     defineConfigurable(rect, {
@@ -2721,8 +3707,8 @@
     "disconnect"
   ].forEach(function(method) {
     ResizeObserver.prototype[method] = function() {
-      var _a10;
-      return (_a10 = observers.get(this))[method].apply(_a10, arguments);
+      var _a13;
+      return (_a13 = observers.get(this))[method].apply(_a13, arguments);
     };
   });
   var index = (function() {
@@ -2731,19 +3717,19 @@
     }
     return ResizeObserver;
   })();
-  var _a5;
-  var _NumberUnitDisplay = (_a5 = class extends import_msfs_sdk.AbstractNumberUnitDisplay {
+  var _a7;
+  var _NumberUnitDisplay = (_a7 = class extends import_msfs_sdk.AbstractNumberUnitDisplay {
     constructor() {
-      var _a10, _b;
+      var _a13, _b;
       super(...arguments);
-      this.formatter = (_a10 = this.props.formatter) != null ? _a10 : import_msfs_sdk.NumberFormatter.create({
+      this.formatter = (_a13 = this.props.formatter) != null ? _a13 : import_msfs_sdk.NumberFormatter.create({
         // TODO Properly format the time
         precision: 0.01,
         maxDigits: 5,
         forceDecimalZeroes: false,
         nanString: "0"
       });
-      this.unitFormatter = (_b = this.props.unitFormatter) != null ? _b : _a5.DEFAULT_UNIT_FORMATTER;
+      this.unitFormatter = (_b = this.props.unitFormatter) != null ? _b : _a7.DEFAULT_UNIT_FORMATTER;
       this.unitTextBigDisplay = import_msfs_sdk.Subject.create("");
       this.unitTextSmallDisplay = import_msfs_sdk.Subject.create("");
       this.numberText = import_msfs_sdk.Subject.create("");
@@ -2771,15 +3757,15 @@
       const numberValue = value2.asUnit(displayUnit);
       const numberText = this.formatter(numberValue);
       this.numberText.set(numberText);
-      _a5.unitTextCache[0] = "";
-      _a5.unitTextCache[1] = "";
-      this.unitFormatter(_a5.unitTextCache, displayUnit, numberValue);
-      this.unitTextBig.set(_a5.unitTextCache[0]);
-      this.unitTextSmall.set(_a5.unitTextCache[1]);
+      _a7.unitTextCache[0] = "";
+      _a7.unitTextCache[1] = "";
+      this.unitFormatter(_a7.unitTextCache, displayUnit, numberValue);
+      this.unitTextBig.set(_a7.unitTextCache[0]);
+      this.unitTextSmall.set(_a7.unitTextCache[1]);
       this.updateUnitTextVisibility(
         numberValue,
-        _a5.unitTextCache[0],
-        _a5.unitTextCache[1]
+        _a7.unitTextCache[0],
+        _a7.unitTextCache[1]
       );
     }
     /**
@@ -2821,22 +3807,22 @@
       return map;
     }
     render() {
-      var _a10;
-      return /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("div", { class: (_a10 = this.props.class) != null ? _a10 : "", style: "white-space: nowrap;" }, /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("span", { class: "numberunit-num" }, this.numberText), /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("span", { class: "numberunit-unit-big", style: { display: this.unitTextBigDisplay } }, this.unitTextBig), /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("span", { class: "numberunit-unit-small", style: { display: this.unitTextSmallDisplay } }, this.unitTextSmall));
+      var _a13;
+      return /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("div", { class: (_a13 = this.props.class) != null ? _a13 : "", style: "white-space: nowrap;" }, /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("span", { class: "numberunit-num" }, this.numberText), /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("span", { class: "numberunit-unit-big", style: { display: this.unitTextBigDisplay } }, this.unitTextBig), /* @__PURE__ */ import_msfs_sdk.FSComponent.buildComponent("span", { class: "numberunit-unit-small", style: { display: this.unitTextSmallDisplay } }, this.unitTextSmall));
     }
-  }, __name(_a5, "_NumberUnitDisplay"), _a5);
+  }, __name(_a7, "_NumberUnitDisplay"), _a7);
   _NumberUnitDisplay.DEFAULT_UNIT_TEXT_MAP = _NumberUnitDisplay.createDefaultUnitTextMap();
   _NumberUnitDisplay.DEFAULT_UNIT_FORMATTER = (out, unit) => {
-    var _a10;
-    const text = (_a10 = _NumberUnitDisplay.DEFAULT_UNIT_TEXT_MAP[unit.family]) == null ? void 0 : _a10[unit.name];
+    var _a13;
+    const text = (_a13 = _NumberUnitDisplay.DEFAULT_UNIT_TEXT_MAP[unit.family]) == null ? void 0 : _a13[unit.name];
     if (text) {
       out[0] = text[0];
       out[1] = text[1];
     }
   };
   _NumberUnitDisplay.unitTextCache = ["", ""];
-  var _a6;
-  var _FacilitySearchUtils = (_a6 = class {
+  var _a8;
+  var _FacilitySearchUtils = (_a8 = class {
     constructor(bus) {
       this.facilityLoader = null;
       this.position = new import_msfs_sdk.GeoPoint(0, 0);
@@ -2846,8 +3832,8 @@
       this.facilityLoader = new import_msfs_sdk.FacilityLoader(import_msfs_sdk.FacilityRepository.getRepository(bus));
     }
     static getSearchUtils(bus) {
-      var _a10;
-      return (_a10 = _a6.INSTANCE) != null ? _a10 : _a6.INSTANCE = new _a6(bus);
+      var _a13;
+      return (_a13 = _a8.INSTANCE) != null ? _a13 : _a8.INSTANCE = new _a8(bus);
     }
     orderByIdentsAndDistance(a, b) {
       const aIdent = a.icaoStruct.ident.trim();
@@ -2871,23 +3857,17 @@
       if (this.facilityLoader === null) {
         return Promise.resolve([]);
       }
-      const icaos = await this.facilityLoader.searchByIdent(facilitySearchType, ident, 15);
-      let facilities = await Promise.all(
-        icaos.map((icao) => {
-          if (this.facilityLoader === null) {
-            return;
-          }
-          return this.facilityLoader.getFacility(import_msfs_sdk.ICAO.getFacilityTypeFromStringV1(icao), icao);
-        })
+      const icaos = await this.facilityLoader.searchByIdentWithIcaoStructs(facilitySearchType, ident, 15);
+      const facilities = (await this.facilityLoader.getFacilities(icaos)).filter(
+        (fac) => fac !== null && (!excludeTerminalFacilities || fac.icaoStruct.airport.length === 0)
       );
       facilities.sort((a, b) => this.orderByIdentsAndDistance(a, b));
-      excludeTerminalFacilities && (facilities = facilities.filter((fac) => fac.icaoStruct.airport === ""));
       return facilities;
     }
-  }, __name(_a6, "_FacilitySearchUtils"), _a6);
+  }, __name(_a8, "_FacilitySearchUtils"), _a8);
   _FacilitySearchUtils.INSTANCE = null;
-  var _a7;
-  var _SearchFacilityHistoryManager = (_a7 = class {
+  var _a9;
+  var _SearchFacilityHistoryManager = (_a9 = class {
     constructor() {
       this.MAX_ITEMS_STORED = 5;
       this.storedICAOs = import_msfs_sdk.ArraySubject.create();
@@ -2898,7 +3878,7 @@
      */
     loadICAOsFromStorage() {
       let arrayICAOs = [];
-      const stringICAOs = import_msfs_sdk.DataStore.get(_a7.DATASTORE_KEY);
+      const stringICAOs = import_msfs_sdk.DataStore.get(_a9.DATASTORE_KEY);
       if (stringICAOs === void 0 || typeof stringICAOs !== "string") {
         this.storedICAOs.set(arrayICAOs);
         return;
@@ -2912,7 +3892,7 @@
     }
     saveICAOsToStorage() {
       const stringICAOs = JSON.stringify(this.storedICAOs.getArray());
-      import_msfs_sdk.DataStore.set(_a7.DATASTORE_KEY, stringICAOs);
+      import_msfs_sdk.DataStore.set(_a9.DATASTORE_KEY, stringICAOs);
     }
     mostRecentSearch(icao) {
       const foundIndex = this.storedICAOs.getArray().findIndex((storedIcao) => storedIcao === icao);
@@ -2935,167 +3915,24 @@
       this.loadICAOsFromStorage();
       return this.storedICAOs.getArray().filter((icao) => import_msfs_sdk.ICAO.getIdent(icao).startsWith(input.toUpperCase())).slice(0, max_items);
     }
-  }, __name(_a7, "_SearchFacilityHistoryManager"), _a7);
+  }, __name(_a9, "_SearchFacilityHistoryManager"), _a9);
   _SearchFacilityHistoryManager.DATASTORE_KEY = "efb.search-bar-history";
-  var uid = 0;
-  var _Container = class _Container {
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    constructor() {
-      this._uid = uid++;
-      this._registeredAppsPromises = [];
-      this._installedApps = import_msfs_sdk.ArraySubject.create();
-    }
-    /**
-     * Static singleton instance of Efb container
-     * @internal
-     */
-    static get instance() {
-      return window.EFB_API = _Container._instance = window.EFB_API || _Container._instance || new _Container();
-    }
-    /** @internal */
-    apps() {
-      return this._installedApps;
-    }
-    /** @internal */
-    allAppsLoaded() {
-      return this._registeredAppsPromises.length === this._installedApps.length;
-    }
-    /**
-     * Method used by the OS to share the bus to apps
-     * @internal
-     */
-    setBus(bus) {
-      this.bus = bus;
-      return this;
-    }
-    /**
-     * Method used by the OS to share the units settings manager to the apps
-     * @internal
-     */
-    setUnitsSettingManager(unitsSettingManager) {
-      this.unitsSettingManager = unitsSettingManager;
-      return this;
-    }
-    /**
-     * Method used by the OS to share the settings manager to the apps
-     * @internal
-     */
-    setEfbSettingManager(efbSettingsManager) {
-      this.efbSettingsManager = efbSettingsManager;
-      return this;
-    }
-    setOnboardingManager(onboardingManager) {
-      this.onboardingManager = onboardingManager;
-      return this;
-    }
-    /**
-     * Method used by the OS to share the notification manager to the apps
-     * @internal
-     */
-    setNotificationManager(notificationManager) {
-      this.notificationManager = notificationManager;
-      return this;
-    }
-    /**
-     * Load stylesheet
-     * @param uri
-     * @returns Promise which is resolved when stylesheet is loaded or rejected if an error occur.
-     */
-    async loadCss(uri) {
-      if (document.querySelector(`link[href*="${uri}"]`)) {
-        return Promise.reject(`${uri} already loaded.`);
-      }
-      const linkTag = document.createElement("link");
-      linkTag.rel = "stylesheet";
-      linkTag.href = uri;
-      document.head.append(linkTag);
-      return new Promise((resolve, reject) => {
-        linkTag.onload = () => resolve();
-        linkTag.onerror = reject;
-      });
-    }
-    /**
-     * Load script file
-     * @param uri
-     * @returns Promise which is resolved when script is loaded or rejected if an error occur.
-     */
-    async loadJs(uri) {
-      if (document.querySelector(`script[src*="${uri}"]`)) {
-        return Promise.reject(`${uri} already loaded.`);
-      }
-      const scriptTag = document.createElement("script");
-      scriptTag.type = "text/javascript";
-      scriptTag.src = uri;
-      document.head.append(scriptTag);
-      return new Promise((resolve, reject) => {
-        scriptTag.onload = () => resolve();
-        scriptTag.onerror = reject;
-      });
-    }
-    /**
-     * Register an app in EFB
-     * @template T - App registration options
-     * @param app The app you wan't to register
-     * @param options Options you'r app might need when installing
-     * @returns EFB instance
-     * @throws Throw an error if App install went wrong.
-     */
-    use(app, ...options) {
-      var _a10;
-      try {
-        if (!this.bus) {
-          throw new Error(`Bus has not been initialized yet.`);
-        }
-        const appInstance = app instanceof App ? app : new app();
-        const installProps = {
-          bus: this.bus,
-          unitsSettingManager: this.unitsSettingManager,
-          efbSettingsManager: this.efbSettingsManager,
-          notificationManager: this.notificationManager,
-          onboardingManager: this.onboardingManager,
-          options: Object.keys(options).filter((key) => key !== "isCoreApp").reduce((acc, key) => {
-            return Object.assign(acc, options[key]);
-          }, {})
-        };
-        const appInstaller = appInstance._install.apply(appInstance, [installProps]);
-        const name = appInstance.internalName;
-        if (/\s/.test(name)) {
-          throw new Error(`The App name can't have any whitespace character. "${name}"`);
-        }
-        if (!Object.prototype.hasOwnProperty.call(installProps.options, "isCoreApp")) {
-          this._registeredAppsPromises.push(
-            appInstaller.then(() => {
-              this._installedApps.insert(appInstance);
-            })
-          );
-        }
-      } catch (e) {
-        (_a10 = document.currentScript) == null ? void 0 : _a10.remove();
-        console.error(`App can't be installed`, e);
-        throw e;
-      }
-      return this;
-    }
-  };
-  __name(_Container, "Container");
-  var Container = _Container;
-  var Efb = Container.instance;
-  var _a8;
-  var _OnboardingManager = (_a8 = class {
+  var _a10;
+  var _OnboardingManager = (_a10 = class {
     constructor() {
       this.isStarted = false;
       this.stepIndex = 0;
       this.steps = [];
     }
     static getManager() {
-      var _a10;
-      return (_a10 = _a8.INSTANCE) != null ? _a10 : _a8.INSTANCE = new _a8();
+      var _a13;
+      return (_a13 = _a10.INSTANCE) != null ? _a13 : _a10.INSTANCE = new _a10();
     }
     bindContainer(containerRef) {
-      _a8.getManager().containerRef = containerRef;
+      _a10.getManager().containerRef = containerRef;
     }
     start(onboarding) {
-      const onboardingManager = _a8.getManager();
+      const onboardingManager = _a10.getManager();
       onboardingManager.steps = onboarding.steps.map((step) => {
         return __spreadProps(__spreadValues({}, step), { actions: [...step.actions] });
       });
@@ -3134,8 +3971,8 @@
       return;
     }
     next() {
-      var _a10;
-      const onboardingManager = _a8.getManager();
+      var _a13;
+      const onboardingManager = _a10.getManager();
       if (!onboardingManager.isStarted) {
         console.warn("Onboarding not started. You should call start method first");
         return;
@@ -3150,20 +3987,39 @@
           onboardingManager.next();
         }, "callback")
       });
-      (_a10 = onboardingManager.containerRef) == null ? void 0 : _a10.instance.setStep(onboardingManager.steps[onboardingManager.stepIndex]);
+      (_a13 = onboardingManager.containerRef) == null ? void 0 : _a13.instance.setStep(onboardingManager.steps[onboardingManager.stepIndex]);
       onboardingManager.stepIndex++;
       return;
     }
     stop() {
-      var _a10, _b;
-      const onboardingManager = _a8.getManager();
+      var _a13, _b;
+      const onboardingManager = _a10.getManager();
       onboardingManager.isStarted = false;
       onboardingManager.steps = [];
-      (_a10 = onboardingManager.containerRef) == null ? void 0 : _a10.instance.hide();
+      (_a13 = onboardingManager.containerRef) == null ? void 0 : _a13.instance.hide();
       (_b = onboardingManager.onFinish) == null ? void 0 : _b.call(onboardingManager);
     }
-  }, __name(_a8, "_OnboardingManager"), _a8);
+  }, __name(_a10, "_OnboardingManager"), _a10);
   _OnboardingManager.INSTANCE = void 0;
+  var _a11;
+  var _EfbCommonSettingsManager = (_a11 = class extends import_msfs_sdk.DefaultUserSettingManager {
+    constructor() {
+      super(...arguments);
+      this.debounceTimer = new import_msfs_sdk.DebounceTimer();
+      this.ignoredForceSaveSettingKeys = [];
+    }
+    /** @inheritdoc */
+    onSettingValueChanged(entry, value2) {
+      super.onSettingValueChanged(entry, value2);
+      if (!this.ignoredForceSaveSettingKeys.includes(entry.setting.definition.name)) {
+        this.debounceTimer.schedule(() => {
+          Coherent.trigger("EFB_PERSISTENT_SETTINGS_SAVE");
+        }, _a11.debounceTimeout);
+      }
+    }
+  }, __name(_a11, "_EfbCommonSettingsManager"), _a11);
+  _EfbCommonSettingsManager.debounceTimeout = 5e3;
+  var EfbCommonSettingsManager = _EfbCommonSettingsManager;
   var UnitsNavAngleSettingMode = /* @__PURE__ */ ((UnitsNavAngleSettingMode2) => {
     UnitsNavAngleSettingMode2["Magnetic"] = "magnetic";
     UnitsNavAngleSettingMode2["True"] = "true";
@@ -3209,11 +4065,11 @@
     UnitsTimeSettingMode2["Local24"] = "local-24";
     return UnitsTimeSettingMode2;
   })(UnitsTimeSettingMode || {});
-  var _a9;
-  var _UnitsSettingsManager = (_a9 = class extends import_msfs_sdk.DefaultUserSettingManager {
+  var _a12;
+  var _UnitsSettingsManager = (_a12 = class extends EfbCommonSettingsManager {
     constructor(bus, settingsDefs) {
       super(bus, settingsDefs, true);
-      this.navAngleUnitsSub = import_msfs_sdk.Subject.create(_a9.MAGNETIC_BEARING);
+      this.navAngleUnitsSub = import_msfs_sdk.Subject.create(_a12.MAGNETIC_BEARING);
       this.navAngleUnits = this.navAngleUnitsSub;
       this.timeUnitsSub = import_msfs_sdk.Subject.create(
         "local-12"
@@ -3250,7 +4106,7 @@
       switch (settingName) {
         case "unitsNavAngle":
           this.navAngleUnitsSub.set(
-            value2 === "true" ? _a9.TRUE_BEARING : _a9.MAGNETIC_BEARING
+            value2 === "true" ? _a12.TRUE_BEARING : _a12.MAGNETIC_BEARING
           );
           break;
         case "unitsTime":
@@ -3263,10 +4119,21 @@
           );
       }
     }
+    /**
+     * Gets a unit type subscribable from a unit setting name
+     * @param settingName the name of the unit setting
+     * @returns a Subscribable containing the unit type. If the value in the dataStorage is unvalid, it returns the default unitType
+     */
     getSettingUnitType(settingName) {
-      return this.getSetting(settingName).map((settingValue) => UnitTypesMap[settingValue]);
+      const setting = this.getSetting(settingName);
+      return setting.map(
+        (settingValue) => {
+          var _a13;
+          return (_a13 = UnitTypesMap[settingValue]) != null ? _a13 : UnitTypesMap[setting.definition.defaultValue];
+        }
+      );
     }
-  }, __name(_a9, "_UnitsSettingsManager"), _a9);
+  }, __name(_a12, "_UnitsSettingsManager"), _a12);
   _UnitsSettingsManager.TRUE_BEARING = import_msfs_sdk.BasicNavAngleUnit.create(false);
   _UnitsSettingsManager.MAGNETIC_BEARING = import_msfs_sdk.BasicNavAngleUnit.create(true);
   var UnitTypesMap = {

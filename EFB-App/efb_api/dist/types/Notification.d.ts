@@ -37,4 +37,3 @@ export interface EfbPermanentNotification extends EfbNotification {
     /** Whether the notification has been viewed in the notification page or not */
     readonly viewed: Subject<boolean>;
 }
-//# sourceMappingURL=Notification.d.ts.map

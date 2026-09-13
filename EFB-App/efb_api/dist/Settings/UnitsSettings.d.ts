@@ -14,4 +14,3 @@ export declare class UnitsSettings {
      */
     static getManager(bus: EventBus): UnitsSettingsManager;
 }
-//# sourceMappingURL=UnitsSettings.d.ts.map

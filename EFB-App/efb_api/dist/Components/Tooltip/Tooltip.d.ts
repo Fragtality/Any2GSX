@@ -13,4 +13,3 @@ export declare class Tooltip extends GamepadUiComponent<HTMLDivElement, TooltipP
     render(): VNode;
 }
 export {};
-//# sourceMappingURL=Tooltip.d.ts.map

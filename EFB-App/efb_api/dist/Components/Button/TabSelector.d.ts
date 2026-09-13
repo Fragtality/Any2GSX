@@ -13,4 +13,3 @@ export declare class TabSelector extends GamepadUiComponent<HTMLDivElement, TabS
     onAfterRender(node: VNode): void;
 }
 export {};
-//# sourceMappingURL=TabSelector.d.ts.map

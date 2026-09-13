@@ -30,4 +30,3 @@ declare class SelectableButton extends DisplayComponent<SelectableButtonProps> {
     render(): VNode;
 }
 export {};
-//# sourceMappingURL=MultipleButtons.d.ts.map

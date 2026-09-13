@@ -6,11 +6,13 @@ interface RunwaySelectorProps extends GamepadUiComponentProps {
     facility: Subscribable<NullFacility>;
     currentRunway: Subscribable<OneWayRunway | number>;
     onRunwaySelected(runway: OneWayRunway, index: number): void;
+    runwayNameShortened?: boolean;
 }
 export declare class RunwaySelector extends GamepadUiComponent<HTMLDivElement, RunwaySelectorProps> {
     private readonly runways;
     private readonly currentRunwayName;
     render(): VNode;
+    /** @inheritdoc */
+    destroy(): void;
 }
 export {};
-//# sourceMappingURL=RunwaySelector.d.ts.map

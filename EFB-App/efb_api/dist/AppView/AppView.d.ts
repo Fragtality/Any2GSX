@@ -132,4 +132,3 @@ export declare abstract class AppView<T extends AppViewProps = AppViewProps> ext
     /** @internal */
     destroy(): void;
 }
-//# sourceMappingURL=AppView.d.ts.map

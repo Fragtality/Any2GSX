@@ -1,5 +1,6 @@
-import { ComponentProps, DisplayComponent, NodeReference, Subscribable, VNode } from '@microsoft/msfs-sdk';
+import { ComponentProps, DisplayComponent, NodeReference, Subject, Subscribable, VNode } from '@microsoft/msfs-sdk';
 import { AppViewService } from '../AppView';
+import { InputManager } from '../Input';
 import { ClassProp, StyleProp } from '../types/ComponentProps';
 import { ChainResponsabilityGamepadUiViewEventHandler } from './GamepadContext';
 import { GamepadEvents } from './GamepadEvents';
@@ -23,8 +24,12 @@ export interface GamepadUiComponentProps extends ComponentProps {
 /** @internal */
 export declare abstract class GamepadUiComponent<T extends HTMLElement, P extends GamepadUiComponentProps = GamepadUiComponentProps> extends DisplayComponent<P> implements ChainResponsabilityGamepadUiViewEventHandler {
     private static FOCUS_CLASS;
-    private readonly _gamepadUiSubs;
+    private readonly classSubscriptions;
+    private isVisibleSubscription?;
+    private isDisabledSubscription?;
     readonly gamepadUiComponentRef: NodeReference<T>;
+    protected readonly inputManager: InputManager;
+    protected readonly areGamepadInputsEnabled: Subject<boolean>;
     private readonly _nextHandler;
     readonly nextHandler: Subscribable<GamepadUiComponent<T> | undefined>;
     protected readonly disabled: Subscribable<boolean> | Subscribable<false> | Subscribable<true>;
@@ -38,6 +43,8 @@ export declare abstract class GamepadUiComponent<T extends HTMLElement, P extend
     onButtonAPressed(): void;
     onButtonBPressed(): void;
     protected onClickOutOfComponent(_e: Event): void;
+    enableGamepadInputs(): void;
+    disableGamepadInputs(): void;
     private enable;
     private disable;
     show(): void;
@@ -46,4 +53,3 @@ export declare abstract class GamepadUiComponent<T extends HTMLElement, P extend
     getComponentRect(): DOMRect;
     destroy(): void;
 }
-//# sourceMappingURL=GamepadUiComponent.d.ts.map

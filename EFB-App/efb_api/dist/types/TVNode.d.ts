@@ -9,4 +9,3 @@ export interface TVNode<T = NodeInstance, P = unknown> extends VNode {
     instance: T & NodeInstance;
     props: P;
 }
-//# sourceMappingURL=TVNode.d.ts.map

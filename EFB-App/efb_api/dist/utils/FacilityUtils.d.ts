@@ -41,9 +41,10 @@ export declare function getICAOIdent(facility: NullFacility): string;
 export declare function getFacilityName(facility: NullFacility): string;
 /**
  * @param runway the runway
+ * @param shortened if the name should be shortened to RWY
  * @returns the runway display name
  */
-export declare function getRunwayName(runway: OneWayRunway): string;
+export declare function getRunwayName(runway: OneWayRunway, shortened?: boolean): string;
 /**
  * @param facility the facility
  * @returns the runway display name
@@ -69,4 +70,3 @@ export declare function createCustomFacility(repository: FacilityRepository, lat
  * @returns the string of parsed coordinates
  */
 export declare function getLatLonStr(lat: number, lon: number): string;
-//# sourceMappingURL=FacilityUtils.d.ts.map

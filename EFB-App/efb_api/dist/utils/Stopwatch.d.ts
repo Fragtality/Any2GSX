@@ -17,4 +17,3 @@ export declare class Stopwatch {
     reset(): void;
     private callback;
 }
-//# sourceMappingURL=Stopwatch.d.ts.map

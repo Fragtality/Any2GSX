@@ -12,4 +12,3 @@ export declare class AccordionButton extends DisplayComponent<AccordionButtonPro
     destroy(): void;
 }
 export {};
-//# sourceMappingURL=AccordionButton.d.ts.map

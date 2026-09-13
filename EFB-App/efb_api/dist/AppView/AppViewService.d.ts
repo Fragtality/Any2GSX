@@ -2,7 +2,7 @@ import { ComponentProps, DisplayComponent, EventBus, NodeReference, Subject, Sub
 import { GamepadEvents } from '../Gamepad';
 import { GamepadUiView, UiView, UiViewProps } from '../UiView';
 import { ViewBootMode, ViewSuspendMode } from '../UiView/UiViewLifecycle';
-import { TVNode } from '../types';
+import { Service, TVNode } from '../types';
 import { Valuable } from '../utils';
 import { AppViewContainer } from './AppContainer';
 
@@ -43,11 +43,10 @@ export interface ViewOptions {
     BootMode: ViewBootMode;
     SuspendMode: ViewSuspendMode;
 }
-type OnEvent = 'pause' | 'resume';
 /**
  * Handle and track page/popup usage for an App
  */
-export declare class AppViewService {
+export declare class AppViewService implements Service {
     /** Keeps track of registered views with the {@link registerView} method  */
     private readonly registeredUiViewEntries;
     private appViewRef?;
@@ -92,12 +91,12 @@ export declare class AppViewService {
     /**
      * @returns the current active view entry.
      */
-    private get activeUiViewEntry();
+    private getActiveUiViewEntry;
     private readonly _currentUiView;
     /** The page that is currently open in the active view stack. */
     readonly currentUiView: Subscribable<UiViewEntry | null>;
-    private readonly eventListener;
-    on(event: OnEvent, viewKey: string, callback: (view?: PublicUiViewEntry) => void): this;
+    /** @deprecated */
+    on(_event: 'pause' | 'resume', _viewKey: string, _callback: (view?: PublicUiViewEntry) => void): this;
     /**
      * Handles logic associated with changing the open page.
      * @param page Page to close
@@ -125,6 +124,20 @@ export declare class AppViewService {
      * @param appViewRef The app view ref.
      */
     onAppContainerRendered(appViewRef: AppViewContainer): void;
+    /**
+     * Searches for an entry in the view stack
+     * @param key the key of the entry to search for
+     * @returns true if the entry has been found in the view stack, false otherwise
+     */
+    isInViewStack(key: string): boolean;
+    isInViewStack(viewEntry: UiViewEntry): boolean;
+    /**
+     * Returns a boolean to inform whether an entry is active or not
+     * @param key the key of the entry to search for
+     * @returns true if the key in parameter corresponds to the key of the active entry, false otherwise
+     */
+    isActive(key: string): boolean;
+    isActive(viewEntry: UiViewEntry): boolean;
     open<Ref = UiViewRef>(key: string): PublicUiViewEntry<Ref>;
     /**
      * Returns the most recent previous history state of the view stack
@@ -174,4 +187,3 @@ declare class AppViewWrapper extends DisplayComponent<AppViewWrapperProps> {
     destroy(): void;
 }
 export {};
-//# sourceMappingURL=AppViewService.d.ts.map

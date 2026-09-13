@@ -18,4 +18,3 @@ export declare enum AppSuspendMode {
     /** When leaving app, the whole app is destroyed. */
     TERMINATE = 1
 }
-//# sourceMappingURL=AppLifecycle.d.ts.map

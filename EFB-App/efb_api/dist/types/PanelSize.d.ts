@@ -9,4 +9,3 @@ export interface PanelSize {
     readonly width: Subscribable<number>;
     readonly height: Subscribable<number>;
 }
-//# sourceMappingURL=PanelSize.d.ts.map

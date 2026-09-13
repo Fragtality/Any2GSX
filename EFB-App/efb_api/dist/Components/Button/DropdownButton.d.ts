@@ -1,6 +1,7 @@
-import { MutableSubscribable, Subject, SubscribableArray, Subscription, VNode } from '@microsoft/msfs-sdk';
+import { MutableSubscribable, Subject, Subscribable, SubscribableArray, Subscription, VNode } from '@microsoft/msfs-sdk';
 import { GamepadUiComponent } from '../../Gamepad';
 import { TTButtonProps } from './TTButton';
+import { IconElement } from '../IconElement';
 
 interface DropdownButtonProps<T> extends Omit<TTButtonProps, 'key'> {
     title: TTButtonProps['key'];
@@ -9,6 +10,9 @@ interface DropdownButtonProps<T> extends Omit<TTButtonProps, 'key'> {
     onItemClick: (item: T, index: number) => void;
     isListVisible?: MutableSubscribable<boolean>;
     showArrowIcon?: boolean;
+    isScrollable?: boolean;
+    customIcon?: IconElement;
+    disabled?: boolean | Subscribable<boolean>;
 }
 export declare class DropdownButton<T = unknown> extends GamepadUiComponent<HTMLDivElement, DropdownButtonProps<T>> {
     private listDataset;
@@ -20,4 +24,3 @@ export declare class DropdownButton<T = unknown> extends GamepadUiComponent<HTML
     render(): VNode;
 }
 export {};
-//# sourceMappingURL=DropdownButton.d.ts.map

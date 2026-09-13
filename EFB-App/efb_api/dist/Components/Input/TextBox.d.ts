@@ -47,4 +47,3 @@ export declare class TextBox extends GamepadUiComponent<HTMLDivElement, TextBoxP
     destroy(): void;
 }
 export {};
-//# sourceMappingURL=TextBox.d.ts.map

@@ -32,4 +32,3 @@ export declare function elementOffset(from: HTMLElement, limit?: Nullable<HTMLEl
  * @internal
  */
 export declare const measure: (_target: any, propertyKey: string, descriptor: PropertyDescriptor) => PropertyDescriptor;
-//# sourceMappingURL=index.d.ts.map

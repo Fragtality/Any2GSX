@@ -36,10 +36,17 @@ export declare class NotificationManager {
     update(): void;
     protected onShownNotifsUpdate(_index: number, eventType: SubscribableArrayEventType, notif?: EfbNotification | readonly EfbNotification[]): void;
     protected onStoredNotifsUpdate(_i: number, _t: SubscribableArrayEventType, _n?: EfbPermanentNotification | readonly EfbPermanentNotification[], arr?: readonly EfbPermanentNotification[]): void;
+    /**
+     * Adds a notification to the stack
+     * @param notif the notification to add, could be a TemporaryNotification or a PermanentNotification
+     */
     addNotification(notif: EfbNotification): void;
+    /**
+     * Removes a permanent notification from the notification menu
+     * @param notif the notification to remove
+     */
     deletePermanentNotification(notif: EfbPermanentNotification): void;
     clearNotifications(): void;
     onNotificationAppOpen(): void;
     onNotificationAppClosed(): void;
 }
-//# sourceMappingURL=NotificationManager.d.ts.map

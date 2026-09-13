@@ -6,7 +6,19 @@ import { OnboardingManager } from './Managers/OnboardingManager/OnboardingManage
 import { EfbSettingsManager, UnitsSettingsManager } from './Settings';
 import { TVNode } from './types';
 
-export interface IApp<T extends object = object> {
+export interface AppOptions {
+    /**
+     * Will be searchable through more apps page or in default app setting
+     * @default true
+     */
+    isSearchable?: boolean;
+    /**
+     * True if the app is allowed to be favoritable
+     * @default true
+     */
+    isFavoritable?: boolean;
+}
+export interface IApp<T extends AppOptions = AppOptions> {
     BootMode: AppBootMode;
     SuspendMode: AppSuspendMode;
     available: MutableSubscribable<boolean>;
@@ -19,12 +31,16 @@ export interface IApp<T extends object = object> {
     set favoriteIndex(index: number);
     get name(): string;
     get icon(): string;
+    /** @since 1.0.3 */
+    getIsSearchable?(): boolean;
+    /** @since 1.0.3 */
+    getIsFavoritable?(): boolean;
     render(): TVNode<AppView & NodeInstance>;
 }
-export interface AppConstructor<T extends object = object> {
+export interface AppConstructor<T extends AppOptions = AppOptions> {
     new (): App<T>;
 }
-export interface AppInstallProps<T extends object = object> {
+export interface AppInstallProps<T extends AppOptions = AppOptions> {
     bus: EventBus;
     unitsSettingManager?: UnitsSettingsManager;
     efbSettingsManager?: EfbSettingsManager;
@@ -40,7 +56,7 @@ export interface AppInstallProps<T extends object = object> {
  * ```
  * @template T App options. ie : you need multiple instance of an App with different styles for development.
  */
-export declare abstract class App<T extends object = object> implements IApp<T> {
+export declare abstract class App<T extends AppOptions = AppOptions> implements IApp<T> {
     private _isInstalled;
     private _isReady;
     private _unitsSettingsManager?;
@@ -105,6 +121,21 @@ export declare abstract class App<T extends object = object> implements IApp<T> 
     get favoriteIndex(): number;
     /** @internal */
     set favoriteIndex(index: number);
+    /**
+     * @since 1.0.3
+     * @returns True if the app is searchable (ie: app list)
+     */
+    getIsSearchable?(): boolean;
+    /**
+     * @since 1.0.3
+     * @returns True if the app can be added to favorites
+     */
+    getIsFavoritable?(): boolean;
+    /**
+     * @since 1.0.3
+     * @returns Return app version
+     */
+    getVersion(): string;
     /** App friendly name (shown on the App List) */
     abstract get name(): string;
     /** App icon (must return an uri) */
@@ -112,4 +143,3 @@ export declare abstract class App<T extends object = object> implements IApp<T> 
     /** Must render an extended AppView for the App */
     abstract render(): TVNode<AppView>;
 }
-//# sourceMappingURL=App.d.ts.map

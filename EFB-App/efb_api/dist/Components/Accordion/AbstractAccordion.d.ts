@@ -10,4 +10,3 @@ export declare abstract class AbstractAccordion<T extends AbstractAccordionProps
     protected renderBody(): VNode;
     render(): VNode;
 }
-//# sourceMappingURL=AbstractAccordion.d.ts.map

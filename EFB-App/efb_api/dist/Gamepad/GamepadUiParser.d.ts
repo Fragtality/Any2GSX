@@ -22,4 +22,3 @@ export declare class GamepadUiParser {
     private isRectPosValid;
     private distances1D;
 }
-//# sourceMappingURL=GamepadUiParser.d.ts.map

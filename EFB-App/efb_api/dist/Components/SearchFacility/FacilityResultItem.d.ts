@@ -13,4 +13,3 @@ export declare class FacilityResultItem extends GamepadUiComponent<HTMLDivElemen
     onAfterRender(node: VNode): void;
     render(): VNode | null;
 }
-//# sourceMappingURL=FacilityResultItem.d.ts.map

@@ -28,4 +28,3 @@ export declare class DateDisplay extends DisplayComponent<DateDisplayProps> {
     destroy(): void;
 }
 export {};
-//# sourceMappingURL=DateDisplay.d.ts.map

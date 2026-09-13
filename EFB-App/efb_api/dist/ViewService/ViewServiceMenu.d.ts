@@ -23,4 +23,3 @@ export declare class ViewServiceMenu extends GamepadUiComponent<HTMLDivElement, 
     destroy(): void;
 }
 export {};
-//# sourceMappingURL=ViewServiceMenu.d.ts.map

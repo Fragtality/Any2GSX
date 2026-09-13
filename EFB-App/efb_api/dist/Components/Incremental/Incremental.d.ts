@@ -18,13 +18,19 @@ export interface IncrementalProps extends GamepadUiComponentProps {
     /** Callback triggered when the value is changed, giving directly the new value */
     onChange?: (newValue: number) => void;
     /** Callback triggered when a button is clicked, giving -1 if the first button is clicked and 1 for the second one */
-    onButtonClicked?: (direction: -1 | 1) => void;
+    onButtonClicked?: (direction: -1 | 1, newValue: number) => void;
     /** First icon. Can be a path that will be used in an IconButton, or a VNode. By default, it renders an IconButton with a minus icon */
     firstIcon?: string | VNode;
     /** Second icon. Can be a path that will be used in an IconButton, or a VNode. By default, it renders an IconButton with a plus icon */
     secondIcon?: string | VNode;
     /** If true, the value rendered in the middle will be in a textbox, allowing tà modify it without the buttons. Default to true */
     useTextbox?: boolean;
+    /** An alternative to the onChange method, but only when the textbox is changed via the 'keydown' event */
+    onKeyDown?: (event: KeyboardEvent, previousValue: number) => void;
+    /** An alternative to the onChange method, but only when the textbox is changed via the 'keyup' event */
+    onKeyUp?: (event: KeyboardEvent, newValue: number) => void;
+    /** An alternative to the onChange method, but only when the textbox is changed via the 'keypress' event */
+    onKeyPress?: (event: KeyboardEvent, newValue: number) => void;
 }
 /** Renders a value along with 2 buttons to increase or decrease it */
 export declare class Incremental extends GamepadUiComponent<HTMLDivElement, IncrementalProps> {
@@ -46,4 +52,3 @@ export declare class Incremental extends GamepadUiComponent<HTMLDivElement, Incr
     render(): VNode;
     destroy(): void;
 }
-//# sourceMappingURL=Incremental.d.ts.map

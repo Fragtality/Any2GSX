@@ -24,4 +24,3 @@ export declare function getStartOfWeek(year: number, month: number, day: number)
  * @returns The formatted day (e.g. 13 -> 13th / 21 -> 21st)
  */
 export declare function formatDay(day: number): string;
-//# sourceMappingURL=Date.d.ts.map

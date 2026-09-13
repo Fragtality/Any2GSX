@@ -20,4 +20,3 @@ export interface ChainResponsabilityGamepadUiComponentEventHandler<T extends HTM
     deletePreviousGamepadEventHandler(): void;
     handleGamepadEvent(gamepadEvent: GamepadEvents): void;
 }
-//# sourceMappingURL=GamepadContext.d.ts.map

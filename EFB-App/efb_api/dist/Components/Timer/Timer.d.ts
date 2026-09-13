@@ -14,4 +14,3 @@ export declare class Timer extends DisplayComponent<TimerProps> {
     render(): VNode;
     destroy(): void;
 }
-//# sourceMappingURL=Timer.d.ts.map

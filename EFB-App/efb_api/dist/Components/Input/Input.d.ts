@@ -1,5 +1,6 @@
 import { DebounceTimer, MutableSubscribable, Subject, Subscribable, Subscription, VNode } from '@microsoft/msfs-sdk';
 import { GamepadUiComponent, GamepadUiComponentProps } from '../../Gamepad';
+import { InputActionDestructor } from '../../Listeners';
 import { MaybeSubscribable } from '../../types';
 
 type InputHandledTypes = 'text' | 'number';
@@ -19,35 +20,47 @@ export interface InputHooks {
     onFocusIn?: () => void;
     onFocusOut?: () => void;
     onInput?: (element: HTMLInputElement) => void;
+    onKeyDown?: (event: KeyboardEvent) => void;
+    onKeyUp?: (event: KeyboardEvent) => void;
     onKeyPress?: (event: KeyboardEvent) => void;
     charFilter?: (char: string) => boolean;
+    onValueValidated?: (text: string) => void;
 }
 export type InputProps = InputAttributes & InputHooks;
 export type ExtendedInputProps = Omit<InputProps, 'type'>;
 export declare class Input<T extends InputProps = InputProps> extends GamepadUiComponent<HTMLInputElement, T & GamepadUiComponentProps> {
     protected readonly uuid: string;
-    private input_id;
     protected readonly inputRef: import('@microsoft/msfs-sdk').NodeReference<HTMLInputElement>;
     protected readonly model: MutableSubscribable<string, string>;
+    private readonly internalInputManager;
+    protected focusOutActionDestructor?: InputActionDestructor;
+    protected validateInputActionDestructor?: InputActionDestructor;
     private _reloadLocalisation;
     private readonly dispatchFocusOutEvent;
-    private readonly _onKeyPress;
-    private readonly _onInput;
+    private readonly setValueFromOS;
+    private readonly onKeyDown;
+    private readonly onKeyUp;
+    private readonly onKeyPress;
+    private readonly onInput;
     private readonly align;
     protected readonly debounce: DebounceTimer;
-    protected onKeyPress(event: KeyboardEvent): void;
-    protected onInput(): void;
+    protected _onKeyDown(event: KeyboardEvent): void;
+    protected _onKeyUp(event: KeyboardEvent): void;
+    protected _onKeyPress(event: KeyboardEvent): void;
+    protected _onInput(): void;
     protected onInputUpdated(value: string): void;
     private reloadLocalisation;
     protected readonly _isFocused: Subject<boolean>;
     readonly isFocused: Subscribable<boolean>;
+    private readonly focusSubscription;
     protected onFocusIn(): void;
     protected onFocusOut(): void;
-    focus(): void;
-    blur(): void;
     value(): string;
     clearInput(): void;
+    focus(): void;
+    blur(): void;
     private _dispatchFocusOutEvent;
+    private _setValueFromOS;
     /** Placeholder i18n/visibility */
     private readonly placeholderKey;
     private readonly placeholderShown;
@@ -59,4 +72,3 @@ export declare class Input<T extends InputProps = InputProps> extends GamepadUiC
     destroy(): void;
 }
 export {};
-//# sourceMappingURL=Input.d.ts.map

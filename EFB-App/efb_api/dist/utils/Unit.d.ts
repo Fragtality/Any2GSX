@@ -33,4 +33,3 @@ export declare class UnitFormatter {
      */
     static getUnitTextMap(): Readonly<Partial<Record<string, Readonly<Partial<Record<string, string>>>>>>;
 }
-//# sourceMappingURL=Unit.d.ts.map

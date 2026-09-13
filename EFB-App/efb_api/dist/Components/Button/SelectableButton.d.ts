@@ -15,4 +15,3 @@ export declare class SelectableButton<P extends SelectableButtonProps = Selectab
     switchSelection(selected: boolean): void;
     protected buttonRender(): VNode;
 }
-//# sourceMappingURL=SelectableButton.d.ts.map

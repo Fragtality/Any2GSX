@@ -1,5 +1,5 @@
 import { ComponentProps, DisplayComponent, NodeReference, Subject, VNode } from '@microsoft/msfs-sdk';
-import { ClassProp, MaybeSubscribable } from '../../types';
+import { ClassProp, MaybeSubscribable, Nullable } from '../../types';
 import { default as ResizeObserver } from 'resize-observer-polyfill';
 import { GamepadUiComponent } from '../../Gamepad';
 
@@ -48,8 +48,19 @@ export declare class Marquee extends DisplayComponent<MarqueeProps> {
     protected readonly translationPx: Subject<number>;
     protected observer?: ResizeObserver;
     protected getDurationForDistance(distance: number): number;
+    protected containerWidth: number;
+    protected marqueeWidth: number;
+    protected transitionRightPx: number;
+    protected isLeftToRight: boolean;
+    protected timeoutId?: NodeJS.Timeout;
+    protected _onMouseEnter(): void;
+    protected readonly onMouseEnter: () => void;
+    protected _onMouseLeave(): void;
+    protected readonly onMouseLeave: () => void;
+    protected _onTransitionEnded(event: TransitionEvent): void;
+    protected readonly onTransitionEnded: (event: TransitionEvent) => void;
+    protected getMarqueeActivator(): Nullable<HTMLElement>;
     render(): VNode;
     onAfterRender(node: VNode): void;
     destroy(): void;
 }
-//# sourceMappingURL=Marquee.d.ts.map

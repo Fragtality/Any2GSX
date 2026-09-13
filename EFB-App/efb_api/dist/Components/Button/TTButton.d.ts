@@ -22,4 +22,3 @@ export interface ClassicButtonProps extends ButtonProps, Omit<TTProps, 'key' | '
 export declare class ClassicButton extends Button<ClassicButtonProps> {
     protected buttonRender(): VNode;
 }
-//# sourceMappingURL=TTButton.d.ts.map

@@ -6,4 +6,3 @@ export interface AirportFacility extends BaseAirportFacility {
 export interface SelectedAirportFacility extends Facility {
     currentRunway: OneWayRunway;
 }
-//# sourceMappingURL=Facilities.d.ts.map

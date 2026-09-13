@@ -32,4 +32,3 @@ export interface AbstractButtonProps extends ButtonProps {
  */
 export declare class AbstractButton<T extends AbstractButtonProps = AbstractButtonProps> extends Button<T> {
 }
-//# sourceMappingURL=Button.d.ts.map

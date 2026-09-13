@@ -16,4 +16,3 @@ export declare class UnitsBox extends GamepadUiComponent<HTMLDivElement, UnitsBo
     protected readonly inputSub: Subject<string>;
     render(): VNode;
 }
-//# sourceMappingURL=UnitsBox.d.ts.map

@@ -24,4 +24,3 @@ export declare function toClassProp(classProp: ClassProp): undefined | Toggleabl
  * @returns Merged ClassProps
  */
 export declare function mergeClassProp(baseProp: ClassProp, ...args: ClassProp[]): ToggleableClassNameRecord;
-//# sourceMappingURL=Components.d.ts.map

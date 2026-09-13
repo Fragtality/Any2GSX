@@ -44,4 +44,3 @@ interface Metadata {
  */
 export declare function readMetadata(buffer: ArrayBuffer): Metadata;
 export {};
-//# sourceMappingURL=MetadataReader.d.ts.map

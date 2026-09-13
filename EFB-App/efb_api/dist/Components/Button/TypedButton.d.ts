@@ -13,4 +13,3 @@ export declare abstract class TypedButton<T extends TypedButtonProps = TypedButt
     protected abstract buttonRender(): VNode;
 }
 export {};
-//# sourceMappingURL=TypedButton.d.ts.map

@@ -9,4 +9,3 @@ export declare class ElementAccordion extends AbstractAccordion<ElementAccordion
     protected renderHeader(): VNode;
 }
 export {};
-//# sourceMappingURL=ElementAccordion.d.ts.map

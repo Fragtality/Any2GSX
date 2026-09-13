@@ -6,6 +6,8 @@ export interface TextAreaAttributes {
     model?: MutableSubscribable<string>;
     value?: MaybeSubscribable<string>;
     placeholder?: MaybeSubscribable<string>;
+    placeholderFormat?: 'upper' | 'uppercase' | 'lower' | 'lowercase' | 'ucfirst' | 'capitalize';
+    placeholderArguments?: Map<string, MaybeSubscribable<string>>;
     disabled?: MaybeSubscribable<boolean>;
     hidePlaceholderOnFocus?: boolean;
     focusOnInit?: boolean;
@@ -25,6 +27,7 @@ export declare class TextArea extends GamepadUiComponent<HTMLTextAreaElement, Te
     protected readonly model: MutableSubscribable<string, string>;
     private _reloadLocalisation;
     private readonly dispatchFocusOutEvent;
+    private readonly setValueFromOS;
     private readonly _onKeyPress;
     private readonly _onInput;
     protected onKeyPress(event: KeyboardEvent): void;
@@ -40,6 +43,8 @@ export declare class TextArea extends GamepadUiComponent<HTMLTextAreaElement, Te
     value(): string;
     clearInput(): void;
     private _dispatchFocusOutEvent;
+    private _setValueFromOS;
+    private getTranslation;
     /** Placeholder i18n/visibility */
     private readonly placeholderKey;
     private readonly placeholderShown;
@@ -50,4 +55,3 @@ export declare class TextArea extends GamepadUiComponent<HTMLTextAreaElement, Te
     onAfterRender(node: VNode): void;
     destroy(): void;
 }
-//# sourceMappingURL=TextArea.d.ts.map

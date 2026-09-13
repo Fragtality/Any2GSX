@@ -12,4 +12,3 @@ export declare abstract class ProgressComponent<P extends ProgressComponentProps
     onAfterRender(node: VNode): void;
     destroy(): void;
 }
-//# sourceMappingURL=Progress.d.ts.map

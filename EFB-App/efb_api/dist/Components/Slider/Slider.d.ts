@@ -1,5 +1,6 @@
 import { MappedSubject, MappedSubscribable, MutableSubscribable, Subject, Subscription, VNode } from '@microsoft/msfs-sdk';
 import { GamepadUiComponent, GamepadUiComponentProps } from '../../Gamepad';
+import { InputActionDestructor } from '../../Listeners';
 import { MaybeSubscribable } from '../../types';
 
 export interface SliderProps extends GamepadUiComponentProps {
@@ -40,6 +41,10 @@ export declare class Slider<P extends SliderProps = SliderProps> extends Gamepad
     protected sliderBarRect: DOMRect;
     protected allowMovement: boolean;
     protected mousePos: number;
+    protected decreaseSliderActionDestructor?: InputActionDestructor;
+    protected increaseSliderActionDestructor?: InputActionDestructor;
+    protected decreaseSliderActionReleasedDestructor?: InputActionDestructor;
+    protected increaseSliderActionReleasedDestructor?: InputActionDestructor;
     protected subs: Subscription[];
     constructor(props: P);
     protected convertValueToPercent(val: number): number;
@@ -53,4 +58,3 @@ export declare class Slider<P extends SliderProps = SliderProps> extends Gamepad
     onAfterRender(node: VNode): void;
     destroy(): void;
 }
-//# sourceMappingURL=Slider.d.ts.map

@@ -19,4 +19,3 @@ export declare class SearchFacilityHistoryManager {
      */
     getStoredICAOs(input: string, max_items?: number): readonly string[];
 }
-//# sourceMappingURL=SearchFacilityHistoryManager.d.ts.map

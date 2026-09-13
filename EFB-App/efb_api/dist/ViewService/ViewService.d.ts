@@ -1,8 +1,9 @@
 import { ComponentProps, DisplayComponent, NodeReference, Subject, VNode } from '@microsoft/msfs-sdk';
 import { AppViewService } from '../AppView';
+import { InputActionDestructor } from '../Listeners';
 import { GamepadUiView, UiView, UiViewProps } from '../UiView';
 import { MapSubscribable } from '../sub';
-import { ClassProp, TVNode } from '../types';
+import { ClassProp, Service, TVNode } from '../types';
 import { ViewWrapper } from './ViewWrapper';
 
 export type ViewEntryNode = TVNode<UiView<UiViewProps>, UiViewProps>;
@@ -19,12 +20,19 @@ interface ViewEntry<Ref extends ViewRef = ViewRef> {
     readonly isTabVisible: Subject<boolean>;
 }
 export type PublicViewEntry<Ref extends ViewRef = ViewRef> = Pick<ViewEntry<Ref>, 'key' | 'ref' | 'isActive' | 'isDisabled' | 'isTabVisible'>;
-export declare class ViewService {
+export declare class ViewService implements Service {
     private readonly registeredViews;
+    private readonly viewTabs;
+    private visibleViewTabs;
+    private readonly viewTabVisibilitySubscriptions;
     private viewRef?;
     private hasInitialized;
     private activeViewEntry;
-    constructor(viewKey?: string, appViewService?: AppViewService);
+    constructor(_viewKey?: string, _appViewService?: AppViewService);
+    private readonly internalInputStackManager;
+    protected prevTabActionDestructor?: InputActionDestructor;
+    protected nextTabActionDestructor?: InputActionDestructor;
+    protected openNextVisibleTab(forward?: boolean): boolean;
     getRegisteredViews<Ref extends ViewRef = ViewRef>(): Readonly<MapSubscribable<string, PublicViewEntry<Ref>>>;
     private getViewEntry;
     registerView(key: string, vNodeFactory: () => ViewEntryNode): PublicViewEntry<null>;
@@ -32,7 +40,10 @@ export declare class ViewService {
     private initViewEntry;
     initialize(key?: string): void;
     openPage<Ref extends ViewRef = ViewRef>(key: string): PublicViewEntry<Ref>;
+    onPause(): void;
+    onResume(): void;
     onUpdate(time: number): void;
+    destroy(): void;
 }
 export interface ViewContainer {
     renderView(view: VNode): void;
@@ -48,4 +59,3 @@ export declare class ViewServiceContainer extends DisplayComponent<ViewServiceCo
     render(): VNode;
 }
 export {};
-//# sourceMappingURL=ViewService.d.ts.map

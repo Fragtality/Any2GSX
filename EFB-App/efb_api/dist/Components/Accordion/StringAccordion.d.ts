@@ -10,4 +10,3 @@ export declare class StringAccordion extends AbstractAccordion<StringAccordionPr
     protected renderHeader(): VNode;
 }
 export {};
-//# sourceMappingURL=StringAccordion.d.ts.map

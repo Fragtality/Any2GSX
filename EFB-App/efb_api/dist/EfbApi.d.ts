@@ -1,5 +1,5 @@
-import { ArraySubject, EventBus } from '@microsoft/msfs-sdk';
-import { App, AppConstructor, IApp } from './App';
+import { EventBus, SubscribableArray } from '@microsoft/msfs-sdk';
+import { App, AppConstructor, AppOptions, IApp } from './App';
 import { NotificationManager } from './Managers';
 import { OnboardingManager } from './Managers/OnboardingManager/OnboardingManager';
 import { EfbSettingsManager, UnitsSettingsManager } from './Settings';
@@ -34,7 +34,7 @@ export declare class Container {
      */
     static get instance(): Container;
     /** @internal */
-    apps(): ArraySubject<IApp>;
+    apps(): SubscribableArray<IApp>;
     /** @internal */
     allAppsLoaded(): boolean;
     /**
@@ -78,8 +78,9 @@ export declare class Container {
      * @returns EFB instance
      * @throws Throw an error if App install went wrong.
      */
-    use<T extends object = object>(app: AppConstructor<T> | App<T>, ...options: Array<Partial<T>>): this;
+    use<T extends AppOptions = AppOptions>(app: AppConstructor<T> | App<T>, ...options: Array<Partial<T>>): this;
 }
 /** EFB Instance */
 export declare const Efb: Container;
-//# sourceMappingURL=EfbApi.d.ts.map
+/** @internal */
+export declare const EfbApiVersion = "1.0.3";

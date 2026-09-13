@@ -29,7 +29,7 @@ var __objRest = (source, exclude) => {
     }
   return target;
 };
-import { Subject, FacilityUtils, FacilityType, AirportUtils, UnitType, ICAO, DmsFormatter, HandlerSubscription, UUID, NumberFormatter, UnitFamily, DisplayComponent, FSComponent, SubscribableUtils, ArrayUtils, SubscribableMapFunctions, MappedSubject, SubscribableArrayEventType, ArraySubject, Wait, ObjectSubject, RunwayUtils, DebounceTimer, AbstractNumberUnitDisplay, GeoPoint, FacilityLoader, FacilityRepository, FacilitySearchType, DataStore, DefaultUserSettingManager, BasicNavAngleUnit, UserSettingSaveManager, SetSubject } from "@microsoft/msfs-sdk";
+import { ArraySubject, Subject, FacilityUtils, FacilityType, AirportUtils, UnitType, ICAO, DmsFormatter, HandlerSubscription, AbstractSubscribableArray, SubscribableArrayEventType, UUID, NumberFormatter, UnitFamily, DisplayComponent, FSComponent, SubscribableUtils, ArrayUtils, SubscribableMapFunctions, MappedSubject, Wait, ObjectSubject, SetSubject, AbstractNumberUnitDisplay, RunwayUtils, DebounceTimer, GeoPoint, FacilityLoader, FacilityRepository, FacilitySearchType, DataStore, DefaultUserSettingManager, BasicNavAngleUnit, UserSettingSaveManager } from "@microsoft/msfs-sdk";
 var AppBootMode = /* @__PURE__ */ ((AppBootMode2) => {
   AppBootMode2[AppBootMode2["COLD"] = 0] = "COLD";
   AppBootMode2[AppBootMode2["WARM"] = 1] = "WARM";
@@ -41,6 +41,146 @@ var AppSuspendMode = /* @__PURE__ */ ((AppSuspendMode2) => {
   AppSuspendMode2[AppSuspendMode2["TERMINATE"] = 1] = "TERMINATE";
   return AppSuspendMode2;
 })(AppSuspendMode || {});
+let uid = 0;
+class Container {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  constructor() {
+    this._uid = uid++;
+    this._registeredAppsPromises = [];
+    this._installedApps = ArraySubject.create();
+  }
+  /**
+   * Static singleton instance of Efb container
+   * @internal
+   */
+  static get instance() {
+    return window.EFB_API = Container._instance = window.EFB_API || Container._instance || new Container();
+  }
+  /** @internal */
+  apps() {
+    return this._installedApps;
+  }
+  /** @internal */
+  allAppsLoaded() {
+    return this._registeredAppsPromises.length === this._installedApps.length;
+  }
+  /**
+   * Method used by the OS to share the bus to apps
+   * @internal
+   */
+  setBus(bus) {
+    this.bus = bus;
+    return this;
+  }
+  /**
+   * Method used by the OS to share the units settings manager to the apps
+   * @internal
+   */
+  setUnitsSettingManager(unitsSettingManager) {
+    this.unitsSettingManager = unitsSettingManager;
+    return this;
+  }
+  /**
+   * Method used by the OS to share the settings manager to the apps
+   * @internal
+   */
+  setEfbSettingManager(efbSettingsManager) {
+    this.efbSettingsManager = efbSettingsManager;
+    return this;
+  }
+  setOnboardingManager(onboardingManager) {
+    this.onboardingManager = onboardingManager;
+    return this;
+  }
+  /**
+   * Method used by the OS to share the notification manager to the apps
+   * @internal
+   */
+  setNotificationManager(notificationManager) {
+    this.notificationManager = notificationManager;
+    return this;
+  }
+  /**
+   * Load stylesheet
+   * @param uri
+   * @returns Promise which is resolved when stylesheet is loaded or rejected if an error occur.
+   */
+  async loadCss(uri) {
+    if (document.querySelector(`link[href*="${uri}"]`)) {
+      return Promise.reject(`${uri} already loaded.`);
+    }
+    const linkTag = document.createElement("link");
+    linkTag.rel = "stylesheet";
+    linkTag.href = uri;
+    document.head.append(linkTag);
+    return new Promise((resolve, reject) => {
+      linkTag.onload = () => resolve();
+      linkTag.onerror = reject;
+    });
+  }
+  /**
+   * Load script file
+   * @param uri
+   * @returns Promise which is resolved when script is loaded or rejected if an error occur.
+   */
+  async loadJs(uri) {
+    if (document.querySelector(`script[src*="${uri}"]`)) {
+      return Promise.reject(`${uri} already loaded.`);
+    }
+    const scriptTag = document.createElement("script");
+    scriptTag.type = "text/javascript";
+    scriptTag.src = uri;
+    document.head.append(scriptTag);
+    return new Promise((resolve, reject) => {
+      scriptTag.onload = () => resolve();
+      scriptTag.onerror = reject;
+    });
+  }
+  /**
+   * Register an app in EFB
+   * @template T - App registration options
+   * @param app The app you wan't to register
+   * @param options Options you'r app might need when installing
+   * @returns EFB instance
+   * @throws Throw an error if App install went wrong.
+   */
+  use(app, ...options) {
+    var _a;
+    try {
+      if (!this.bus) {
+        throw new Error(`Bus has not been initialized yet.`);
+      }
+      const appInstance = app instanceof App ? app : new app();
+      const installProps = {
+        bus: this.bus,
+        unitsSettingManager: this.unitsSettingManager,
+        efbSettingsManager: this.efbSettingsManager,
+        notificationManager: this.notificationManager,
+        onboardingManager: this.onboardingManager,
+        options: Object.keys(options).filter((key) => key !== "isCoreApp").reduce((acc, key) => {
+          return Object.assign(acc, options[key]);
+        }, {})
+      };
+      const appInstaller = appInstance._install.apply(appInstance, [installProps]);
+      const name = appInstance.internalName;
+      if (/\s/.test(name)) {
+        throw new Error(`The App name can't have any whitespace character. "${name}"`);
+      }
+      this._registeredAppsPromises.push(
+        appInstaller.then(() => {
+          this._installedApps.insert(appInstance);
+        })
+      );
+    } catch (e) {
+      (_a = document.currentScript) == null ? void 0 : _a.remove();
+      console.error(`App can't be installed`, e);
+      throw e;
+    }
+    return this;
+  }
+}
+const Efb = Container.instance;
+const EfbApiVersion = "1.0.3";
 class App {
   constructor() {
     this._isInstalled = false;
@@ -69,6 +209,7 @@ class App {
     this.options = props.options;
     await this.install(props);
     this._isReady = true;
+    Coherent.trigger("EFB_APP_INSTALLED", this.name, this.internalName, EfbApiVersion, this.getVersion());
     return Promise.resolve();
   }
   /**
@@ -146,6 +287,29 @@ class App {
   set favoriteIndex(index2) {
     this._favoriteIndex = index2;
   }
+  /**
+   * @since 1.0.3
+   * @returns True if the app is searchable (ie: app list)
+   */
+  getIsSearchable() {
+    var _a;
+    return (_a = this.options.isSearchable) != null ? _a : true;
+  }
+  /**
+   * @since 1.0.3
+   * @returns True if the app can be added to favorites
+   */
+  getIsFavoritable() {
+    var _a;
+    return (_a = this.options.isFavoritable) != null ? _a : true;
+  }
+  /**
+   * @since 1.0.3
+   * @returns Return app version
+   */
+  getVersion() {
+    return "";
+  }
 }
 function unique(collection) {
   return collection.reduce((acc, item) => {
@@ -172,6 +336,23 @@ function groupBy(collection, iteratee) {
 function random(collection) {
   const length = collection.length;
   return length ? collection[Math.floor(Math.random() * length)] : void 0;
+}
+function chunk(collection, size) {
+  size = Math.floor(size);
+  if (size <= 0 || isNaN(size)) {
+    return [];
+  }
+  const collectionLength = collection.length;
+  const newCollection = new Array(Math.ceil(collectionLength / size));
+  let index2 = 0;
+  let resIndex = 0;
+  while (index2 < collectionLength) {
+    newCollection[resIndex++] = collection.slice(index2, index2 += size);
+  }
+  return newCollection;
+}
+function wrap(collection) {
+  return Array.isArray(collection) ? collection : [collection];
 }
 function isVNode(object) {
   return "instance" in object && "props" in object && "children" in object;
@@ -318,14 +499,14 @@ function getICAOIdent(facility) {
 function getFacilityName(facility) {
   return getFacilityStrField(facility, "name", Utils.Translate);
 }
-function getRunwayName(runway) {
-  return `runway ${runway.designation}`;
+function getRunwayName(runway, shortened = false) {
+  return `${shortened ? "rwy" : "runway"} ${runway.designation}`;
 }
 function getCurrentRunwayName(facility) {
   return facility && isSelectedAirportFacility(facility) ? getRunwayName(facility.currentRunway) : "";
 }
 function getFacilityIconPath(facilityType) {
-  let svgName = "";
+  let svgName;
   switch (facilityType) {
     case FacilityType.Airport:
     case FacilityType.RWY:
@@ -478,6 +659,37 @@ function where(value2) {
 }
 function toString() {
   return (input) => input.toString();
+}
+class ArrayFilterSubject extends AbstractSubscribableArray {
+  constructor(arr, predicate) {
+    super();
+    this.array = [];
+    this.sourceSub = arr.sub((_index, _type, _item, _array) => {
+      const arrayBefore = [...this.array];
+      this.array = _array.filter(predicate);
+      if (arrayBefore !== this.array) {
+        const index2 = arrayBefore.length;
+        this.notify(0, SubscribableArrayEventType.Cleared);
+        this.notify(
+          index2,
+          this.array.length >= index2 ? SubscribableArrayEventType.Added : SubscribableArrayEventType.Removed,
+          this.array
+        );
+      }
+    }, true);
+  }
+  get length() {
+    return this.array.length;
+  }
+  static create(arr, predicate) {
+    return new ArrayFilterSubject(arr, predicate);
+  }
+  getArray() {
+    return this.array;
+  }
+  destroy() {
+    this.sourceSub.destroy();
+  }
 }
 var FlightPhaseState = /* @__PURE__ */ ((FlightPhaseState2) => {
   FlightPhaseState2[FlightPhaseState2["PREFLIGHT"] = 0] = "PREFLIGHT";
@@ -664,7 +876,9 @@ class _GameModeManager {
       4
       /* FREEFLIGHT */
     ));
+    this.isInMenu = Subject.create(true);
     this.onGameModeChangedSubscription = null;
+    this.onIsInMenuSubscription = null;
   }
   /**
    * Static singleton instance of the Game mode manager
@@ -678,10 +892,17 @@ class _GameModeManager {
    * @internal
    */
   setBus(bus) {
-    var _a;
+    var _a, _b;
     (_a = this.onGameModeChangedSubscription) == null ? void 0 : _a.destroy();
+    (_b = this.onIsInMenuSubscription) == null ? void 0 : _b.destroy();
     this.onGameModeChangedSubscription = bus.on("GameModeChanged", (gameMode) => {
       switch (gameMode) {
+        case "":
+          this._gameMode.set(
+            0
+            /* UNKNOWN */
+          );
+          break;
         case "CAREER GAMEMODE":
           this._gameMode.set(
             1
@@ -714,6 +935,7 @@ class _GameModeManager {
           );
       }
     });
+    this.onIsInMenuSubscription = bus.on("IsInMenuUpdate", (isInMenu) => this.isInMenu.set(isInMenu));
   }
 }
 const GameModeManager = _GameModeManager.instance;
@@ -771,12 +993,12 @@ function extractChunks(data) {
     uint8[1] = data[idx++];
     uint8[0] = data[idx++];
     const length = uint32[0] + 4;
-    const chunk = new Uint8Array(length);
-    chunk[0] = data[idx++];
-    chunk[1] = data[idx++];
-    chunk[2] = data[idx++];
-    chunk[3] = data[idx++];
-    const name = String.fromCharCode(chunk[0]) + String.fromCharCode(chunk[1]) + String.fromCharCode(chunk[2]) + String.fromCharCode(chunk[3]);
+    const chunk2 = new Uint8Array(length);
+    chunk2[0] = data[idx++];
+    chunk2[1] = data[idx++];
+    chunk2[2] = data[idx++];
+    chunk2[3] = data[idx++];
+    const name = String.fromCharCode(chunk2[0]) + String.fromCharCode(chunk2[1]) + String.fromCharCode(chunk2[2]) + String.fromCharCode(chunk2[3]);
     if (!chunks.length && name !== "IHDR") {
       throw new Error("IHDR header missing");
     }
@@ -789,13 +1011,13 @@ function extractChunks(data) {
       break;
     }
     for (let i = 4; i < length; i++) {
-      chunk[i] = data[idx++];
+      chunk2[i] = data[idx++];
     }
     uint8[3] = data[idx++];
     uint8[2] = data[idx++];
     uint8[1] = data[idx++];
     uint8[0] = data[idx++];
-    const chunkData = new Uint8Array(chunk.buffer.slice(4));
+    const chunkData = new Uint8Array(chunk2.buffer.slice(4));
     chunks.push({
       name,
       data: chunkData
@@ -845,46 +1067,53 @@ function readMetadata(buffer) {
     pHYs: { x: 0, y: 0 }
   };
   const chunks = extractChunks(new Uint8Array(buffer));
-  chunks.forEach((chunk) => {
-    if (chunk.name === "tExt") {
-      const textChunk = textDecode(chunk.data);
+  chunks.forEach((chunk2) => {
+    if (chunk2.name === "tExt") {
+      const textChunk = textDecode(chunk2.data);
       result.tEXt[textChunk.keyword] = textChunk.text;
-    } else if (chunk.name === "pHYs") {
+    } else if (chunk2.name === "pHYs") {
       result.pHYs = {
-        x: readUint32(chunk.data, 0),
-        y: readUint32(chunk.data, 4)
+        x: readUint32(chunk2.data, 0),
+        y: readUint32(chunk2.data, 4)
       };
     } else {
-      result[chunk.name] = true;
+      result[chunk2.name] = true;
     }
   });
   return result;
 }
-function isNotifPermanent(notif) {
+function isNotificationPermanent(notif) {
   return notif.type === "permanent";
 }
-function createTemporaryNotif(delayMs, description, style, descriptionArguments, icon) {
+function isNotifPermanent(notif) {
+  return isNotificationPermanent(notif);
+}
+const DEFAULT_DISPLAY_TIME = 3e3;
+function createTemporaryNotification(description, displayTimeMs, style, descriptionArguments, icon) {
   const notifStyle = style != null ? style : "info";
   return {
     uuid: UUID.GenerateUuid(),
     type: "temporary",
     createdAt: /* @__PURE__ */ new Date(),
     hide: Subject.create(false),
-    delayMs: Utils.Clamp(delayMs, 0, 6e4),
+    delayMs: Utils.Clamp(displayTimeMs != null ? displayTimeMs : DEFAULT_DISPLAY_TIME, 0, 6e4),
     description,
     style: notifStyle,
     descriptionArguments,
     icon: icon != null ? icon : getNotifIconFromStyle(notifStyle)
   };
 }
-function createPermanentNotif(delayMs, title, description, style, descriptionArguments, icon, color, action) {
+function createTemporaryNotif(displayTimeMs, description, style, descriptionArguments, icon) {
+  return createTemporaryNotification(description, displayTimeMs, style, descriptionArguments, icon);
+}
+function createPermanentNotification(title, description, displayTimeMs, style, descriptionArguments, icon, color, action) {
   const notifStyle = style != null ? style : "info";
   return {
     uuid: UUID.GenerateUuid(),
     type: "permanent",
     createdAt: /* @__PURE__ */ new Date(),
     hide: Subject.create(false),
-    delayMs: Utils.Clamp(delayMs, 0, 6e4),
+    delayMs: Utils.Clamp(displayTimeMs != null ? displayTimeMs : DEFAULT_DISPLAY_TIME, 0, 6e4),
     description,
     style: notifStyle,
     descriptionArguments,
@@ -894,6 +1123,18 @@ function createPermanentNotif(delayMs, title, description, style, descriptionArg
     action,
     viewed: Subject.create(false)
   };
+}
+function createPermanentNotif(displayTimeMs, title, description, style, descriptionArguments, icon, color, action) {
+  return createPermanentNotification(
+    title,
+    description,
+    displayTimeMs,
+    style,
+    descriptionArguments,
+    icon,
+    color,
+    action
+  );
 }
 function getNotifIconFromStyle(style) {
   switch (style) {
@@ -1249,7 +1490,248 @@ var GamepadEvents = /* @__PURE__ */ ((GamepadEvents2) => {
   GamepadEvents2["JOYDIR_DOWN"] = "JOYDIR_DOWN";
   return GamepadEvents2;
 })(GamepadEvents || {});
+class GamepadInputManager {
+  /**
+   * @deprecated
+   * @param element The HTML element used for scroll inputs.
+   */
+  constructor(element) {
+    this.element = element;
+    this.defaultScrollDirection = "all";
+    this.defaultScrollSpeed = 1e3;
+  }
+  /**
+   * @deprecated
+   * @param inputContext The input context.
+   * @param inputAction The input action.
+   * @param callback The callback that will be called when the input is triggered.
+   * @returns The input watcher ID.
+   */
+  addCustomEvent(inputContext, inputAction, callback) {
+    return "";
+  }
+  /**
+   * @deprecated
+   * @param eventId The event ID.
+   */
+  removeCustonEvent(eventId) {
+    return;
+  }
+  /**
+   * @deprecated
+   * Allows an HTML element to be scrolled through using a gamepad.
+   * @param direction The direction where it is allowed to scroll. All directions are allowed by default.
+   * @param scrollSpeed The scroll speed in px/s. 1000 by default.
+   */
+  enableScroll(direction = this.defaultScrollDirection, scrollSpeed = this.defaultScrollSpeed) {
+    return;
+  }
+  /**
+   * @deprecated
+   * Prevents an HTML element to be scrolled through using a gamepad.
+   */
+  disableScroll() {
+    return;
+  }
+}
+var InputAction = /* @__PURE__ */ ((InputAction2) => {
+  InputAction2[InputAction2["SECONDARY"] = 0] = "SECONDARY";
+  InputAction2[InputAction2["TERTIARY"] = 1] = "TERTIARY";
+  InputAction2[InputAction2["PREV"] = 2] = "PREV";
+  InputAction2[InputAction2["NEXT"] = 3] = "NEXT";
+  InputAction2[InputAction2["PREV_SUB"] = 4] = "PREV_SUB";
+  InputAction2[InputAction2["NEXT_SUB"] = 5] = "NEXT_SUB";
+  InputAction2[InputAction2["ZOOM_OUT"] = 6] = "ZOOM_OUT";
+  InputAction2[InputAction2["ZOOM_IN"] = 7] = "ZOOM_IN";
+  InputAction2[InputAction2["SCROLL_UP"] = 8] = "SCROLL_UP";
+  InputAction2[InputAction2["SCROLL_RIGHT"] = 9] = "SCROLL_RIGHT";
+  InputAction2[InputAction2["SCROLL_DOWN"] = 10] = "SCROLL_DOWN";
+  InputAction2[InputAction2["SCROLL_LEFT"] = 11] = "SCROLL_LEFT";
+  return InputAction2;
+})(InputAction || {});
+const InputActions = {
+  [
+    0
+    /* SECONDARY */
+  ]: "KEY_EFB_SECONDARY",
+  [
+    1
+    /* TERTIARY */
+  ]: "KEY_EFB_TERTIARY",
+  [
+    2
+    /* PREV */
+  ]: "KEY_EFB_NAV_TABS_PREV",
+  [
+    3
+    /* NEXT */
+  ]: "KEY_EFB_NAV_TABS_NEXT",
+  [
+    4
+    /* PREV_SUB */
+  ]: "KEY_EFB_ZOOM_OUT",
+  [
+    5
+    /* NEXT_SUB */
+  ]: "KEY_EFB_ZOOM_IN",
+  [
+    6
+    /* ZOOM_OUT */
+  ]: "KEY_EFB_ZOOM_OUT",
+  [
+    7
+    /* ZOOM_IN */
+  ]: "KEY_EFB_ZOOM_IN",
+  [
+    8
+    /* SCROLL_UP */
+  ]: "KEY_EFB_SCROLL_UP",
+  [
+    9
+    /* SCROLL_RIGHT */
+  ]: "KEY_EFB_SCROLL_RIGHT",
+  [
+    10
+    /* SCROLL_DOWN */
+  ]: "KEY_EFB_SCROLL_DOWN",
+  [
+    11
+    /* SCROLL_LEFT */
+  ]: "KEY_EFB_SCROLL_LEFT"
+};
+var InternalInputAction = /* @__PURE__ */ ((InternalInputAction2) => {
+  InternalInputAction2[InternalInputAction2["VALID"] = 0] = "VALID";
+  InternalInputAction2[InternalInputAction2["BACK"] = 1] = "BACK";
+  InternalInputAction2[InternalInputAction2["SECONDARY"] = 2] = "SECONDARY";
+  InternalInputAction2[InternalInputAction2["TERTIARY"] = 3] = "TERTIARY";
+  InternalInputAction2[InternalInputAction2["PREV_TAB"] = 4] = "PREV_TAB";
+  InternalInputAction2[InternalInputAction2["NEXT_TAB"] = 5] = "NEXT_TAB";
+  InternalInputAction2[InternalInputAction2["ZOOM_OUT"] = 6] = "ZOOM_OUT";
+  InternalInputAction2[InternalInputAction2["ZOOM_IN"] = 7] = "ZOOM_IN";
+  InternalInputAction2[InternalInputAction2["UP"] = 8] = "UP";
+  InternalInputAction2[InternalInputAction2["RIGHT"] = 9] = "RIGHT";
+  InternalInputAction2[InternalInputAction2["DOWN"] = 10] = "DOWN";
+  InternalInputAction2[InternalInputAction2["LEFT"] = 11] = "LEFT";
+  InternalInputAction2[InternalInputAction2["PREV_APP"] = 12] = "PREV_APP";
+  InternalInputAction2[InternalInputAction2["NEXT_APP"] = 13] = "NEXT_APP";
+  InternalInputAction2[InternalInputAction2["OPEN_NOTIFICATION_MENU"] = 14] = "OPEN_NOTIFICATION_MENU";
+  InternalInputAction2[InternalInputAction2["SCROLL_UP"] = 15] = "SCROLL_UP";
+  InternalInputAction2[InternalInputAction2["SCROLL_RIGHT"] = 16] = "SCROLL_RIGHT";
+  InternalInputAction2[InternalInputAction2["SCROLL_DOWN"] = 17] = "SCROLL_DOWN";
+  InternalInputAction2[InternalInputAction2["SCROLL_LEFT"] = 18] = "SCROLL_LEFT";
+  InternalInputAction2[InternalInputAction2["TEXTBOX_VALID"] = 19] = "TEXTBOX_VALID";
+  InternalInputAction2[InternalInputAction2["TEXTBOX_UP"] = 20] = "TEXTBOX_UP";
+  InternalInputAction2[InternalInputAction2["TEXTBOX_RIGHT"] = 21] = "TEXTBOX_RIGHT";
+  InternalInputAction2[InternalInputAction2["TEXTBOX_DOWN"] = 22] = "TEXTBOX_DOWN";
+  InternalInputAction2[InternalInputAction2["TEXTBOX_LEFT"] = 23] = "TEXTBOX_LEFT";
+  return InternalInputAction2;
+})(InternalInputAction || {});
+const InternalInputActions = {
+  [
+    0
+    /* VALID */
+  ]: "KEY_EFB_VALID",
+  [
+    1
+    /* BACK */
+  ]: "KEY_EFB_BACK",
+  [
+    2
+    /* SECONDARY */
+  ]: "KEY_EFB_SECONDARY",
+  [
+    3
+    /* TERTIARY */
+  ]: "KEY_EFB_TERTIARY",
+  [
+    4
+    /* PREV_TAB */
+  ]: "KEY_EFB_NAV_TABS_PREV",
+  [
+    5
+    /* NEXT_TAB */
+  ]: "KEY_EFB_NAV_TABS_NEXT",
+  [
+    6
+    /* ZOOM_OUT */
+  ]: "KEY_EFB_ZOOM_OUT",
+  [
+    7
+    /* ZOOM_IN */
+  ]: "KEY_EFB_ZOOM_IN",
+  [
+    8
+    /* UP */
+  ]: "KEY_EFB_UP",
+  [
+    9
+    /* RIGHT */
+  ]: "KEY_EFB_NAV_APP_NEXT",
+  [
+    10
+    /* DOWN */
+  ]: "KEY_EFB_DOWN",
+  [
+    11
+    /* LEFT */
+  ]: "KEY_EFB_NAV_APP_PREV",
+  [
+    12
+    /* PREV_APP */
+  ]: "KEY_EFB_NAV_APP_PREV",
+  [
+    13
+    /* NEXT_APP */
+  ]: "KEY_EFB_NAV_APP_NEXT",
+  [
+    14
+    /* OPEN_NOTIFICATION_MENU */
+  ]: "KEY_EFB_NOTIFICATIONS_MENU",
+  [
+    15
+    /* SCROLL_UP */
+  ]: "KEY_EFB_SCROLL_UP",
+  [
+    16
+    /* SCROLL_RIGHT */
+  ]: "KEY_EFB_SCROLL_RIGHT",
+  [
+    17
+    /* SCROLL_DOWN */
+  ]: "KEY_EFB_SCROLL_DOWN",
+  [
+    18
+    /* SCROLL_LEFT */
+  ]: "KEY_EFB_SCROLL_LEFT",
+  [
+    19
+    /* TEXTBOX_VALID */
+  ]: "KEY_EFB_VALID_TEXT",
+  [
+    20
+    /* TEXTBOX_UP */
+  ]: "KEY_EFB_TEXTBOX_UP",
+  [
+    21
+    /* TEXTBOX_RIGHT */
+  ]: "KEY_EFB_TEXTBOX_RIGHT",
+  [
+    22
+    /* TEXTBOX_DOWN */
+  ]: "KEY_EFB_TEXTBOX_DOWN",
+  [
+    23
+    /* TEXTBOX_LEFT */
+  ]: "KEY_EFB_TEXTBOX_LEFT"
+};
 const _InputsListener = class _InputsListener extends ViewListener.ViewListener {
+  /**
+   * @deprecated
+   * @param context The input context.
+   * @param action The input action.
+   * @param callback The callback that will be called when the input is triggered.
+   * @returns The input watcher ID.
+   */
   static addInputChangeCallback(context, action, callback) {
     const idWatcher = "InputWatcher_" + context + "_" + action + "_" + UUID.GenerateUuid();
     _InputsListener.inputsListener.trigger("ADD_INPUT_WATCHER", idWatcher, context, action);
@@ -1260,6 +1742,10 @@ const _InputsListener = class _InputsListener extends ViewListener.ViewListener 
     });
     return idWatcher;
   }
+  /**
+   * @deprecated
+   * @param id The event ID.
+   */
   static removeInputChangeCallback(id) {
     _InputsListener.inputsListener.trigger("REMOVE_INPUT_WATCHER", id);
   }
@@ -1270,143 +1756,224 @@ _InputsListener.inputsListener = RegisterViewListener(
   () => _InputsListener.isLoaded.set(true)
 );
 let InputsListener = _InputsListener;
-class GamepadInputManager {
-  constructor(element) {
-    this.element = element;
-    this.defaultScrollDirection = "all";
-    this.defaultScrollSpeed = 1e3;
-    this.isScrollEnabled = false;
-    this.scrollInputs = [{ id: "" }, { id: "" }, { id: "" }, { id: "" }];
-    this.scrollIntervalDelayMs = 10;
-    this.pxPerScroll = 0;
-    this.scrollDirection = this.defaultScrollDirection;
-    this.mouseEnterScrollCallback = this.initScrollInputs.bind(this);
-    this.mouseLeaveScrollCallback = this.clearScrollInputs.bind(this);
+class InputStackListener {
+  constructor() {
+    this._isReady = Subject.create(false);
+    this.isReady = this._isReady;
+    this.inputActionMap = /* @__PURE__ */ new Map();
+    this.inputStackListener = RegisterViewListener(
+      "JS_LISTENER_INPUT_STACK",
+      () => this._isReady.set(true)
+    );
+    this.onInputTriggeredCallback = this._onInputTriggeredCallback.bind(this);
+    this.inputStackListener.on("ON_INPUT_TRIGGERED", this.onInputTriggeredCallback);
   }
-  addCustomEvent(inputContext, inputAction, callback) {
-    return InputsListener.addInputChangeCallback(inputContext, inputAction, callback);
-  }
-  removeCustonEvent(eventId) {
-    InputsListener.removeInputChangeCallback(eventId);
+  _onInputTriggeredCallback(task, value2, _activeId, uuid) {
+    var _a;
+    (_a = this.inputActionMap.get(uuid)) == null ? void 0 : _a(task, value2);
   }
   /**
-   * Allows an HTML element to be scrolled through using a gamepad.
-   * @param direction The direction where it is allowed to scroll. All directions are allowed by default.
-   * @param scrollSpeed The scroll speed in px/s. 1000 by default.
+   * Add an action that will be executed when the given input is triggered.
+   * @param input The input that, when triggered, will execute the action.
+   * @param callback The action callback that will be called when the input is triggered.
+   * @param inputType The trigger type of the input between 'pressed', 'released' and 'axis'. Default to 'released'.
+   * @param context The context which the input will be applied to. Default to 'DEFAULT'.
+   * @returns A callback that has to be called when the input action is not needed anymore.
    */
-  enableScroll(direction = this.defaultScrollDirection, scrollSpeed = this.defaultScrollSpeed) {
-    this.disableScroll();
-    this.scrollDirection = direction;
-    this.pxPerScroll = scrollSpeed * (this.scrollIntervalDelayMs / 1e3);
-    this.element.addEventListener("mouseenter", this.mouseEnterScrollCallback);
-    this.element.addEventListener("mouseleave", this.mouseLeaveScrollCallback);
+  addInputAction(input, callback, inputType = "released", context = "DEFAULT") {
+    const uuid = UUID.GenerateUuid().toUpperCase();
+    const formattedUuid = `{${uuid}}`;
+    this.inputActionMap.set(uuid, (task, value2) => {
+      const isConsumed = callback(value2);
+      this.inputStackListener.call(`RESOLVE_${task}`, isConsumed);
+    });
+    this.inputStackListener.trigger("ADD_INPUT_ACTION", input, formattedUuid, "", inputType, context);
+    return () => {
+      this.inputStackListener.trigger("REMOVE_INPUT_ACTION", input, formattedUuid);
+      this.inputActionMap.delete(uuid);
+    };
   }
+}
+class InternalInputManager {
+  constructor(inputActionRecord) {
+    this.inputActionRecord = inputActionRecord;
+    this.defaultInputType = "released";
+    this.defaultScrollAxis = "all";
+    this.defaultScrollSpeedFactor = 10;
+    this.inputStackListener = new InputStackListener();
+  }
+  //#region Add input action
   /**
-   * Prevents an HTML element to be scrolled through using a gamepad.
+   * Add an action that will be executed when the given input is triggered.
+   * @param inputAction The input that, when triggered, will execute the action.
+   * @param callback The action callback that will be called when the input is triggered.
+   * @param options The optional input action options.
+   * @returns A callback that has to be called when the input action is not needed anymore.
    */
-  disableScroll() {
-    this.element.removeEventListener("mouseenter", this.mouseEnterScrollCallback);
-    this.element.removeEventListener("mouseleave", this.mouseLeaveScrollCallback);
-    this.clearScrollInputs();
+  addInputAction(inputAction, callback, options) {
+    var _a;
+    return this.inputStackListener.addInputAction(
+      this.inputActionRecord[inputAction],
+      callback,
+      (_a = options == null ? void 0 : options.inputType) != null ? _a : this.defaultInputType
+    );
   }
-  handleScroll(isScrolling, input, getScrollOptions) {
-    if (isScrolling) {
-      input.timeout = setInterval(() => {
-        this.element.scroll(getScrollOptions());
-      }, this.scrollIntervalDelayMs);
+  //#endregion
+  //#region On hover
+  /**
+   * Add an action that will be executed when the given input is triggered on hover of the given HTML element.
+   * @param element The HTML element that will allow the action to be executed when hovered on.
+   * @param inputAction The input that, when triggered, will execute the action.
+   * @param callback The action callback that will be called when the input is triggered.
+   * @param options The optional input action options.
+   * @returns A callback that has to be called when the input action is not needed anymore.
+   */
+  addInputActionOnHover(element, inputAction, callback, options) {
+    let inputActionDestructor = null;
+    const mouseEnterCallback = () => {
+      var _a;
+      if (inputActionDestructor) {
+        inputActionDestructor();
+      }
+      inputActionDestructor = this.inputStackListener.addInputAction(
+        this.inputActionRecord[inputAction],
+        callback,
+        (_a = options == null ? void 0 : options.inputType) != null ? _a : this.defaultInputType
+      );
+    };
+    const mouseLeaveCallback = () => {
+      inputActionDestructor == null ? void 0 : inputActionDestructor();
+    };
+    element.addEventListener("mouseenter", mouseEnterCallback);
+    element.addEventListener("mouseleave", mouseLeaveCallback);
+    return () => {
+      element.removeEventListener("mouseenter", mouseEnterCallback);
+      element.removeEventListener("mouseleave", mouseLeaveCallback);
+      inputActionDestructor == null ? void 0 : inputActionDestructor();
+    };
+  }
+  //#endregion
+}
+class InputManager extends InternalInputManager {
+  constructor() {
+    super(InputActions);
+  }
+  //#region Scroll
+  /**
+   * Add scroll input actions using the gamepad joystick for a given HTML element.
+   * @param element The scrollable HTML element.
+   * @param options The optional scroll input action options.
+   * @returns A callback that has to be called when the scroll input action is not needed anymore.
+   */
+  addScrollInputAction(element, options) {
+    var _a;
+    const scrollSpeed = options == null ? void 0 : options.scrollSpeed;
+    let predicate;
+    if (scrollSpeed === void 0) {
+      predicate = (axis) => this.computeScrollSpeedFactor(axis, this.defaultScrollSpeedFactor);
+    } else if (typeof scrollSpeed === "number") {
+      predicate = (axis) => this.computeScrollSpeedFactor(axis, scrollSpeed);
     } else {
-      clearInterval(input.timeout);
+      predicate = scrollSpeed;
     }
-  }
-  setupVerticalScroll() {
-    this.scrollInputs[
-      0
-      /* UP */
-    ].id = InputsListener.addInputChangeCallback(
-      "MENU",
-      "KEY_MENU_SR_SCROLL_UP",
-      (isScrolling) => this.handleScroll(isScrolling, this.scrollInputs[
-        0
-        /* UP */
-      ], () => ({
-        top: this.element.scrollTop - this.pxPerScroll
-      }))
-    );
-    this.scrollInputs[
-      2
-      /* DOWN */
-    ].id = InputsListener.addInputChangeCallback(
-      "MENU",
-      "KEY_MENU_SR_SCROLL_DOWN",
-      (isScrolling) => this.handleScroll(isScrolling, this.scrollInputs[
-        2
-        /* DOWN */
-      ], () => ({
-        top: this.element.scrollTop + this.pxPerScroll
-      }))
-    );
-  }
-  setupHorizontalScroll() {
-    this.scrollInputs[
-      3
-      /* LEFT */
-    ].id = InputsListener.addInputChangeCallback(
-      "MENU_CORE",
-      "KEY_MENU_SR_SCROLL_LEFT",
-      (isScrolling) => this.handleScroll(isScrolling, this.scrollInputs[
-        3
-        /* LEFT */
-      ], () => ({
-        left: this.element.scrollLeft - this.pxPerScroll
-      }))
-    );
-    this.scrollInputs[
-      1
-      /* RIGHT */
-    ].id = InputsListener.addInputChangeCallback(
-      "MENU_CORE",
-      "KEY_MENU_SR_SCROLL_RIGHT",
-      (isScrolling) => this.handleScroll(isScrolling, this.scrollInputs[
-        1
-        /* RIGHT */
-      ], () => ({
-        left: this.element.scrollLeft + this.pxPerScroll
-      }))
-    );
-  }
-  initScrollInputs() {
-    if (this.isScrollEnabled) {
-      return;
-    }
-    this.isScrollEnabled = true;
-    switch (this.scrollDirection) {
+    switch ((_a = options == null ? void 0 : options.scrollAxis) != null ? _a : this.defaultScrollAxis) {
       case "vertical":
       case "y":
-        this.setupVerticalScroll();
-        break;
+        return this.setupVerticalScroll(element, predicate);
       case "horizontal":
       case "x":
-        this.setupHorizontalScroll();
-        break;
-      default:
-        this.setupVerticalScroll();
-        this.setupHorizontalScroll();
+        return this.setupHorizontalScroll(element, predicate);
+      default: {
+        const verticalScrollDestructor = this.setupVerticalScroll(element, predicate);
+        const horizontalScrollDestructor = this.setupHorizontalScroll(element, predicate);
+        return () => {
+          verticalScrollDestructor();
+          horizontalScrollDestructor();
+        };
+      }
     }
   }
-  clearScrollInputs() {
-    this.scrollInputs.forEach((scrollInput) => {
-      InputsListener.removeInputChangeCallback(scrollInput.id);
-      clearInterval(scrollInput.timeout);
-    });
-    this.isScrollEnabled = false;
+  setupVerticalScroll(element, predicate) {
+    const scrollUpInputActionDestructor = this.addInputActionOnHover(
+      element,
+      InputAction.SCROLL_UP,
+      (axisValue) => {
+        if (axisValue < 0) {
+          return false;
+        }
+        element.scroll({
+          top: element.scrollTop - predicate(axisValue)
+        });
+        return true;
+      },
+      { inputType: "axis" }
+    );
+    const scrollDownInputActionDestructor = this.addInputActionOnHover(
+      element,
+      InputAction.SCROLL_DOWN,
+      (axisValue) => {
+        if (axisValue < 0) {
+          return false;
+        }
+        element.scroll({
+          top: element.scrollTop + predicate(axisValue)
+        });
+        return true;
+      },
+      { inputType: "axis" }
+    );
+    return () => {
+      scrollUpInputActionDestructor();
+      scrollDownInputActionDestructor();
+    };
   }
+  setupHorizontalScroll(element, predicate) {
+    const scrollLeftInputActionDestructor = this.addInputActionOnHover(
+      element,
+      InputAction.SCROLL_LEFT,
+      (axisValue) => {
+        if (axisValue < 0) {
+          return false;
+        }
+        element.scroll({
+          left: element.scrollLeft - predicate(axisValue)
+        });
+        return true;
+      },
+      { inputType: "axis" }
+    );
+    const scrollRightInputActionDestructor = this.addInputActionOnHover(
+      element,
+      InputAction.SCROLL_RIGHT,
+      (axisValue) => {
+        if (axisValue < 0) {
+          return false;
+        }
+        element.scroll({
+          left: element.scrollLeft + predicate(axisValue)
+        });
+        return true;
+      },
+      { inputType: "axis" }
+    );
+    return () => {
+      scrollLeftInputActionDestructor();
+      scrollRightInputActionDestructor();
+    };
+  }
+  computeScrollSpeedFactor(axisValue, factor) {
+    return axisValue * axisValue * factor;
+  }
+  //#endregion
 }
 const _GamepadUiComponent = class _GamepadUiComponent extends DisplayComponent {
   constructor() {
     var _a, _b;
     super(...arguments);
-    this._gamepadUiSubs = [];
+    this.classSubscriptions = [];
     this.gamepadUiComponentRef = FSComponent.createRef();
+    this.inputManager = new InputManager();
+    this.areGamepadInputsEnabled = Subject.create(false);
     this._nextHandler = Subject.create(void 0);
     this.nextHandler = this._nextHandler;
     this.disabled = SubscribableUtils.toSubscribable((_a = this.props.disabled) != null ? _a : false, true);
@@ -1424,34 +1991,33 @@ const _GamepadUiComponent = class _GamepadUiComponent extends DisplayComponent {
   }
   onAfterRender(node) {
     super.onAfterRender(node);
+    const gamepadUiComponentInstance = this.gamepadUiComponentRef.getOrDefault();
+    if (gamepadUiComponentInstance === null) {
+      return;
+    }
     const classes = mergeClassProp(this.props.class);
     Object.keys(classes).forEach((className) => {
       const subscribable = SubscribableUtils.toSubscribable(classes[className], true);
-      this._gamepadUiSubs.push(
+      this.classSubscriptions.push(
         subscribable.sub((value2) => {
-          this.gamepadUiComponentRef.instance.classList.toggle(className, value2);
+          gamepadUiComponentInstance.classList.toggle(className, value2);
         }, true)
       );
     });
-    this._gamepadUiSubs.push(
-      this.visible.sub((isVisible) => {
-        this.gamepadUiComponentRef.instance.hidden = !isVisible;
-      }, true)
-    );
+    this.isVisibleSubscription = this.visible.sub((isVisible) => {
+      gamepadUiComponentInstance.hidden = !isVisible;
+    }, true);
     if (SubscribableUtils.isSubscribable(this.props.disabled)) {
-      this._gamepadUiSubs.push(
-        this.props.disabled.sub((disabled) => {
-          disabled ? this.disable() : this.enable();
-        }, true)
-      );
+      this.isDisabledSubscription = this.props.disabled.sub((disabled) => {
+        disabled ? this.disable() : this.enable();
+      }, true);
     } else {
       this.props.disabled ? this.disable() : this.enable();
     }
     window.addEventListener("click", this.componentClickListener);
-    if (this.props.onboardingStepId === void 0) {
-      return;
+    if (this.props.onboardingStepId !== void 0) {
+      gamepadUiComponentInstance.setAttribute("id", this.props.onboardingStepId);
     }
-    this.gamepadUiComponentRef.instance.setAttribute("id", this.props.onboardingStepId);
   }
   handleComponentClick(e) {
     if (!this.gamepadUiComponentRef.instance.contains(e.target)) {
@@ -1470,6 +2036,16 @@ const _GamepadUiComponent = class _GamepadUiComponent extends DisplayComponent {
   }
   onClickOutOfComponent(_e) {
     return;
+  }
+  enableGamepadInputs() {
+    if (this.areGamepadInputsEnabled.get()) {
+      console.warn("Trying to enable gamepad inputs that are already enabled. Operation cancelled.");
+      return;
+    }
+    this.areGamepadInputsEnabled.set(true);
+  }
+  disableGamepadInputs() {
+    this.areGamepadInputsEnabled.set(false);
   }
   enable() {
     this.gamepadUiComponentRef.instance.removeAttribute("disabled");
@@ -1498,7 +2074,10 @@ const _GamepadUiComponent = class _GamepadUiComponent extends DisplayComponent {
     return this.gamepadUiComponentRef.instance.getBoundingClientRect();
   }
   destroy() {
-    this._gamepadUiSubs.forEach((s) => s.destroy());
+    var _a, _b;
+    this.classSubscriptions.forEach((subscription) => subscription.destroy());
+    (_a = this.isVisibleSubscription) == null ? void 0 : _a.destroy();
+    (_b = this.isDisabledSubscription) == null ? void 0 : _b.destroy();
     window.removeEventListener("click", this.componentClickListener);
     super.destroy();
   }
@@ -1664,22 +2243,45 @@ class GamepadUiParser {
   }
 }
 class UiView extends DisplayComponent {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  constructor() {
+    super(...arguments);
+    this.services = [];
+  }
   onOpen() {
+    var _a;
+    for (const service of this.services) {
+      (_a = service.onOpen) == null ? void 0 : _a.call(service);
+    }
   }
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   onClose() {
+    var _a;
+    for (const service of this.services) {
+      (_a = service.onClose) == null ? void 0 : _a.call(service);
+    }
   }
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   onResume() {
+    var _a;
+    for (const service of this.services) {
+      (_a = service.onResume) == null ? void 0 : _a.call(service);
+    }
   }
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   onPause() {
+    var _a;
+    for (const service of this.services) {
+      (_a = service.onPause) == null ? void 0 : _a.call(service);
+    }
   }
-  // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
   onUpdate(time) {
+    var _a;
+    for (const service of this.services) {
+      (_a = service.onUpdate) == null ? void 0 : _a.call(service, time);
+    }
   }
   destroy() {
+    var _a;
+    for (const service of this.services) {
+      (_a = service.destroy) == null ? void 0 : _a.call(service);
+    }
     super.destroy();
   }
 }
@@ -1690,10 +2292,72 @@ class GamepadUiView extends UiView {
     this.gamepadUiParser = new GamepadUiParser();
     this._nextHandler = Subject.create(void 0);
     this.nextHandler = this._nextHandler;
+    this.inputManager = new InputManager();
+    this.gamepadComponentChildren = [];
+    this.areGamepadInputsEnabled = Subject.create(false);
+    this.viewCoreInputManager = new InternalInputManager(InternalInputActions);
+  }
+  /**
+   * Enable the gamepad inputs for this UI view.
+   * Gamepad inputs of any UI view shall be added in its own enableGamepadInputs function via inputManager.
+   */
+  enableGamepadInputs() {
+    if (this.areGamepadInputsEnabled.get()) {
+      console.warn("Trying to enable gamepad inputs that are already enabled. Operation cancelled.");
+      return;
+    }
+    this.goBackActionDestructor = this.viewCoreInputManager.addInputAction(
+      InternalInputAction.BACK,
+      () => {
+        if (this.props.appViewService === void 0) {
+          return false;
+        }
+        try {
+          this.props.appViewService.goBack();
+        } catch (e) {
+          return false;
+        }
+        return true;
+      }
+    );
+    this.gamepadComponentChildren.forEach((child) => child.enableGamepadInputs());
+    this.areGamepadInputsEnabled.set(true);
+  }
+  /**
+   * Disable the gamepad inputs for this UI view.
+   * Gamepad input destructors of any UI view shall be called in its own disableGamepadInputs function.
+   */
+  disableGamepadInputs() {
+    var _a;
+    (_a = this.goBackActionDestructor) == null ? void 0 : _a.call(this);
+    this.gamepadComponentChildren.forEach((child) => child.disableGamepadInputs());
+    this.areGamepadInputsEnabled.set(false);
+  }
+  onClose() {
+    super.onClose();
+    this.disableGamepadInputs();
+  }
+  onResume() {
+    super.onResume();
+    this.enableGamepadInputs();
+  }
+  onPause() {
+    super.onPause();
+    this.disableGamepadInputs();
   }
   onAfterRender(node) {
     super.onAfterRender(node);
     this.gamepadUiParser.bindVNodeReference(node);
+    FSComponent.visitNodes(node, (childNode) => {
+      if (childNode.instance instanceof GamepadUiComponent) {
+        this.gamepadComponentChildren.push(childNode.instance);
+      }
+      return false;
+    });
+  }
+  destroy() {
+    super.destroy();
+    this.disableGamepadInputs();
   }
   setNextGamepadEventHandler(ref) {
     this._nextHandler.set(ref);
@@ -1750,10 +2414,6 @@ class AppViewService {
     this.hasInitialized = false;
     this._currentUiView = Subject.create(null);
     this.currentUiView = this._currentUiView;
-    this.eventListener = {
-      pause: [],
-      resume: []
-    };
     this.bus = bus;
     this.goHomeSub = this.bus.on(
       "_efb_appviewservice_go_home",
@@ -1769,22 +2429,22 @@ class AppViewService {
   onOpen() {
     var _a, _b;
     this.goHomeSub.resume();
-    (_b = (_a = this.activeUiViewEntry) == null ? void 0 : _a.ref) == null ? void 0 : _b.onOpen();
+    (_b = (_a = this.getActiveUiViewEntry()) == null ? void 0 : _a.ref) == null ? void 0 : _b.onOpen();
   }
   onClose() {
     var _a, _b;
     this.goHomeSub.pause();
-    (_b = (_a = this.activeUiViewEntry) == null ? void 0 : _a.ref) == null ? void 0 : _b.onClose();
+    (_b = (_a = this.getActiveUiViewEntry()) == null ? void 0 : _a.ref) == null ? void 0 : _b.onClose();
   }
   onResume() {
     var _a, _b;
     this.goHomeSub.resume();
-    (_b = (_a = this.activeUiViewEntry) == null ? void 0 : _a.ref) == null ? void 0 : _b.onResume();
+    (_b = (_a = this.getActiveUiViewEntry()) == null ? void 0 : _a.ref) == null ? void 0 : _b.onResume();
   }
   onPause() {
     var _a, _b;
     this.goHomeSub.pause();
-    (_b = (_a = this.activeUiViewEntry) == null ? void 0 : _a.ref) == null ? void 0 : _b.onPause();
+    (_b = (_a = this.getActiveUiViewEntry()) == null ? void 0 : _a.ref) == null ? void 0 : _b.onPause();
   }
   /**
    * Registers and renders a view (page or popup) to be opened by the service.
@@ -1903,16 +2563,12 @@ class AppViewService {
   /**
    * @returns the current active view entry.
    */
-  get activeUiViewEntry() {
+  getActiveUiViewEntry() {
     const activeViewEntry = ArrayUtils.peekLast(this.appViewStack);
     return activeViewEntry;
   }
-  on(event, viewKey, callback) {
-    if (!this.registeredUiViewEntries.has(viewKey)) {
-      console.error("Cannot listen for a non registered view.");
-      return this;
-    }
-    this.eventListener[event].push({ key: viewKey, callback });
+  /** @deprecated */
+  on(_event, _viewKey, _callback) {
     return this;
   }
   /**
@@ -1921,9 +2577,8 @@ class AppViewService {
    */
   handleCloseView(page) {
     var _a;
-    if (!page) return;
+    if (!page || page.isVisible.get() === false) return;
     (_a = page.ref) == null ? void 0 : _a.onPause();
-    this.eventListener.pause.forEach((e) => e.key === page.key && e.callback(page));
     page.isVisible.set(false);
     this._currentUiView.set(null);
     if (page.viewOptions.SuspendMode === ViewSuspendMode.TERMINATE) {
@@ -1936,9 +2591,8 @@ class AppViewService {
    */
   handleOpenView(page) {
     var _a;
-    if (!page) return;
+    if (!page || page.isVisible.get() === true) return;
     (_a = page.ref) == null ? void 0 : _a.onResume();
-    this.eventListener.resume.forEach((e) => e.key === page.key && e.callback(page));
     page.isVisible.set(true);
     this._currentUiView.set(page);
   }
@@ -1969,6 +2623,18 @@ class AppViewService {
   onAppContainerRendered(appViewRef) {
     this.appViewRef = appViewRef;
   }
+  isInViewStack(view) {
+    const key = typeof view === "string" ? view : view.key;
+    return this.appViewStack.findIndex((stackViewEntry) => key === stackViewEntry.key) !== -1;
+  }
+  isActive(view) {
+    const key = typeof view === "string" ? view : view.key;
+    const activeViewEntry = this.getActiveUiViewEntry();
+    if (activeViewEntry === void 0) {
+      return false;
+    }
+    return key === activeViewEntry.key;
+  }
   open(key) {
     const viewEntry = this.advanceViewStack(key);
     return viewEntry;
@@ -1980,9 +2646,8 @@ class AppViewService {
     } else if (steps >= this.appViewStack.length) {
       throw new RangeError(`Steps can't be superior to ${this.appViewStack.length} when called.`);
     }
-    const activeViewEntry = this.activeUiViewEntry;
+    const activeViewEntry = this.getActiveUiViewEntry();
     if (this.appViewStack.length > steps && activeViewEntry) {
-      this.eventListener.pause.forEach((e) => e.key === activeViewEntry.key && e.callback(activeViewEntry));
       const viewsToOpen = [];
       const viewsToClose = [];
       while (steps--) {
@@ -2002,7 +2667,7 @@ class AppViewService {
         this.handleOpenView(page);
       }
     }
-    return this.activeUiViewEntry;
+    return this.getActiveUiViewEntry();
   }
   /**
    * Handles view stack logic
@@ -2012,7 +2677,7 @@ class AppViewService {
   advanceViewStack(key) {
     const viewEntry = this.getUiViewEntry(key);
     if (this.appViewStack.includes(viewEntry)) {
-      if (this.activeUiViewEntry !== viewEntry) {
+      if (this.getActiveUiViewEntry() !== viewEntry) {
         throw new Error("Page or popup is already in the viewstack and can't be opened twice");
       }
       return viewEntry;
@@ -2060,7 +2725,7 @@ class AppViewService {
    * @param gamepadEvent the {@link GamepadEvents}
    */
   routeGamepadInteractionEvent(gamepadEvent) {
-    const _currentUiView = this.activeUiViewEntry;
+    const _currentUiView = this.getActiveUiViewEntry();
     if ((_currentUiView == null ? void 0 : _currentUiView.ref) instanceof GamepadUiView) {
       _currentUiView.ref.handleGamepadEvent(gamepadEvent);
     }
@@ -2431,48 +3096,238 @@ class TT extends DisplayComponent {
     super.destroy();
   }
 }
-class List extends GamepadUiComponent {
-  constructor() {
-    super(...arguments);
-    this._itemInstanceRefs = [];
-    this.dataSubs = [];
+class GhostListItem extends GamepadUiComponent {
+  constructor(props) {
+    props.disabled = true;
+    props.visible = false;
+    super(props);
   }
-  onAfterRender(node) {
-    var _a;
-    super.onAfterRender(node);
-    this.renderList();
-    this.dataSubs.push(this.props.data.sub(this.onDataChanged.bind(this)));
-    const isListVisibleSub = (_a = this.props.isListVisible) == null ? void 0 : _a.sub((isVisible) => {
-      if (isVisible && this._itemInstanceRefs.length > 0) {
-        this.show();
-      } else {
-        this.hide();
+  render() {
+    return /* @__PURE__ */ FSComponent.buildComponent("div", { class: "hidden", ref: this.gamepadUiComponentRef });
+  }
+}
+const _GamepadListNavigationManager = class _GamepadListNavigationManager {
+  constructor(data, toolbox) {
+    var _a, _b;
+    this.data = data;
+    this.toolbox = toolbox;
+    this.allowedUpcomingNavigationMs = 0;
+    this.currentItemIndex = Subject.create(-1);
+    this.isListFocusedSubscriptions = [];
+    this.currentItemIndexSubscription = this.currentItemIndex.sub((index2) => {
+      var _a2, _b2;
+      const item = index2 < 0 || index2 >= this.data.length ? null : this.data.get(index2);
+      (_b2 = (_a2 = this.toolbox).onItemHovered) == null ? void 0 : _b2.call(_a2, item, index2);
+    });
+    this.internalInputManager = new InternalInputManager(InternalInputActions);
+    this.navigationBetweenItemsDelayMs = (_a = toolbox.navigationBetweenItemsDelayMs) != null ? _a : _GamepadListNavigationManager.defaultNavigationBetweenItemsDelayMs;
+    if (toolbox.wrap) {
+      this.computeUpcomingItemIndex = (previousItemIndex, step) => (this.data.length + previousItemIndex + step) % this.data.length;
+    } else {
+      this.computeUpcomingItemIndex = (previousItemIndex, step) => {
+        const upcomingItemIndex = previousItemIndex + step;
+        if (upcomingItemIndex >= 0 && upcomingItemIndex < this.data.length) {
+          return upcomingItemIndex;
+        } else {
+          return previousItemIndex;
+        }
+      };
+    }
+    if (SubscribableUtils.isMutableSubscribable(toolbox.isListFocused)) {
+      this.isListFocused = toolbox.isListFocused;
+    } else if (SubscribableUtils.isSubscribable(toolbox.isListFocused)) {
+      this.isListFocused = Subject.create(toolbox.isListFocused.get());
+      this.isListFocusedSubscriptions.push(
+        toolbox.isListFocused.sub((value2) => this.isListFocused.set(value2))
+      );
+    } else {
+      this.isListFocused = Subject.create((_b = toolbox.isListFocused) != null ? _b : false);
+    }
+    this.isListFocusedSubscriptions.push(
+      MappedSubject.create(
+        ([is2D, isFocused]) => {
+          if (is2D && isFocused) {
+            this.enableGamepadNavigation();
+          } else {
+            this.disableGamepadNavigation();
+          }
+        },
+        window.PanelInfo.is2D,
+        this.isListFocused
+      )
+    );
+  }
+  navigateThroughList(step) {
+    const currentNavigationTryMs = Date.now();
+    if (currentNavigationTryMs < this.allowedUpcomingNavigationMs) {
+      return false;
+    }
+    this.allowedUpcomingNavigationMs = currentNavigationTryMs + this.navigationBetweenItemsDelayMs;
+    const currentItemIndex = this.currentItemIndex.get();
+    if (currentItemIndex === -1) {
+      return false;
+    }
+    const upcomingItemIndex = this.computeUpcomingItemIndex(currentItemIndex, step);
+    this.currentItemIndex.set(upcomingItemIndex);
+    return true;
+  }
+  enableGamepadNavigation() {
+    Coherent.trigger("SET_EFB_GAMEPAD_NAVIGATION", true);
+    this.currentItemIndex.set(0);
+    this.unfocusListActionDestructor = this.internalInputManager.addInputAction(
+      InternalInputAction.BACK,
+      () => {
+        this.isListFocused.set(false);
+        return true;
       }
-    }, true);
-    if (isListVisibleSub) {
-      this.dataSubs.push(isListVisibleSub);
-    }
-    this.gamepadInputManager = new GamepadInputManager(this.gamepadUiComponentRef.instance);
-    if (this.props.isScrollable) {
-      this.gamepadInputManager.enableScroll("vertical");
-    }
+    );
+    this.selectItemActionDestructor = this.internalInputManager.addInputAction(
+      InternalInputAction.VALID,
+      () => {
+        var _a, _b;
+        const currentItemIndex = this.currentItemIndex.get();
+        try {
+          (_b = (_a = this.toolbox).onItemSelected) == null ? void 0 : _b.call(_a, this.data.get(currentItemIndex), currentItemIndex);
+        } catch (e) {
+          return false;
+        }
+        return true;
+      }
+    );
+    this.allowedUpcomingNavigationMs = Date.now();
+    this.prevItemActionDestructor = this.internalInputManager.addInputAction(
+      InternalInputAction.UP,
+      () => this.navigateThroughList(
+        -1
+        /* UP */
+      ),
+      { inputType: "axis" }
+    );
+    this.nextItemActionDestructor = this.internalInputManager.addInputAction(
+      InternalInputAction.DOWN,
+      () => this.navigateThroughList(
+        1
+        /* DOWN */
+      ),
+      { inputType: "axis" }
+    );
+  }
+  disableGamepadNavigation() {
+    var _a, _b, _c, _d;
+    (_a = this.unfocusListActionDestructor) == null ? void 0 : _a.call(this);
+    this.unfocusListActionDestructor = void 0;
+    (_b = this.selectItemActionDestructor) == null ? void 0 : _b.call(this);
+    this.selectItemActionDestructor = void 0;
+    (_c = this.prevItemActionDestructor) == null ? void 0 : _c.call(this);
+    this.prevItemActionDestructor = void 0;
+    (_d = this.nextItemActionDestructor) == null ? void 0 : _d.call(this);
+    this.nextItemActionDestructor = void 0;
+    this.currentItemIndex.set(-1);
+    Coherent.trigger("SET_EFB_GAMEPAD_NAVIGATION", false);
+  }
+  pause() {
+    this.disableGamepadNavigation();
+    this.currentItemIndexSubscription.pause();
+    this.isListFocusedSubscriptions.forEach((subscription) => {
+      subscription.pause();
+    });
+  }
+  resume() {
+    this.currentItemIndexSubscription.resume(this.isListFocused.get());
+    this.isListFocusedSubscriptions.forEach((subscription) => {
+      subscription.resume(true);
+    });
   }
   destroy() {
-    this.dataSubs.forEach((sub) => sub.destroy());
-    super.destroy();
+    this.currentItemIndexSubscription.destroy();
+    this.isListFocusedSubscriptions.forEach((subscription) => {
+      subscription.destroy();
+    });
+    this.disableGamepadNavigation();
   }
-  show() {
-    this.gamepadUiComponentRef.instance.classList.remove("hide");
+};
+_GamepadListNavigationManager.defaultNavigationBetweenItemsDelayMs = 100;
+let GamepadListNavigationManager = _GamepadListNavigationManager;
+class List extends GamepadUiComponent {
+  constructor(props) {
+    var _a;
+    super(props);
+    this.renderedItems = ArraySubject.create();
+    this.gamepadComponentChildren = ArraySubject.create();
+    this.nbRenderedItems = Subject.create(0);
+    this.renderedItemsSubscription = this.renderedItems.sub(
+      (_index, _type, _item, items) => {
+        this.nbRenderedItems.set(items.length);
+        this.gamepadComponentChildren.set(items.filter((item) => item instanceof GamepadUiComponent));
+      }
+    );
+    this.isListVisible = (_a = this.props.isListVisible) != null ? _a : Subject.create(true);
+    this.isListVisibleSubscription = this.isListVisible.sub((isVisible) => {
+      if (isVisible) {
+        this.enableGamepadInputs();
+      } else {
+        this.disableGamepadInputs();
+      }
+    }, true);
+    this.onDataChangedSubscription = this.props.data.sub(this.onDataChanged.bind(this));
+    if (props.gamepadNavigationOptions) {
+      this.gamepadNavigationManager = new GamepadListNavigationManager(
+        props.data,
+        props.gamepadNavigationOptions
+      );
+    }
   }
-  hide() {
-    this.gamepadUiComponentRef.instance.classList.add("hide");
+  /**
+   * Scroll the list to a specific item given its index.
+   * @param index The index of the item to scroll to.
+   * @throws Error if the index is out of bounds or if the item is not an Element.
+   */
+  scrollToItem(index2) {
+    const listRef = this.gamepadUiComponentRef.getOrDefault();
+    if (listRef === null) {
+      return;
+    }
+    let node = this.renderedItems.get(index2);
+    if (node instanceof GamepadUiComponent) {
+      node = node.gamepadUiComponentRef.getOrDefault();
+    }
+    if (node instanceof Element) {
+      const listRect = listRef.getBoundingClientRect();
+      const nodeRect = node.getBoundingClientRect();
+      const nodeRelativeTop = nodeRect.top - listRect.top;
+      const nodeRelativeBottom = nodeRect.bottom - listRect.bottom;
+      if (nodeRelativeTop < 0) {
+        listRef.scrollTo({ top: listRef.scrollTop + nodeRelativeTop });
+      } else if (nodeRelativeBottom > 0) {
+        listRef.scrollTo({ top: listRef.scrollTop + nodeRelativeBottom });
+      }
+    } else {
+      throw new Error("The item to scroll to is not an Element.");
+    }
+  }
+  cleanRenderedContent() {
+    for (const item of this.renderedItems.getArray()) {
+      if (item instanceof DisplayComponent) {
+        item.destroy();
+      }
+    }
+    this.gamepadUiComponentRef.instance.textContent = "";
+    this.renderedItems.clear();
   }
   onDataChanged(index2, type, item) {
+    const instance = this.gamepadUiComponentRef.getOrDefault();
+    if (instance === null) {
+      return;
+    }
+    if (this.props.refreshOnUpdate) {
+      this.renderList();
+      return;
+    }
     switch (type) {
       case SubscribableArrayEventType.Added:
         {
           if (!item) return;
-          const el = this.gamepadUiComponentRef.instance.children.item(index2);
+          const el = instance.children.item(index2);
           if (Array.isArray(item)) {
             for (let i = 0; i < item.length; i++) {
               this.addDomNode(item[i], index2 + i, el);
@@ -2495,23 +3350,12 @@ class List extends GamepadUiComponent {
         }
         break;
       case SubscribableArrayEventType.Cleared:
-        {
-          for (const componentRef of this._itemInstanceRefs) {
-            componentRef.destroy();
-          }
-          this._itemInstanceRefs.length = 0;
-          this.gamepadUiComponentRef.instance.innerHTML = "";
-        }
+        this.cleanRenderedContent();
         break;
-    }
-    if (this.props.refreshOnUpdate) {
-      this.renderList();
-    } else {
-      this.refreshListVisibility();
     }
   }
   addDomNode(item, index2, el) {
-    const node = this.renderListItem(item, index2);
+    const node = this.props.renderItem(item, index2);
     if (!node) return;
     if (el !== null) {
       FSComponent.renderBefore(node, el);
@@ -2520,57 +3364,89 @@ class List extends GamepadUiComponent {
       FSComponent.render(node, el);
     }
     if (node.instance !== null) {
-      this._itemInstanceRefs.splice(index2, 0, node.instance);
-    }
-  }
-  renderListItem(dataItem, index2) {
-    const renderedNode = this.props.renderItem(dataItem, index2);
-    if (renderedNode === null) {
-      return null;
-    }
-    if (renderedNode.instance instanceof GamepadUiComponent && renderedNode.instance.gamepadUiComponentRef.instance !== null) {
-      return renderedNode;
-    } else {
-      throw new Error("A ListItem must be of type GamepadUiComponent");
+      this.renderedItems.insert(node.instance, index2);
     }
   }
   removeDomNode(index2) {
     const child = this.gamepadUiComponentRef.instance.childNodes.item(index2);
     this.gamepadUiComponentRef.instance.removeChild(child);
-    const removed = this._itemInstanceRefs.splice(index2, 1)[0];
-    removed.destroy();
+    const removed = this.renderedItems.get(index2);
+    this.renderedItems.removeItem(removed);
+    if (removed instanceof DisplayComponent) {
+      removed.destroy();
+    }
+  }
+  enableGamepadInputsOnHover(element) {
+    if (this.props.isScrollable) {
+      this.scrollActionDestructor = this.inputManager.addScrollInputAction(element, {
+        scrollAxis: "vertical"
+      });
+    }
+  }
+  enableGamepadInputs() {
+    var _a;
+    super.enableGamepadInputs();
+    const scrollContainerRef = this.gamepadUiComponentRef.getOrDefault();
+    if (scrollContainerRef !== null) {
+      this.enableGamepadInputsOnHover(scrollContainerRef);
+    }
+    (_a = this.gamepadNavigationManager) == null ? void 0 : _a.resume();
+    this.gamepadComponentChildren.getArray().forEach((child) => child.enableGamepadInputs());
+  }
+  disableGamepadInputs() {
+    var _a, _b;
+    super.disableGamepadInputs();
+    (_a = this.scrollActionDestructor) == null ? void 0 : _a.call(this);
+    this.scrollActionDestructor = void 0;
+    (_b = this.gamepadNavigationManager) == null ? void 0 : _b.pause();
+    this.gamepadComponentChildren.getArray().forEach((child) => child.disableGamepadInputs());
   }
   renderList() {
-    for (const componentRef of this._itemInstanceRefs) {
-      componentRef.destroy();
+    const instance = this.gamepadUiComponentRef.getOrDefault();
+    if (instance === null) {
+      return;
     }
-    this.gamepadUiComponentRef.instance.textContent = "";
-    this._itemInstanceRefs.length = 0;
-    const dataLen = this.props.data.length;
-    for (let i = 0; i < dataLen; i++) {
-      const vnode = this.renderListItem(this.props.data.get(i), i);
-      if (vnode) {
-        FSComponent.render(vnode, this.gamepadUiComponentRef.instance);
-        this._itemInstanceRefs.push(vnode.instance);
-      }
-    }
-    this.refreshListVisibility();
-  }
-  refreshListVisibility() {
-    var _a;
-    const isVisible = ((_a = this.props.isListVisible) == null ? void 0 : _a.get()) !== false;
-    isVisible && this._itemInstanceRefs.length > 0 ? this.show() : this.hide();
-    return;
+    this.cleanRenderedContent();
+    FSComponent.render(
+      /* @__PURE__ */ FSComponent.buildComponent(FSComponent.Fragment, null, this.props.data.getArray().map((item, index2) => {
+        const vnode = this.props.renderItem(item, index2);
+        if (vnode !== null) {
+          this.renderedItems.insert(vnode.instance);
+        }
+        return vnode;
+      })),
+      instance
+    );
   }
   render() {
+    var _a;
     return /* @__PURE__ */ FSComponent.buildComponent(
       "div",
       {
-        class: `list ${this.props.isScrollable ? "scroll-container" : ""}`,
+        class: mergeClassProp("list", {
+          "scroll-container": (_a = this.props.isScrollable) != null ? _a : false,
+          hide: MappedSubject.create(
+            ([isVisible, nbItems]) => !isVisible || nbItems === 0,
+            this.isListVisible,
+            this.nbRenderedItems
+          )
+        }),
         style: this.props.style,
         ref: this.gamepadUiComponentRef
       }
     );
+  }
+  onAfterRender(node) {
+    super.onAfterRender(node);
+    this.renderList();
+  }
+  destroy() {
+    var _a;
+    this.renderedItemsSubscription.destroy();
+    this.onDataChangedSubscription.destroy();
+    (_a = this.gamepadNavigationManager) == null ? void 0 : _a.destroy();
+    this.isListVisibleSubscription.destroy();
+    super.destroy();
   }
 }
 const arrowIconPath$1 = "coui://html_ui/efb_ui/efb_os/Assets/icons/NoMargin/Arrow.svg";
@@ -2583,42 +3459,78 @@ class PagingList extends GamepadUiComponent {
     this.nextData = ArraySubject.create();
     this.firstPage = Subject.create(true);
     this.lastPage = Subject.create(false);
+    this.maxItemsPerPage = SubscribableUtils.toSubscribable(this.props.maxItemsPerPage, true);
     this.numberOfPages = Subject.create(1);
     this.pageSelected = (_a = this.props.pageSelected) != null ? _a : Subject.create(0);
     this.previousPageSelected = this.pageSelected.get();
     this.transitionWrapperRef = FSComponent.createRef();
     this.ongoingTransition = Subject.create(false);
+    this.allowTransition = true;
+    this.subs = [];
   }
   onAfterRender(node) {
     super.onAfterRender(node);
-    this.props.data.sub(() => this.updateListsData(this.pageSelected.get()));
-    this.pageSelected.sub(this.onPageChanged.bind(this));
+    this.subs.push(
+      this.props.data.sub(() => this.updateListsData(this.pageSelected.get())),
+      this.maxItemsPerPage.sub(() => this.updateListsData(this.pageSelected.get())),
+      this.pageSelected.sub(this.onPageChanged.bind(this))
+    );
     this.updateListsData(this.pageSelected.get());
   }
+  clearData() {
+    this.previousData.clear();
+    this.currentData.clear();
+    this.nextData.clear();
+  }
   updateListsData(pageSelected) {
-    this.numberOfPages.set(Math.ceil(this.props.data.length / this.props.maxItemsPerPage));
-    const start = pageSelected * this.props.maxItemsPerPage;
+    const maxItemsPerPage = this.maxItemsPerPage.get();
+    if (maxItemsPerPage <= 0) {
+      console.error(
+        `The maximum items per page of a paging list cannot be negative or null. Current value: ${maxItemsPerPage}`
+      );
+      return;
+    }
+    const numberOfPages = Math.ceil(this.props.data.length / maxItemsPerPage);
+    this.numberOfPages.set(numberOfPages);
+    if (numberOfPages === 0) {
+      this.clearData();
+      return;
+    }
+    const rawPageSelected = pageSelected;
+    pageSelected = Utils.Clamp(pageSelected, 0, numberOfPages - 1);
+    const start = pageSelected * maxItemsPerPage;
+    const followingStart = start + maxItemsPerPage;
     const fullData = this.props.data.getArray();
-    this.currentData.set(fullData.slice(start, start + this.props.maxItemsPerPage));
+    this.currentData.set(fullData.slice(start, followingStart));
     if (start === 0) {
       this.previousData.clear();
       this.firstPage.set(true);
     } else {
-      this.previousData.set(fullData.slice(start - this.props.maxItemsPerPage, start));
+      this.previousData.set(fullData.slice(start - maxItemsPerPage, start));
       this.firstPage.set(this.previousData.getArray().length === 0);
     }
-    if (start + this.props.maxItemsPerPage > fullData.length) {
+    if (followingStart > fullData.length) {
       this.nextData.clear();
       this.lastPage.set(true);
     } else {
-      const followingStart = start + this.props.maxItemsPerPage;
-      this.nextData.set(fullData.slice(followingStart, followingStart + this.props.maxItemsPerPage));
+      this.nextData.set(fullData.slice(followingStart, followingStart + maxItemsPerPage));
       this.lastPage.set(this.nextData.getArray().length === 0);
+    }
+    if (rawPageSelected !== pageSelected) {
+      this.allowTransition = false;
+      this.pageSelected.set(pageSelected);
     }
   }
   async onPageChanged(newPageSelected) {
-    if (newPageSelected < 0 || newPageSelected >= this.numberOfPages.get()) {
-      this.pageSelected.set(Utils.Clamp(newPageSelected, 0, this.numberOfPages.get() - 1));
+    const numberOfPages = this.numberOfPages.get();
+    if (newPageSelected < 0 || newPageSelected >= numberOfPages) {
+      this.pageSelected.set(Utils.Clamp(newPageSelected, 0, numberOfPages - 1));
+      return;
+    }
+    if (!this.allowTransition) {
+      this.allowTransition = true;
+      this.previousPageSelected = newPageSelected;
+      this.updateListsData(newPageSelected);
       return;
     }
     await Wait.awaitCondition(() => !this.ongoingTransition.get());
@@ -2656,6 +3568,10 @@ class PagingList extends GamepadUiComponent {
       /* @__PURE__ */ FSComponent.buildComponent(CarrouselButtons, { numberOfPages: this.numberOfPages, pageSelected: this.pageSelected })
     );
   }
+  destroy() {
+    this.subs.forEach((s) => s.destroy());
+    super.destroy();
+  }
 }
 class CarrouselButtons extends GamepadUiComponent {
   constructor() {
@@ -2677,7 +3593,7 @@ class CarrouselButtons extends GamepadUiComponent {
         UniqueCarrouselButton,
         {
           selected: this.props.pageSelected.map((pageSelected) => pageSelected === i),
-          callBack: () => {
+          callback: () => {
             this.props.pageSelected.set(i);
           }
         }
@@ -2708,25 +3624,30 @@ class CarrouselButtons extends GamepadUiComponent {
           hide: this.props.numberOfPages.map((v) => v <= 1)
         }
       },
-      /* @__PURE__ */ FSComponent.buildComponent(CarrouselArrow, { class: "left", callBack: () => this.changePage(-1) }),
+      /* @__PURE__ */ FSComponent.buildComponent(
+        IconButton,
+        {
+          class: "left carrousel-arrow",
+          callback: () => this.changePage(-1),
+          iconPath: arrowIconPath$1
+        }
+      ),
       /* @__PURE__ */ FSComponent.buildComponent("div", { ref: this.gamepadUiComponentRef, class: "buttons-container" }),
-      /* @__PURE__ */ FSComponent.buildComponent(CarrouselArrow, { class: "right", callBack: () => this.changePage(1) })
+      /* @__PURE__ */ FSComponent.buildComponent(
+        IconButton,
+        {
+          class: "right carrousel-arrow",
+          callback: () => this.changePage(1),
+          iconPath: arrowIconPath$1
+        }
+      )
     );
-  }
-}
-class CarrouselArrow extends GamepadUiComponent {
-  onAfterRender(node) {
-    super.onAfterRender(node);
-    this.gamepadUiComponentRef.instance.onclick = this.props.callBack;
-  }
-  render() {
-    return /* @__PURE__ */ FSComponent.buildComponent("div", { class: "carrousel-arrow", ref: this.gamepadUiComponentRef }, /* @__PURE__ */ FSComponent.buildComponent("icon-element", { "icon-url": arrowIconPath$1 }));
   }
 }
 class UniqueCarrouselButton extends GamepadUiComponent {
   onAfterRender(node) {
     super.onAfterRender(node);
-    this.gamepadUiComponentRef.instance.onclick = this.props.callBack;
+    this.gamepadUiComponentRef.instance.onclick = this.props.callback;
   }
   render() {
     return /* @__PURE__ */ FSComponent.buildComponent(
@@ -2832,6 +3753,7 @@ class DropdownButton extends GamepadUiComponent {
     super.destroy();
   }
   render() {
+    var _a;
     return /* @__PURE__ */ FSComponent.buildComponent("div", { class: "dropdown-button", ref: this.gamepadUiComponentRef }, /* @__PURE__ */ FSComponent.buildComponent(
       DropdownButtonSelector,
       {
@@ -2845,6 +3767,7 @@ class DropdownButton extends GamepadUiComponent {
           }
           this.isListVisible.set(!this.isListVisible.get());
         },
+        customIcon: this.props.customIcon,
         showArrowIcon: this.props.showArrowIcon,
         disabled: this.disabled
       }
@@ -2854,17 +3777,21 @@ class DropdownButton extends GamepadUiComponent {
         class: "dropdown-button-list",
         data: this.listDataset,
         isListVisible: this.isListVisible,
-        isScrollable: true,
-        renderItem: (item, index2) => /* @__PURE__ */ FSComponent.buildComponent(
-          DropdownButtonListItem,
-          {
-            name: this.props.getItemLabel(item),
-            onClick: () => {
-              this.isListVisible.set(false);
-              this.props.onItemClick(item, index2);
+        isScrollable: (_a = this.props.isScrollable) != null ? _a : true,
+        renderItem: (item, index2) => {
+          const disabled = item && typeof item === "object" && "disabled" in item && SubscribableUtils.isSubscribable(item.disabled) ? item.disabled.map((v) => !!v) : void 0;
+          return /* @__PURE__ */ FSComponent.buildComponent(
+            DropdownButtonListItem,
+            {
+              disabled,
+              name: this.props.getItemLabel(item),
+              onClick: () => {
+                this.isListVisible.set(false);
+                this.props.onItemClick(item, index2);
+              }
             }
-          }
-        )
+          );
+        }
       }
     ));
   }
@@ -2909,28 +3836,40 @@ class DropdownButtonSelector extends DisplayComponent {
           "icon-url": arrowIconPath,
           style: this.iconStyle
         }
-      )
+      ),
+      this.props.customIcon
     );
   }
 }
 class DropdownButtonListItem extends GamepadUiComponent {
+  constructor() {
+    var _a;
+    super(...arguments);
+    this.isButtonDisabled = SubscribableUtils.toSubscribable((_a = this.props.disabled) != null ? _a : false, true);
+    this.cssClassSet = SetSubject.create(["text", "regular-text"]);
+    this.onClick = () => {
+      if (!this.isButtonDisabled.get()) {
+        this.props.onClick();
+      }
+    };
+  }
   onAfterRender(node) {
     super.onAfterRender(node);
-    this.gamepadUiComponentRef.instance.onclick = this.props.onClick;
+    this.isButtonDisabled.sub((x) => {
+      return x ? this.cssClassSet.add("disabled") : this.cssClassSet.delete("disabled");
+    }, true);
+    this.gamepadUiComponentRef.instance.onclick = this.onClick;
   }
   render() {
-    return /* @__PURE__ */ FSComponent.buildComponent("div", { class: "dropdown-button-list-item", ref: this.gamepadUiComponentRef }, /* @__PURE__ */ FSComponent.buildComponent(TT, { key: this.props.name, type: "div", class: "text regular-text" }));
+    return /* @__PURE__ */ FSComponent.buildComponent("div", { class: "dropdown-button-list-item", ref: this.gamepadUiComponentRef }, /* @__PURE__ */ FSComponent.buildComponent(TT, { key: this.props.name, type: "div", class: this.cssClassSet }));
   }
 }
 class IconElement extends DisplayComponent {
-  constructor(props) {
-    super(props);
+  constructor() {
+    super(...arguments);
     this.url = SubscribableUtils.toSubscribable(this.props.url, true);
     this.el = FSComponent.createRef();
-    this.classes = {
-      "icon-element": true
-    };
-    this.onIconLoaded = (found, svgAsString) => {
+    this.onSVGIconLoaded = (found, svgAsString) => {
       this.el.instance.innerText = "";
       if (!found) {
         console.error(`Image ${this.url.get()} was not found`);
@@ -2943,22 +3882,18 @@ class IconElement extends DisplayComponent {
         this.el.instance.appendChild(svgAsHtml);
       }
     };
-    const propsClass = props.class;
-    if (propsClass) {
-      Object.assign(this.classes, typeof propsClass === "string" ? { [propsClass]: true } : propsClass);
-    }
   }
   render() {
-    return /* @__PURE__ */ FSComponent.buildComponent("div", { ref: this.el, class: this.classes });
+    return /* @__PURE__ */ FSComponent.buildComponent("div", { ref: this.el, class: mergeClassProp("icon-element", this.props.class) });
   }
   onAfterRender(node) {
     super.onAfterRender(node);
     this.urlSub = this.url.sub((url) => {
-      if (!url.endsWith(".svg")) {
-        console.error(`IconElement doesn't support ".${url.split(".").pop()}" filetype.`);
-        return;
+      if (url.endsWith(".svg")) {
+        getIconCacheMgr().loadURL(url, this.onSVGIconLoaded);
+      } else {
+        this.el.instance.innerHTML = `<img src="${url}" onerror="console.error('Image ${url} was not found')" />`;
       }
-      getIconCacheMgr().loadURL(url, this.onIconLoaded);
     }, true);
   }
   destroy() {
@@ -2968,12 +3903,6 @@ class IconElement extends DisplayComponent {
   }
 }
 class IconButton extends DisplayComponent {
-  iconRendering() {
-    if (this.props.iconPath) {
-      return /* @__PURE__ */ FSComponent.buildComponent(IconElement, { url: this.props.iconPath });
-    }
-    return null;
-  }
   render() {
     return /* @__PURE__ */ FSComponent.buildComponent(
       Button,
@@ -2987,7 +3916,7 @@ class IconButton extends DisplayComponent {
         disabled: this.props.disabled,
         onboardingStepId: this.props.onboardingStepId
       },
-      this.iconRendering()
+      /* @__PURE__ */ FSComponent.buildComponent(IconElement, { url: this.props.iconPath })
     );
   }
 }
@@ -3240,6 +4169,91 @@ class StringAccordion extends AbstractAccordion {
     return /* @__PURE__ */ FSComponent.buildComponent(TT, { key: this.props.title, format: "ucfirst" });
   }
 }
+const _BearingDisplay = class _BearingDisplay extends AbstractNumberUnitDisplay {
+  constructor() {
+    var _a;
+    super(...arguments);
+    this.unitFormatter = (_a = this.props.unitFormatter) != null ? _a : _BearingDisplay.DEFAULT_UNIT_FORMATTER;
+    this.unitTextBigDisplay = Subject.create("");
+    this.unitTextSmallDisplay = Subject.create("");
+    this.numberText = Subject.create("");
+    this.unitTextBig = Subject.create("");
+    this.unitTextSmall = Subject.create("");
+  }
+  /** @inheritdoc */
+  onValueChanged(value2) {
+    let displayUnit = this.displayUnit.get();
+    if (!displayUnit || !value2.unit.canConvert(displayUnit)) {
+      displayUnit = value2.unit;
+    }
+    const numberValue = value2.asUnit(displayUnit);
+    this.updateNumberText(numberValue);
+    this.updateUnitText(numberValue, displayUnit);
+    if (this.props.hideDegreeSymbolWhenNan === true) {
+      this.updateUnitTextVisibility(numberValue);
+    }
+  }
+  /** @inheritdoc */
+  onDisplayUnitChanged(displayUnit) {
+    const value2 = this.value.get();
+    if (!displayUnit || !value2.unit.canConvert(displayUnit)) {
+      displayUnit = value2.unit;
+    }
+    const numberValue = value2.asUnit(displayUnit);
+    this.updateNumberText(numberValue);
+    this.updateUnitText(numberValue, displayUnit);
+    this.updateUnitTextVisibility(numberValue);
+  }
+  /**
+   * Updates this component's displayed number text.
+   * @param numberValue The numeric value to display.
+   */
+  updateNumberText(numberValue) {
+    let numberText = this.props.formatter(numberValue);
+    if (this.props.use360 !== false && parseFloat(numberText) === 0) {
+      numberText = this.props.formatter(360);
+    }
+    this.numberText.set(numberText);
+  }
+  /**
+   * Updates this component's displayed unit text.
+   * @param numberValue The numeric value to display.
+   * @param displayUnit The unit type in which to display the value.
+   */
+  updateUnitText(numberValue, displayUnit) {
+    _BearingDisplay.unitTextCache[0] = "";
+    _BearingDisplay.unitTextCache[1] = "";
+    this.unitFormatter(_BearingDisplay.unitTextCache, displayUnit, numberValue);
+    this.unitTextBig.set(_BearingDisplay.unitTextCache[0]);
+    this.unitTextSmall.set(_BearingDisplay.unitTextCache[1]);
+  }
+  /**
+   * Updates whether this component's unit text spans are visible.
+   * @param numberValue The numeric value displayed by this component.
+   */
+  updateUnitTextVisibility(numberValue) {
+    if (this.props.hideDegreeSymbolWhenNan === true) {
+      if (isNaN(numberValue)) {
+        this.unitTextBigDisplay.set("none");
+        this.unitTextSmallDisplay.set("none");
+        return;
+      }
+    }
+    this.unitTextBigDisplay.set(this.unitTextBig.get() === "" ? "none" : "");
+    this.unitTextSmallDisplay.set(this.unitTextSmall.get() === "" ? "none" : "");
+  }
+  /** @inheritdoc */
+  render() {
+    var _a;
+    return /* @__PURE__ */ FSComponent.buildComponent("div", { class: (_a = this.props.class) != null ? _a : "", style: "white-space: nowrap;" }, /* @__PURE__ */ FSComponent.buildComponent("span", { class: "bearing-num" }, this.numberText), /* @__PURE__ */ FSComponent.buildComponent("span", { class: "bearing-unit", style: { display: this.unitTextBigDisplay } }, this.unitTextBig), /* @__PURE__ */ FSComponent.buildComponent("span", { class: "bearing-unit-small", style: { display: this.unitTextSmallDisplay } }, this.unitTextSmall));
+  }
+};
+_BearingDisplay.DEFAULT_UNIT_FORMATTER = (out, unit) => {
+  out[0] = "°";
+  out[1] = unit.isMagnetic() ? "" : "T";
+};
+_BearingDisplay.unitTextCache = ["", ""];
+let BearingDisplay = _BearingDisplay;
 const INTERNAL_KEY_SEPARATOR = "__MSFS2024_INTERNAL_DATE_ANA_ACE__";
 const FormatKeys = ["YYYY", "YY", "MMMM", "MMM", "MM", "DDDD", "DD", "hh", "mm", "ss"];
 const dateToValue = {
@@ -3348,7 +4362,7 @@ class RunwaySelector extends GamepadUiComponent {
         const runways = facility && FacilityUtils.isFacilityType(facility, FacilityType.Airport) ? RunwayUtils.getOneWayRunwaysFromAirport(facility) : [];
         this.runways.set(runways);
         const runwayIndex = typeof currentRunway === "number" ? currentRunway : runways.findIndex((runway) => runway.designation === currentRunway.designation);
-        return runwayIndex >= 0 && runwayIndex < runways.length ? getRunwayName(runways[runwayIndex]) : "";
+        return runwayIndex >= 0 && runwayIndex < runways.length ? getRunwayName(runways[runwayIndex], this.props.runwayNameShortened) : "";
       },
       this.props.facility,
       this.props.currentRunway
@@ -3370,7 +4384,7 @@ class RunwaySelector extends GamepadUiComponent {
           title: this.currentRunwayName,
           type: "secondary",
           listDataset: this.runways,
-          getItemLabel: getRunwayName,
+          getItemLabel: (item) => getRunwayName(item, this.props.runwayNameShortened),
           disabled: this.props.disabled,
           onItemClick: (runway, index2) => {
             this.props.onRunwaySelected(runway, index2);
@@ -3380,23 +4394,38 @@ class RunwaySelector extends GamepadUiComponent {
       )
     );
   }
+  /** @inheritdoc */
+  destroy() {
+    this.currentRunwayName.destroy();
+    super.destroy();
+  }
 }
 class Input extends GamepadUiComponent {
   constructor() {
     var _a, _b;
     super(...arguments);
     this.uuid = UUID.GenerateUuid();
-    this.input_id = "";
     this.inputRef = this.gamepadUiComponentRef;
     this.model = this.props.model || Subject.create(SubscribableUtils.toSubscribable(this.props.value || "", true).get());
+    this.internalInputManager = new InternalInputManager(InternalInputActions);
     this.dispatchFocusOutEvent = this._dispatchFocusOutEvent.bind(this);
-    this._onKeyPress = this.onKeyPress.bind(this);
-    this._onInput = this.onInput.bind(this);
+    this.setValueFromOS = this._setValueFromOS.bind(this);
+    this.onKeyDown = this._onKeyDown.bind(this);
+    this.onKeyUp = this._onKeyUp.bind(this);
+    this.onKeyPress = this._onKeyPress.bind(this);
+    this.onInput = this._onInput.bind(this);
     this.align = this.props.align || "left";
     this.debounce = new DebounceTimer();
     this.reloadLocalisation = this._reloadLocalisation.bind(this);
     this._isFocused = Subject.create(false);
     this.isFocused = this._isFocused;
+    this.focusSubscription = this._isFocused.sub((focus) => {
+      if (focus) {
+        this.onFocusIn();
+      } else {
+        this.onFocusOut();
+      }
+    });
     this.placeholderKey = SubscribableUtils.toSubscribable((_a = this.props.placeholder) != null ? _a : "", true);
     this.placeholderShown = Subject.create(true);
     this.placeholderTranslation = Subject.create(this.placeholderKey.get());
@@ -3406,7 +4435,15 @@ class Input extends GamepadUiComponent {
   _reloadLocalisation() {
     this.placeholderTranslation.notify();
   }
-  onKeyPress(event) {
+  _onKeyDown(event) {
+    var _a, _b;
+    (_b = (_a = this.props).onKeyDown) == null ? void 0 : _b.call(_a, event);
+  }
+  _onKeyUp(event) {
+    var _a, _b;
+    (_b = (_a = this.props).onKeyUp) == null ? void 0 : _b.call(_a, event);
+  }
+  _onKeyPress(event) {
     var _a, _b;
     const keyCode = event.keyCode || event.which;
     (_b = (_a = this.props).onKeyPress) == null ? void 0 : _b.call(_a, event);
@@ -3418,7 +4455,7 @@ class Input extends GamepadUiComponent {
       return;
     }
   }
-  onInput() {
+  _onInput() {
     var _a;
     this.debounce.schedule(() => {
       const value2 = this.inputRef.instance.value;
@@ -3438,29 +4475,48 @@ class Input extends GamepadUiComponent {
   }
   onFocusIn() {
     var _a, _b;
-    (_b = (_a = this.props).onFocusIn) == null ? void 0 : _b.call(_a);
-    this.input_id = InputsListener.addInputChangeCallback("MENU_CORE", "KEY_MENU_SR_BACK", (down) => {
-      if (down) {
-        this.inputRef.instance.blur();
-      }
+    Coherent.trigger("FOCUS_INPUT_FIELD", {
+      // TODO Allow the following parameters to be customized via props
+      title: "Title",
+      description: "",
+      default_text: "",
+      is_numeric: this.props.type === "number",
+      is_efb: true
     });
+    Coherent.on("mousePressOutsideView", this.dispatchFocusOutEvent);
+    Coherent.on("SetInputTextFromOS", this.setValueFromOS);
+    this.focusOutActionDestructor = this.internalInputManager.addInputAction(
+      InternalInputAction.BACK,
+      () => {
+        this.dispatchFocusOutEvent();
+        return true;
+      }
+    );
+    this.validateInputActionDestructor = this.internalInputManager.addInputAction(
+      InternalInputAction.TEXTBOX_VALID,
+      () => {
+        var _a2, _b2;
+        (_b2 = (_a2 = this.props).onValueValidated) == null ? void 0 : _b2.call(_a2, this.inputRef.instance.value);
+        this.dispatchFocusOutEvent();
+        return true;
+      }
+    );
     if (this.hidePlaceholderOnFocus && this.inputRef.instance.value.length === 0) {
       this.placeholderShown.set(false);
     }
+    (_b = (_a = this.props).onFocusIn) == null ? void 0 : _b.call(_a);
   }
   onFocusOut() {
-    var _a, _b;
-    (_b = (_a = this.props).onFocusOut) == null ? void 0 : _b.call(_a);
-    InputsListener.removeInputChangeCallback(this.input_id);
+    var _a, _b, _c, _d;
+    (_a = this.focusOutActionDestructor) == null ? void 0 : _a.call(this);
+    (_b = this.validateInputActionDestructor) == null ? void 0 : _b.call(this);
+    Coherent.trigger("UNFOCUS_INPUT_FIELD", this.uuid);
+    Coherent.off("mousePressOutsideView", this.dispatchFocusOutEvent);
+    Coherent.off("SetInputTextFromOS", this.setValueFromOS);
     if (this.hidePlaceholderOnFocus && this.inputRef.instance.value.length === 0) {
       this.placeholderShown.set(true);
     }
-  }
-  focus() {
-    this.inputRef.instance.focus();
-  }
-  blur() {
-    this.inputRef.instance.blur();
+    (_d = (_c = this.props).onFocusOut) == null ? void 0 : _d.call(_c);
   }
   value() {
     return this.model.get();
@@ -3468,8 +4524,36 @@ class Input extends GamepadUiComponent {
   clearInput() {
     this.model.set("");
   }
+  focus() {
+    const inputInstance = this.inputRef.getOrDefault();
+    if (inputInstance !== null) {
+      inputInstance.focus();
+    }
+  }
+  blur() {
+    const inputInstance = this.inputRef.getOrDefault();
+    if (inputInstance !== null) {
+      inputInstance.blur();
+    }
+  }
   _dispatchFocusOutEvent() {
-    this.inputRef.instance.blur();
+    const inputInstance = this.inputRef.getOrDefault();
+    if (inputInstance !== null) {
+      inputInstance.blur();
+      inputInstance.dispatchEvent(new InputEvent("focusout"));
+    }
+  }
+  _setValueFromOS(text) {
+    var _a, _b;
+    const inputInstance = this.inputRef.getOrDefault();
+    if (inputInstance !== null) {
+      inputInstance.value = text;
+      inputInstance.dispatchEvent(new InputEvent("change"));
+      inputInstance.dispatchEvent(new InputEvent("input"));
+      inputInstance.dispatchEvent(new InputEvent("submit"));
+      (_b = (_a = this.props).onValueValidated) == null ? void 0 : _b.call(_a, text);
+      this.dispatchFocusOutEvent();
+    }
   }
   render() {
     return /* @__PURE__ */ FSComponent.buildComponent(
@@ -3503,39 +4587,31 @@ class Input extends GamepadUiComponent {
         this.placeholderTranslation.set(key);
       }, true)
     );
-    this.inputRef.instance.addEventListener("focus", () => {
-      if (this._isFocused.get()) {
-        return;
-      }
-      this._isFocused.set(true);
-      Coherent.trigger("FOCUS_INPUT_FIELD", this.uuid, "", "", "", this.props.type === "number");
-      Coherent.on("mousePressOutsideView", this.dispatchFocusOutEvent);
-      this.onFocusIn();
-    });
-    this.inputRef.instance.addEventListener("focusout", () => {
-      if (!this._isFocused.get()) {
-        return;
-      }
-      this._isFocused.set(false);
-      Coherent.trigger("UNFOCUS_INPUT_FIELD", this.uuid);
-      Coherent.off("mousePressOutsideView", this.dispatchFocusOutEvent);
-      this.onFocusOut();
-    });
-    this.inputRef.instance.addEventListener("input", this._onInput);
-    this.inputRef.instance.addEventListener("keypress", this._onKeyPress);
+    this.inputRef.instance.addEventListener("focus", () => this._isFocused.set(true));
+    this.inputRef.instance.addEventListener("focusout", () => this._isFocused.set(false));
+    this.inputRef.instance.addEventListener("input", this.onInput);
+    this.inputRef.instance.addEventListener("keydown", this.onKeyDown);
+    this.inputRef.instance.addEventListener("keyup", this.onKeyUp);
+    this.inputRef.instance.addEventListener("keypress", this.onKeyPress);
     Coherent.on("RELOAD_LOCALISATION", this.reloadLocalisation);
     if (this.props.focusOnInit) {
       this.focus();
     }
   }
   destroy() {
+    var _a;
     this.subs.forEach((s) => s.destroy());
+    this.focusSubscription.destroy();
+    (_a = this.focusOutActionDestructor) == null ? void 0 : _a.call(this);
     if (this._isFocused.get()) {
       Coherent.trigger("UNFOCUS_INPUT_FIELD", this.uuid);
       Coherent.off("mousePressOutsideView", this.dispatchFocusOutEvent);
+      Coherent.off("SetInputTextFromOS", this.setValueFromOS);
     }
-    this.inputRef.instance.removeEventListener("keypress", this._onKeyPress);
-    this.inputRef.instance.removeEventListener("input", this._onInput);
+    this.inputRef.instance.removeEventListener("keydown", this.onKeyDown);
+    this.inputRef.instance.removeEventListener("keyup", this.onKeyUp);
+    this.inputRef.instance.removeEventListener("keypress", this.onKeyPress);
+    this.inputRef.instance.removeEventListener("input", this.onInput);
     Coherent.off("RELOAD_LOCALISATION", this.reloadLocalisation);
     super.destroy();
   }
@@ -3543,6 +4619,7 @@ class Input extends GamepadUiComponent {
 const addIconPath = "coui://html_ui/efb_ui/efb_os/Assets/icons/NoMargin/Close.svg";
 class TextBox extends GamepadUiComponent {
   constructor() {
+    var _a, _b;
     super(...arguments);
     this.subscriptions = [];
     this.inputRef = FSComponent.createRef();
@@ -3563,8 +4640,8 @@ class TextBox extends GamepadUiComponent {
       this.props.suffix || "",
       true
     );
-    this.showPrefix = SubscribableUtils.toSubscribable(this.props.showPrefix || true, true);
-    this.showSuffix = SubscribableUtils.toSubscribable(this.props.showSuffix || true, true);
+    this.showPrefix = SubscribableUtils.toSubscribable((_a = this.props.showPrefix) != null ? _a : true, true);
+    this.showSuffix = SubscribableUtils.toSubscribable((_b = this.props.showSuffix) != null ? _b : true, true);
     this.prefixRef = FSComponent.createRef();
     this.suffixRef = FSComponent.createRef();
     this.showPrefixOrSuffixMapFunction = ([value2, show]) => {
@@ -3624,7 +4701,10 @@ class TextBox extends GamepadUiComponent {
         onFocusIn: this.onFocusIn.bind(this),
         onFocusOut: this.onFocusOut.bind(this),
         onInput: this.onInput.bind(this),
+        onValueValidated: this.props.onValueValidated,
         debounceDuration: this.props.debounceDuration,
+        onKeyDown: this.props.onKeyDown,
+        onKeyUp: this.props.onKeyUp,
         onKeyPress: this.props.onKeyPress,
         charFilter: this.props.charFilter
       }
@@ -3691,8 +4771,10 @@ const _UnitBox = class _UnitBox extends GamepadUiComponent {
     this.valueNumber = this.props.value;
     this.unit = SubscribableUtils.toSubscribable((_a = this.props.unit) != null ? _a : null, true);
     this.showUnitSuffix = SubscribableUtils.toSubscribable((_b = this.props.showSuffix) != null ? _b : true, true);
-    this.valueText = Subject.create("0");
+    this.textValue = Subject.create("0");
+    this.formattedTextValue = Subject.create("0");
     this.subs = [];
+    this.canUpdateDisplay = true;
     this.suffixSmall = Subject.create("");
     this.suffixBig = Subject.create("");
   }
@@ -3715,23 +4797,30 @@ const _UnitBox = class _UnitBox extends GamepadUiComponent {
     }
     return map;
   }
-  updateDisplay(value2, displayUnit) {
+  setValue(value2, displayUnit) {
+    var _a;
     if (!displayUnit || !value2.unit.canConvert(displayUnit)) {
       displayUnit = value2.unit;
     }
-    const numberValue = value2.asUnit(displayUnit);
+    let numberValue = value2.asUnit(displayUnit);
+    if (this.props.min && numberValue < this.props.min.asUnit(displayUnit)) {
+      numberValue = this.props.min.asUnit(displayUnit);
+    }
+    if (this.props.max && numberValue > this.props.max.asUnit(displayUnit)) {
+      numberValue = this.props.max.asUnit(displayUnit);
+    }
     if (numberValue >= 9999999) {
-      this.valueText.set("9999999");
+      this.textValue.set("9999999");
       return;
     }
-    const numberText = NumberFormatter.create({
+    const numberText = NumberFormatter.create(__spreadValues({
       nanString: "0"
-    })(numberValue);
+    }, (_a = this.props.numberFormatterOptions) != null ? _a : {}))(numberValue);
     if (numberText.includes(".")) {
       const dotPos = numberText.indexOf(".");
-      this.valueText.set(numberText.substring(0, dotPos + 3));
+      this.textValue.set(numberText.substring(0, dotPos + 3));
     } else {
-      this.valueText.set(this.valueText.get().includes(".") ? `${numberText}.` : numberText);
+      this.textValue.set(this.textValue.get().includes(".") ? `${numberText}.` : numberText);
     }
     const unitTexts = _UnitBox.DEFAULT_UNIT_FORMATTER(displayUnit);
     if (unitTexts === null) {
@@ -3741,6 +4830,13 @@ const _UnitBox = class _UnitBox extends GamepadUiComponent {
     }
     this.suffixSmall.set(unitTexts[0]);
     this.suffixBig.set(unitTexts[1]);
+  }
+  updateDisplay() {
+    var _a, _b;
+    (_b = (_a = this.props).onFocusOut) == null ? void 0 : _b.call(_a);
+    if (this.canUpdateDisplay) {
+      this.formattedTextValue.set(this.textValue.get());
+    }
   }
   render() {
     return /* @__PURE__ */ FSComponent.buildComponent(
@@ -3757,16 +4853,16 @@ const _UnitBox = class _UnitBox extends GamepadUiComponent {
           customDeleteIcon: this.props.customDeleteIcon,
           focusOnClear: this.props.focusOnClear,
           onDelete: this.props.onDelete,
-          model: this.valueText,
+          model: this.formattedTextValue,
           placeholder: this.props.placeholder,
           hidePlaceholderOnFocus: this.props.hidePlaceholderOnFocus,
           disabled: this.props.disabled,
           focusOnInit: this.props.focusOnInit,
           onFocusIn: this.props.onFocusIn,
-          onFocusOut: this.props.onFocusOut,
+          onFocusOut: this.updateDisplay.bind(this),
           onInput: this.props.onInput,
           onKeyPress: this.props.onKeyPress,
-          charFilter: (char) => char >= "0" && char <= "9" || [",", "."].includes(char),
+          charFilter: (char) => char >= "0" && char <= "9" || [",", ".", "-"].includes(char),
           suffix: /* @__PURE__ */ FSComponent.buildComponent(FSComponent.Fragment, null, /* @__PURE__ */ FSComponent.buildComponent("span", null, this.suffixSmall), /* @__PURE__ */ FSComponent.buildComponent("span", null, this.suffixBig)),
           showSuffix: this.showUnitSuffix
         }
@@ -3776,21 +4872,24 @@ const _UnitBox = class _UnitBox extends GamepadUiComponent {
   onAfterRender(node) {
     super.onAfterRender(node);
     this.subs.push(
-      this.valueText.sub((value2) => {
+      this.formattedTextValue.sub((value2) => {
         value2 = value2.replace(",", ".").replace(/\.+$/, "");
         let displayUnit = this.unit.get();
         if (!displayUnit || !this.valueNumber.get().unit.canConvert(displayUnit)) {
           displayUnit = this.valueNumber.get().unit;
         }
         const unitValue = displayUnit.convertTo(Number(value2), this.valueNumber.get().unit);
+        this.canUpdateDisplay = false;
         this.valueNumber.set(unitValue);
-        this.updateDisplay(this.valueNumber.get(), this.unit.get());
+        this.canUpdateDisplay = true;
       }),
       this.valueNumber.sub((value2) => {
-        this.updateDisplay(value2, this.unit.get());
+        this.setValue(value2, this.unit.get());
+        this.updateDisplay();
       }, true),
       this.unit.sub((unit) => {
-        this.updateDisplay(this.valueNumber.get(), unit);
+        this.setValue(this.valueNumber.get(), unit);
+        this.updateDisplay();
       }, true)
     );
   }
@@ -3881,7 +4980,7 @@ class Incremental extends GamepadUiComponent {
             this.max.get()
           );
           this.value.set(newValue);
-          (_b = (_a = this.props).onButtonClicked) == null ? void 0 : _b.call(_a, direction);
+          (_b = (_a = this.props).onButtonClicked) == null ? void 0 : _b.call(_a, direction, newValue);
         },
         disabled: this.props.disabled
       }
@@ -3908,6 +5007,18 @@ class Incremental extends GamepadUiComponent {
             if (!Number.isNaN(newValue)) {
               this.value.set(Utils.Clamp(newValue, this.min.get(), this.max.get()));
             }
+          },
+          onKeyDown: (event) => {
+            var _a, _b;
+            return (_b = (_a = this.props).onKeyDown) == null ? void 0 : _b.call(_a, event, this.value.get());
+          },
+          onKeyUp: (event) => {
+            var _a, _b;
+            return (_b = (_a = this.props).onKeyUp) == null ? void 0 : _b.call(_a, event, this.value.get());
+          },
+          onKeyPress: (event) => {
+            var _a, _b;
+            return (_b = (_a = this.props).onKeyPress) == null ? void 0 : _b.call(_a, event, this.value.get());
           },
           onFocusIn: this.onTextBoxFocusIn.bind(this),
           onFocusOut: this.onTextBoxFocusOut.bind(this),
@@ -4457,9 +5568,79 @@ class Marquee extends DisplayComponent {
     this.delayMs = Subject.create(this.startDelayMs.get());
     this.durationMs = Subject.create(0);
     this.translationPx = Subject.create(0);
+    this.containerWidth = 0;
+    this.marqueeWidth = 0;
+    this.transitionRightPx = 0;
+    this.isLeftToRight = true;
+    this.onMouseEnter = this._onMouseEnter.bind(this);
+    this.onMouseLeave = this._onMouseLeave.bind(this);
+    this.onTransitionEnded = this._onTransitionEnded.bind(this);
   }
   getDurationForDistance(distance) {
     return Math.abs(distance) * (1e3 / Math.abs(this.speedPxPerSeconds.get()));
+  }
+  _onMouseEnter() {
+    if (this.transitionActive.get() || this.transitionRightPx >= 0) {
+      return;
+    }
+    this.transitionActive.set(true);
+    this.isLeftToRight = true;
+    this.delayMs.set(this.startDelayMs.get());
+    this.durationMs.set(this.getDurationForDistance(this.transitionRightPx));
+    this.translationPx.set(this.transitionRightPx);
+  }
+  _onMouseLeave() {
+    if (!this.transitionActive.get()) {
+      return;
+    }
+    this.transitionActive.set(false);
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId);
+      this.timeoutId = void 0;
+    }
+    this.isLeftToRight = true;
+    this.delayMs.set(0);
+    this.durationMs.set(0);
+    this.translationPx.set(0);
+  }
+  _onTransitionEnded(event) {
+    if (event.target !== this.marqueeRef.instance) {
+      return;
+    }
+    if (event.propertyName !== "transform") {
+      return;
+    }
+    if (!this.transitionActive.get()) {
+      return;
+    }
+    const leftToRightEnded = this.isLeftToRight;
+    this.isLeftToRight = !leftToRightEnded;
+    if (leftToRightEnded) {
+      this.delayMs.set(this.resetDelayMs.get());
+      this.durationMs.set(0);
+      this.translationPx.set(0);
+      if (this.delayMs.get() === 0) {
+        this.timeoutId = setTimeout(() => {
+          this._onTransitionEnded(event);
+        });
+      }
+    } else {
+      this.delayMs.set(this.startDelayMs.get());
+      this.durationMs.set(this.getDurationForDistance(this.transitionRightPx));
+      this.translationPx.set(this.transitionRightPx);
+    }
+  }
+  getMarqueeActivator() {
+    let activator = this.marqueeRef.getOrDefault();
+    if (this.props.activator) {
+      const instance = this.props.activator.getOrDefault();
+      if (instance instanceof HTMLElement) {
+        activator = instance;
+      } else if (instance instanceof GamepadUiComponent) {
+        activator = instance.gamepadUiComponentRef.getOrDefault();
+      }
+    }
+    return activator;
   }
   render() {
     const marqueeStyle = {
@@ -4471,26 +5652,24 @@ class Marquee extends DisplayComponent {
   }
   onAfterRender(node) {
     super.onAfterRender(node);
-    let containerWidth = this.containerRef.instance.clientWidth;
-    let marqueeWidth = this.marqueeRef.instance.clientWidth;
-    let transitionRightPx = Math.min(containerWidth - marqueeWidth, 0);
-    let isLeftToRight = true;
-    let timeoutId;
+    this.containerWidth = this.containerRef.instance.clientWidth;
+    this.marqueeWidth = this.marqueeRef.instance.clientWidth;
+    this.transitionRightPx = Math.min(this.containerWidth - this.marqueeWidth, 0);
     const self2 = this;
     this.observer = new index(function(mutations) {
       mutations.forEach(function(_mutation) {
-        containerWidth = self2.containerRef.instance.clientWidth;
-        marqueeWidth = self2.marqueeRef.instance.clientWidth;
-        transitionRightPx = Math.min(containerWidth - marqueeWidth, 0);
+        self2.containerWidth = self2.containerRef.instance.clientWidth;
+        self2.marqueeWidth = self2.marqueeRef.instance.clientWidth;
+        self2.transitionRightPx = Math.min(self2.containerWidth - self2.marqueeWidth, 0);
         if (self2.transitionActive.get()) {
-          isLeftToRight = true;
+          self2.isLeftToRight = true;
           self2.durationMs.set(0);
           self2.translationPx.set(0);
-          if (transitionRightPx < 0) {
+          if (self2.transitionRightPx < 0) {
             setTimeout(() => {
               if (self2.transitionActive.get()) {
-                self2.durationMs.set(self2.getDurationForDistance(transitionRightPx));
-                self2.translationPx.set(transitionRightPx);
+                self2.durationMs.set(self2.getDurationForDistance(self2.transitionRightPx));
+                self2.translationPx.set(self2.transitionRightPx);
               }
             }, self2.startDelayMs.get());
           }
@@ -4498,71 +5677,22 @@ class Marquee extends DisplayComponent {
       });
     });
     this.observer.observe(this.marqueeRef.instance);
-    let activator = this.marqueeRef.instance;
-    if (this.props.activator) {
-      const { instance } = this.props.activator;
-      if (instance instanceof HTMLElement) {
-        activator = instance;
-      } else if (instance instanceof GamepadUiComponent) {
-        activator = instance.gamepadUiComponentRef.instance;
-      }
+    const activator = this.getMarqueeActivator();
+    if (activator) {
+      activator.addEventListener("mouseenter", this.onMouseEnter);
+      activator.addEventListener("mouseleave", this.onMouseLeave);
     }
-    activator.addEventListener("mouseenter", () => {
-      if (this.transitionActive.get() || transitionRightPx >= 0) {
-        return;
-      }
-      this.transitionActive.set(true);
-      isLeftToRight = true;
-      this.delayMs.set(this.startDelayMs.get());
-      this.durationMs.set(this.getDurationForDistance(transitionRightPx));
-      this.translationPx.set(transitionRightPx);
-    });
-    activator.addEventListener("mouseleave", () => {
-      if (!this.transitionActive.get()) {
-        return;
-      }
-      this.transitionActive.set(false);
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = void 0;
-      }
-      isLeftToRight = true;
-      this.delayMs.set(0);
-      this.durationMs.set(0);
-      this.translationPx.set(0);
-    });
-    const onTransitionEnded = (event) => {
-      if (event.target !== this.marqueeRef.instance) {
-        return;
-      }
-      if (event.propertyName !== "transform") {
-        return;
-      }
-      if (!this.transitionActive.get()) {
-        return;
-      }
-      const leftToRightEnded = isLeftToRight;
-      isLeftToRight = !isLeftToRight;
-      if (leftToRightEnded) {
-        this.delayMs.set(this.resetDelayMs.get());
-        this.durationMs.set(0);
-        this.translationPx.set(0);
-        if (this.delayMs.get() === 0) {
-          timeoutId = setTimeout(() => {
-            onTransitionEnded(event);
-          });
-        }
-      } else {
-        this.delayMs.set(this.startDelayMs.get());
-        this.durationMs.set(this.getDurationForDistance(transitionRightPx));
-        this.translationPx.set(transitionRightPx);
-      }
-    };
-    this.marqueeRef.instance.addEventListener("transitionend", onTransitionEnded);
+    this.marqueeRef.instance.addEventListener("transitionend", this.onTransitionEnded);
   }
   destroy() {
     var _a;
     (_a = this.observer) == null ? void 0 : _a.disconnect();
+    const activator = this.getMarqueeActivator();
+    if (activator) {
+      activator.removeEventListener("mouseenter", this.onMouseEnter);
+      activator.removeEventListener("mouseleave", this.onMouseLeave);
+    }
+    this.marqueeRef.instance.removeEventListener("transitionend", this.onTransitionEnded);
     super.destroy();
   }
 }
@@ -4802,11 +5932,11 @@ class ProgressBar extends ProgressComponent {
   }
 }
 class SearchBar extends GamepadUiComponent {
-  constructor() {
-    var _a, _b, _c;
-    super(...arguments);
-    this.resultItems = ArraySubject.create([]);
-    this.onInputSearchSub = Subject.create("");
+  constructor(props) {
+    var _a, _b, _c, _d, _e, _f;
+    super(props);
+    this.resultItems = ArraySubject.create();
+    this.onInputSearchSub = this.props.model || Subject.create("");
     this.textBoxRef = (_a = this.props.textBoxRef) != null ? _a : FSComponent.createRef();
     this.searchBarListRef = (_b = this.props.searchBarListRef) != null ? _b : FSComponent.createRef();
     this.isSearchBarFocus = Subject.create(false);
@@ -4814,16 +5944,53 @@ class SearchBar extends GamepadUiComponent {
     this.DEBOUNCE_DURATION = 0;
     this.subs = [];
     this.currentSearchId = 0;
+    this.isSearchPending = Subject.create(false);
+    this.gamepadNavigationOptions = (_d = this.props.gamepadNavigationOptions) != null ? _d : {};
+    this.askForResultNavigationSubscription = this.isSearchPending.sub((pending) => {
+      if (!pending) {
+        this.askForResultNavigationSubscription.pause();
+        this.enableSearchResultNavigation();
+      }
+    });
     this.onDelete = () => {
     };
     this.prefix = Subject.create(SubscribableUtils.toSubscribable(this.props.prefix || "", true).get());
     this.suffix = Subject.create(SubscribableUtils.toSubscribable(this.props.suffix || "", true).get());
+    this.listRef = FSComponent.createRef();
+    this.askForResultNavigationSubscription.pause();
+    if (((_e = props.gamepadNavigationOptions) == null ? void 0 : _e.isListFocused) !== void 0) {
+      if (SubscribableUtils.isMutableSubscribable(props.gamepadNavigationOptions.isListFocused)) {
+        this.isResultListFocus = props.gamepadNavigationOptions.isListFocused;
+      } else if (SubscribableUtils.isSubscribable(props.gamepadNavigationOptions.isListFocused)) {
+        this.isResultListFocus = Subject.create(props.gamepadNavigationOptions.isListFocused.get());
+        this.subs.push(
+          props.gamepadNavigationOptions.isListFocused.sub(
+            (value2) => this.isResultListFocus.set(value2)
+          )
+        );
+      } else {
+        this.isResultListFocus = Subject.create(props.gamepadNavigationOptions.isListFocused);
+      }
+    } else {
+      this.isResultListFocus = Subject.create(false);
+    }
+    this.isListVisible = (_f = this.props.isListVisible) != null ? _f : MappedSubject.create(
+      ([searchBarFocus, listFocus]) => searchBarFocus || listFocus,
+      this.isSearchBarFocus,
+      this.isResultListFocus
+    );
   }
-  tryRenderItem(data) {
-    return this.props.renderItem ? this.props.renderItem(data) : this.renderItem(data);
+  enableSearchResultNavigation() {
+    this.isResultListFocus.set(true);
+  }
+  disableSearchResultNavigation() {
+    this.isResultListFocus.set(false);
+  }
+  tryRenderItem(data, index2) {
+    return this.props.renderItem ? this.props.renderItem(data, index2) : this.renderItem(data, index2);
   }
   /* Must be implemented by children classes */
-  renderItem(_data) {
+  renderItem(_data, _index) {
     throw new Error("Missing renderItem props");
   }
   tryUpdateResultItems(input) {
@@ -4836,12 +6003,19 @@ class SearchBar extends GamepadUiComponent {
   async onSearchUpdated(input) {
     this.currentSearchId++;
     const searchId = this.currentSearchId;
+    this.isSearchPending.set(true);
     const values = await this.tryUpdateResultItems(input);
-    if (searchId !== this.currentSearchId) return;
+    if (searchId !== this.currentSearchId) {
+      return;
+    }
+    this.isSearchPending.set(false);
     this.resultItems.set(values);
+    if (values.length === 0) {
+      this.disableSearchResultNavigation();
+    }
   }
+  /** @deprecated Do nothing. */
   onResultItemsUpdated() {
-    this.onInputSearchSub.notify();
   }
   render() {
     var _a, _b;
@@ -4868,6 +6042,11 @@ class SearchBar extends GamepadUiComponent {
           }
         },
         onInput: this.props.onInput,
+        onValueValidated: (text) => {
+          var _a2, _b2;
+          this.askForResultNavigationSubscription.resume(true);
+          (_b2 = (_a2 = this.props).onValueValidated) == null ? void 0 : _b2.call(_a2, text);
+        },
         debounceDuration: (_a = this.props.debounceDuration) != null ? _a : this.DEBOUNCE_DURATION,
         onKeyPress: this.props.onKeyPress,
         charFilter: this.props.charFilter,
@@ -4881,11 +6060,27 @@ class SearchBar extends GamepadUiComponent {
     ), /* @__PURE__ */ FSComponent.buildComponent("div", { class: "search-bar-list-container", ref: this.searchBarListRef }, /* @__PURE__ */ FSComponent.buildComponent(
       List,
       {
+        ref: this.listRef,
         data: this.resultItems,
-        isListVisible: this.isSearchBarFocus,
+        isListVisible: this.isListVisible,
         isScrollable: true,
         class: "search-bar-list",
-        renderItem: this.tryRenderItem.bind(this)
+        renderItem: this.tryRenderItem.bind(this),
+        refreshOnUpdate: this.props.refreshOnUpdate,
+        gamepadNavigationOptions: __spreadProps(__spreadValues({}, this.gamepadNavigationOptions), {
+          onItemHovered: (item, index2) => {
+            var _a2, _b2;
+            const scrollToIndex = Math.max(0, index2);
+            this.listRef.instance.scrollToItem(scrollToIndex);
+            (_b2 = (_a2 = this.gamepadNavigationOptions).onItemHovered) == null ? void 0 : _b2.call(_a2, item, index2);
+          },
+          onItemSelected: (item, index2) => {
+            var _a2, _b2;
+            this.disableSearchResultNavigation();
+            (_b2 = (_a2 = this.gamepadNavigationOptions).onItemSelected) == null ? void 0 : _b2.call(_a2, item, index2);
+          },
+          isListFocused: this.isResultListFocus
+        })
       }
     )));
   }
@@ -4897,21 +6092,18 @@ class SearchBar extends GamepadUiComponent {
     this.subs.push(
       this.onInputSearchSub.sub((value2) => {
         this.onSearchUpdated(value2);
+      }),
+      this.isSearchBarFocus.sub((focus) => {
+        var _a, _b;
+        if (focus) {
+          (_b = (_a = this.props).onListDisplayed) == null ? void 0 : _b.call(_a);
+        }
       })
     );
-    if (this.props.onListDisplayed !== void 0) {
-      this.subs.push(
-        this.isSearchBarFocus.sub((focus) => {
-          var _a, _b;
-          if (focus) {
-            (_b = (_a = this.props).onListDisplayed) == null ? void 0 : _b.call(_a);
-          }
-        })
-      );
-    }
   }
   destroy() {
     this.subs.forEach((s) => s.destroy());
+    this.askForResultNavigationSubscription.destroy();
     super.destroy();
   }
 }
@@ -4950,17 +6142,11 @@ const _FacilitySearchUtils = class _FacilitySearchUtils {
     if (this.facilityLoader === null) {
       return Promise.resolve([]);
     }
-    const icaos = await this.facilityLoader.searchByIdent(facilitySearchType, ident, 15);
-    let facilities = await Promise.all(
-      icaos.map((icao) => {
-        if (this.facilityLoader === null) {
-          return;
-        }
-        return this.facilityLoader.getFacility(ICAO.getFacilityTypeFromStringV1(icao), icao);
-      })
+    const icaos = await this.facilityLoader.searchByIdentWithIcaoStructs(facilitySearchType, ident, 15);
+    const facilities = (await this.facilityLoader.getFacilities(icaos)).filter(
+      (fac) => fac !== null && (!excludeTerminalFacilities || fac.icaoStruct.airport.length === 0)
     );
     facilities.sort((a, b) => this.orderByIdentsAndDistance(a, b));
-    excludeTerminalFacilities && (facilities = facilities.filter((fac) => fac.icaoStruct.airport === ""));
     return facilities;
   }
 };
@@ -4978,7 +6164,7 @@ class FacilityResultItem extends GamepadUiComponent {
     };
   }
   render() {
-    return /* @__PURE__ */ FSComponent.buildComponent("div", { class: `facility-result-item`, ref: this.gamepadUiComponentRef }, /* @__PURE__ */ FSComponent.buildComponent("div", { class: "icon-container" }, /* @__PURE__ */ FSComponent.buildComponent("icon-element", { "icon-url": getFacilityIconPath(ICAO.getFacilityType(this.props.facility.icao)) })), /* @__PURE__ */ FSComponent.buildComponent("span", { class: "icao" }, ICAO.getIdent(this.props.facility.icao), this.props.separator), /* @__PURE__ */ FSComponent.buildComponent("span", { class: "facility-name" }, Utils.Translate(this.props.facility.name).padEnd(5, "...")));
+    return /* @__PURE__ */ FSComponent.buildComponent("div", { class: mergeClassProp("facility-result-item", this.props.class), ref: this.gamepadUiComponentRef }, /* @__PURE__ */ FSComponent.buildComponent("div", { class: "icon-container" }, /* @__PURE__ */ FSComponent.buildComponent("icon-element", { "icon-url": getFacilityIconPath(ICAO.getFacilityType(this.props.facility.icao)) })), /* @__PURE__ */ FSComponent.buildComponent("span", { class: "icao" }, ICAO.getIdent(this.props.facility.icao), this.props.separator), /* @__PURE__ */ FSComponent.buildComponent("span", { class: "facility-name" }, Utils.Translate(this.props.facility.name).padEnd(5, "...")));
   }
 }
 const _SearchFacilityHistoryManager = class _SearchFacilityHistoryManager {
@@ -5043,6 +6229,19 @@ class SearchFacility extends SearchBar {
     this.historyManager = new SearchFacilityHistoryManager();
     this.DEBOUNCE_DURATION = 300;
     this.ppos = new GeoPoint(0, 0);
+    this.currentHoveredItemIndex = Subject.create(-1);
+    this.gamepadNavigationOptions = __spreadProps(__spreadValues({}, this.props.gamepadNavigationOptions), {
+      onItemHovered: (item, index2) => {
+        var _a, _b;
+        this.currentHoveredItemIndex.set(index2);
+        (_b = (_a = this.props.gamepadNavigationOptions) == null ? void 0 : _a.onItemHovered) == null ? void 0 : _b.call(_a, item, index2);
+      },
+      onItemSelected: (item, index2) => {
+        var _a, _b;
+        this.itemCallback(item);
+        (_b = (_a = this.props.gamepadNavigationOptions) == null ? void 0 : _a.onItemSelected) == null ? void 0 : _b.call(_a, item, index2);
+      }
+    });
     this.hideCustoms = MappedSubject.create(
       ([focus, input]) => !focus || input.length !== 0,
       this.isSearchBarFocus,
@@ -5057,8 +6256,20 @@ class SearchFacility extends SearchBar {
     };
     props.bus.getSubscriber().on("gps-position").atFrequency(1).handle((pos) => this.ppos.set(pos.lat, pos.long));
   }
-  renderItem(data) {
-    return /* @__PURE__ */ FSComponent.buildComponent(FacilityResultItem, { facility: data, separator: ", ", callback: this.itemCallback.bind(this) });
+  renderItem(data, index2) {
+    return /* @__PURE__ */ FSComponent.buildComponent(
+      FacilityResultItem,
+      {
+        class: {
+          hover: this.currentHoveredItemIndex.map(
+            (hoveredItemIndex) => hoveredItemIndex === index2
+          )
+        },
+        facility: data,
+        separator: ", ",
+        callback: this.itemCallback.bind(this)
+      }
+    );
   }
   itemCallback(data) {
     this.selectedFacility = data;
@@ -5126,12 +6337,10 @@ class SearchFacility extends SearchBar {
   }
   resetInput() {
     var _a, _b;
-    if (this.selectedFacilitySub.get() !== null) {
-      this.onInputSearchSub.set("");
-      (_b = (_a = this.props).onResetInput) == null ? void 0 : _b.call(_a);
-      this.internalSelectedFacilitySub.set(null);
-      this.prefix.set("");
-    }
+    this.onInputSearchSub.set("");
+    (_b = (_a = this.props).onResetInput) == null ? void 0 : _b.call(_a);
+    this.internalSelectedFacilitySub.set(null);
+    this.prefix.set("");
   }
   restoreInput() {
     const inputHasBeenCleared = !this.onInputSearchSub.get();
@@ -5341,8 +6550,61 @@ class Slider extends GamepadUiComponent {
         this.valuePercent.set(this.convertValueToPercent(value2));
       })
     );
+    const sliderElement = this.gamepadUiComponentRef.getOrDefault();
+    if (sliderElement !== null) {
+      const inputActions = this.verticalSlider ? {
+        decrease: InputAction.SCROLL_DOWN,
+        increase: InputAction.SCROLL_UP
+      } : {
+        decrease: InputAction.SCROLL_LEFT,
+        increase: InputAction.SCROLL_RIGHT
+      };
+      let isScrolling = false;
+      const addMoveSliderInputAction = (inputAction, factor) => this.inputManager.addInputActionOnHover(
+        sliderElement,
+        inputAction,
+        (axis) => {
+          var _a, _b;
+          if (!isScrolling) {
+            (_b = (_a = this.props).onFocusIn) == null ? void 0 : _b.call(_a);
+            this.isButtonSelected.set(true);
+            isScrolling = true;
+          }
+          this.valuePercent.set(this.valuePercent.get() + factor * axis * axis * 2);
+          return true;
+        },
+        { inputType: "axis" }
+      );
+      this.decreaseSliderActionDestructor = addMoveSliderInputAction(inputActions.decrease, -1);
+      this.increaseSliderActionDestructor = addMoveSliderInputAction(inputActions.increase, 1);
+      const releasedInputTypeOptions = { inputType: "released" };
+      const onMoveSliderInputActionReleased = () => {
+        var _a, _b;
+        if (isScrolling) {
+          (_b = (_a = this.props).onFocusOut) == null ? void 0 : _b.call(_a);
+          this.isButtonSelected.set(false);
+          isScrolling = false;
+        }
+        return false;
+      };
+      this.decreaseSliderActionReleasedDestructor = this.inputManager.addInputAction(
+        inputActions.decrease,
+        onMoveSliderInputActionReleased,
+        releasedInputTypeOptions
+      );
+      this.increaseSliderActionReleasedDestructor = this.inputManager.addInputAction(
+        inputActions.increase,
+        onMoveSliderInputActionReleased,
+        releasedInputTypeOptions
+      );
+    }
   }
   destroy() {
+    var _a, _b, _c, _d;
+    (_a = this.decreaseSliderActionDestructor) == null ? void 0 : _a.call(this);
+    (_b = this.increaseSliderActionDestructor) == null ? void 0 : _b.call(this);
+    (_c = this.decreaseSliderActionReleasedDestructor) == null ? void 0 : _c.call(this);
+    (_d = this.increaseSliderActionReleasedDestructor) == null ? void 0 : _d.call(this);
     this.isButtonHoverable.destroy();
     this.subs.forEach((sub) => sub.destroy());
     super.destroy();
@@ -5378,20 +6640,55 @@ class Tag extends GamepadUiComponent {
     super(...arguments);
     this.closeButtonRef = FSComponent.createRef();
   }
-  onAfterRender(node) {
-    super.onAfterRender(node);
-    if (this.props.iconPath && this.props.onButtonClick) {
-      this.closeButtonRef.instance.addEventListener("click", this.props.onButtonClick);
+  renderButton() {
+    if (this.props.iconPath === void 0) {
+      return null;
     }
-  }
-  destroy() {
-    if (this.props.iconPath && this.props.onButtonClick) {
-      this.closeButtonRef.instance.removeEventListener("click", this.props.onButtonClick);
-    }
-    super.destroy();
+    return /* @__PURE__ */ FSComponent.buildComponent(
+      IconButton,
+      {
+        class: "tag-button",
+        iconPath: this.props.iconPath,
+        callback: this.props.onButtonClick || this.props.callback,
+        hoverable: this.props.hoverable,
+        selected: this.props.selected,
+        disabled: this.props.disabled
+      }
+    );
   }
   render() {
-    return /* @__PURE__ */ FSComponent.buildComponent("div", { ref: this.gamepadUiComponentRef, class: "tag-container" }, /* @__PURE__ */ FSComponent.buildComponent("span", { class: "title light-text" }, this.props.title), this.props.iconPath && /* @__PURE__ */ FSComponent.buildComponent("div", { class: "tag-button", ref: this.closeButtonRef }, /* @__PURE__ */ FSComponent.buildComponent("icon-element", { class: "tag-button-icon", "icon-url": this.props.iconPath })));
+    var _a;
+    return /* @__PURE__ */ FSComponent.buildComponent(
+      "div",
+      {
+        ref: this.gamepadUiComponentRef,
+        class: mergeClassProp("tag-container", this.props.class, {
+          hide: (_a = this.props.visible) != null ? _a : false
+        }),
+        style: this.props.style
+      },
+      /* @__PURE__ */ FSComponent.buildComponent(
+        Marquee,
+        {
+          class: "title light-text",
+          speed: this.props.speed,
+          delay: this.props.delay,
+          startDelay: this.props.startDelay,
+          resetDelay: this.props.resetDelay,
+          activator: this.props.activator
+        },
+        /* @__PURE__ */ FSComponent.buildComponent(
+          TT,
+          {
+            key: this.props.title,
+            type: this.props.type,
+            format: this.props.format,
+            arguments: this.props.arguments
+          }
+        )
+      ),
+      this.renderButton()
+    );
   }
 }
 class TextArea extends GamepadUiComponent {
@@ -5402,6 +6699,7 @@ class TextArea extends GamepadUiComponent {
     this.textAreaRef = this.gamepadUiComponentRef;
     this.model = this.props.model || Subject.create(SubscribableUtils.toSubscribable(this.props.value || "", true).get());
     this.dispatchFocusOutEvent = this._dispatchFocusOutEvent.bind(this);
+    this.setValueFromOS = this._setValueFromOS.bind(this);
     this._onKeyPress = this.onKeyPress.bind(this);
     this._onInput = this.onInput.bind(this);
     this.reloadLocalisation = this._reloadLocalisation.bind(this);
@@ -5472,6 +6770,35 @@ class TextArea extends GamepadUiComponent {
   _dispatchFocusOutEvent() {
     this.textAreaRef.instance.blur();
   }
+  _setValueFromOS(text) {
+    this.textAreaRef.instance.value = text;
+    this.textAreaRef.instance.dispatchEvent(new InputEvent("change"));
+    this.textAreaRef.instance.dispatchEvent(new InputEvent("input"));
+    this.textAreaRef.instance.dispatchEvent(new InputEvent("focusout"));
+    this.textAreaRef.instance.blur();
+  }
+  getTranslation(key) {
+    var _a;
+    let translatedKey = key.startsWith("@") || key.startsWith("TT") ? Utils.Translate(key) : key;
+    (_a = this.props.placeholderArguments) == null ? void 0 : _a.forEach((argumentValue, argumentKey) => {
+      const argumentValueSub = SubscribableUtils.toSubscribable(argumentValue, true);
+      translatedKey = translatedKey.replace(argumentKey, argumentValueSub.get());
+    });
+    switch (this.props.placeholderFormat) {
+      case "upper":
+      case "uppercase":
+        return translatedKey.toUpperCase();
+      case "lower":
+      case "lowercase":
+        return translatedKey.toLowerCase();
+      case "ucfirst":
+        return `${translatedKey.charAt(0).toUpperCase()}${translatedKey.slice(1)}`;
+      case "capitalize":
+        return translatedKey.replace(/(^\w{1})|(\s+\w{1})/g, (letter) => letter.toUpperCase());
+      default:
+        return translatedKey;
+    }
+  }
   render() {
     var _a;
     return /* @__PURE__ */ FSComponent.buildComponent(
@@ -5482,7 +6809,7 @@ class TextArea extends GamepadUiComponent {
         ref: this.textAreaRef,
         placeholder: MappedSubject.create(
           ([placeholderShown, placeholderKey]) => {
-            return placeholderShown ? Utils.Translate(placeholderKey) : "";
+            return placeholderShown ? this.getTranslation(placeholderKey) : "";
           },
           this.placeholderShown,
           this.placeholderKey
@@ -5510,6 +6837,7 @@ class TextArea extends GamepadUiComponent {
       this._isFocused.set(true);
       Coherent.trigger("FOCUS_INPUT_FIELD", this.uuid, "", "", "", false);
       Coherent.on("mousePressOutsideView", this.dispatchFocusOutEvent);
+      Coherent.on("SetInputTextFromOS", this.setValueFromOS);
       this.onFocusIn();
     });
     this.textAreaRef.instance.addEventListener("focusout", () => {
@@ -5519,6 +6847,7 @@ class TextArea extends GamepadUiComponent {
       this._isFocused.set(false);
       Coherent.trigger("UNFOCUS_INPUT_FIELD", this.uuid);
       Coherent.off("mousePressOutsideView", this.dispatchFocusOutEvent);
+      Coherent.off("SetInputTextFromOS", this.setValueFromOS);
       this.onFocusOut();
     });
     this.textAreaRef.instance.addEventListener("input", this._onInput);
@@ -5585,147 +6914,6 @@ class Tooltip extends GamepadUiComponent {
     return /* @__PURE__ */ FSComponent.buildComponent("div", { class: "tooltip-component", ref: this.gamepadUiComponentRef }, this.props.children, /* @__PURE__ */ FSComponent.buildComponent("div", { class: { tooltip: true, forceHide: this.forceHide, [position]: true } }, !SubscribableUtils.isSubscribable(content) && typeof content !== "string" && isVNode(content) ? content : /* @__PURE__ */ FSComponent.buildComponent(TT, { class: "tooltip-description", key: content, format: "ucfirst" }), /* @__PURE__ */ FSComponent.buildComponent("svg", { class: "pointer-svg" }, /* @__PURE__ */ FSComponent.buildComponent("path", { d: "M 0 9 l10 -8 l10 8", fill: "rgb(15, 20, 27)", stroke: "rgb(63, 67, 73)", "stroke-width": "2" }))));
   }
 }
-let uid = 0;
-class Container {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  constructor() {
-    this._uid = uid++;
-    this._registeredAppsPromises = [];
-    this._installedApps = ArraySubject.create();
-  }
-  /**
-   * Static singleton instance of Efb container
-   * @internal
-   */
-  static get instance() {
-    return window.EFB_API = Container._instance = window.EFB_API || Container._instance || new Container();
-  }
-  /** @internal */
-  apps() {
-    return this._installedApps;
-  }
-  /** @internal */
-  allAppsLoaded() {
-    return this._registeredAppsPromises.length === this._installedApps.length;
-  }
-  /**
-   * Method used by the OS to share the bus to apps
-   * @internal
-   */
-  setBus(bus) {
-    this.bus = bus;
-    return this;
-  }
-  /**
-   * Method used by the OS to share the units settings manager to the apps
-   * @internal
-   */
-  setUnitsSettingManager(unitsSettingManager) {
-    this.unitsSettingManager = unitsSettingManager;
-    return this;
-  }
-  /**
-   * Method used by the OS to share the settings manager to the apps
-   * @internal
-   */
-  setEfbSettingManager(efbSettingsManager) {
-    this.efbSettingsManager = efbSettingsManager;
-    return this;
-  }
-  setOnboardingManager(onboardingManager) {
-    this.onboardingManager = onboardingManager;
-    return this;
-  }
-  /**
-   * Method used by the OS to share the notification manager to the apps
-   * @internal
-   */
-  setNotificationManager(notificationManager) {
-    this.notificationManager = notificationManager;
-    return this;
-  }
-  /**
-   * Load stylesheet
-   * @param uri
-   * @returns Promise which is resolved when stylesheet is loaded or rejected if an error occur.
-   */
-  async loadCss(uri) {
-    if (document.querySelector(`link[href*="${uri}"]`)) {
-      return Promise.reject(`${uri} already loaded.`);
-    }
-    const linkTag = document.createElement("link");
-    linkTag.rel = "stylesheet";
-    linkTag.href = uri;
-    document.head.append(linkTag);
-    return new Promise((resolve, reject) => {
-      linkTag.onload = () => resolve();
-      linkTag.onerror = reject;
-    });
-  }
-  /**
-   * Load script file
-   * @param uri
-   * @returns Promise which is resolved when script is loaded or rejected if an error occur.
-   */
-  async loadJs(uri) {
-    if (document.querySelector(`script[src*="${uri}"]`)) {
-      return Promise.reject(`${uri} already loaded.`);
-    }
-    const scriptTag = document.createElement("script");
-    scriptTag.type = "text/javascript";
-    scriptTag.src = uri;
-    document.head.append(scriptTag);
-    return new Promise((resolve, reject) => {
-      scriptTag.onload = () => resolve();
-      scriptTag.onerror = reject;
-    });
-  }
-  /**
-   * Register an app in EFB
-   * @template T - App registration options
-   * @param app The app you wan't to register
-   * @param options Options you'r app might need when installing
-   * @returns EFB instance
-   * @throws Throw an error if App install went wrong.
-   */
-  use(app, ...options) {
-    var _a;
-    try {
-      if (!this.bus) {
-        throw new Error(`Bus has not been initialized yet.`);
-      }
-      const appInstance = app instanceof App ? app : new app();
-      const installProps = {
-        bus: this.bus,
-        unitsSettingManager: this.unitsSettingManager,
-        efbSettingsManager: this.efbSettingsManager,
-        notificationManager: this.notificationManager,
-        onboardingManager: this.onboardingManager,
-        options: Object.keys(options).filter((key) => key !== "isCoreApp").reduce((acc, key) => {
-          return Object.assign(acc, options[key]);
-        }, {})
-      };
-      const appInstaller = appInstance._install.apply(appInstance, [installProps]);
-      const name = appInstance.internalName;
-      if (/\s/.test(name)) {
-        throw new Error(`The App name can't have any whitespace character. "${name}"`);
-      }
-      if (!Object.prototype.hasOwnProperty.call(installProps.options, "isCoreApp")) {
-        this._registeredAppsPromises.push(
-          appInstaller.then(() => {
-            this._installedApps.insert(appInstance);
-          })
-        );
-      }
-    } catch (e) {
-      (_a = document.currentScript) == null ? void 0 : _a.remove();
-      console.error(`App can't be installed`, e);
-      throw e;
-    }
-    return this;
-  }
-}
-const Efb = Container.instance;
 class NotificationManager {
   constructor(bus) {
     this.bus = bus;
@@ -5788,9 +6976,13 @@ class NotificationManager {
       (_a = arr == null ? void 0 : arr.reduce((accumulator, notif) => accumulator + (notif.viewed.get() ? 0 : 1), 0)) != null ? _a : 0
     );
   }
+  /**
+   * Adds a notification to the stack
+   * @param notif the notification to add, could be a TemporaryNotification or a PermanentNotification
+   */
   addNotification(notif) {
     notif.createdAt = /* @__PURE__ */ new Date();
-    if (isNotifPermanent(notif)) {
+    if (isNotificationPermanent(notif)) {
       this._storedNotifications.insert(notif);
       if (this.isNotificationAppOpen) {
         return;
@@ -5798,19 +6990,24 @@ class NotificationManager {
     }
     this.pendingNotifications.push(notif);
   }
+  /**
+   * Removes a permanent notification from the notification menu
+   * @param notif the notification to remove
+   */
   deletePermanentNotification(notif) {
     this._storedNotifications.removeItem(notif);
   }
+  /* Removes all permanent notifications from the notification menu */
   clearNotifications() {
     this._storedNotifications.clear();
   }
   onNotificationAppOpen() {
     this.isNotificationAppOpen = true;
     this.pendingNotifications = this.pendingNotifications.filter(
-      (notif) => !isNotifPermanent(notif)
+      (notif) => !isNotificationPermanent(notif)
     );
     this._shownNotifications.getArray().forEach((notif) => {
-      if (isNotifPermanent(notif)) {
+      if (isNotificationPermanent(notif)) {
         this._shownNotifications.removeItem(notif);
       }
     });
@@ -5907,6 +7104,24 @@ const _OnboardingManager = class _OnboardingManager {
 };
 _OnboardingManager.INSTANCE = void 0;
 let OnboardingManager = _OnboardingManager;
+const _EfbCommonSettingsManager = class _EfbCommonSettingsManager extends DefaultUserSettingManager {
+  constructor() {
+    super(...arguments);
+    this.debounceTimer = new DebounceTimer();
+    this.ignoredForceSaveSettingKeys = [];
+  }
+  /** @inheritdoc */
+  onSettingValueChanged(entry, value2) {
+    super.onSettingValueChanged(entry, value2);
+    if (!this.ignoredForceSaveSettingKeys.includes(entry.setting.definition.name)) {
+      this.debounceTimer.schedule(() => {
+        Coherent.trigger("EFB_PERSISTENT_SETTINGS_SAVE");
+      }, _EfbCommonSettingsManager.debounceTimeout);
+    }
+  }
+};
+_EfbCommonSettingsManager.debounceTimeout = 5e3;
+let EfbCommonSettingsManager = _EfbCommonSettingsManager;
 var UnitsNavAngleSettingMode = /* @__PURE__ */ ((UnitsNavAngleSettingMode2) => {
   UnitsNavAngleSettingMode2["Magnetic"] = "magnetic";
   UnitsNavAngleSettingMode2["True"] = "true";
@@ -5952,7 +7167,7 @@ var UnitsTimeSettingMode = /* @__PURE__ */ ((UnitsTimeSettingMode2) => {
   UnitsTimeSettingMode2["Local24"] = "local-24";
   return UnitsTimeSettingMode2;
 })(UnitsTimeSettingMode || {});
-const _UnitsSettingsManager = class _UnitsSettingsManager extends DefaultUserSettingManager {
+const _UnitsSettingsManager = class _UnitsSettingsManager extends EfbCommonSettingsManager {
   constructor(bus, settingsDefs) {
     super(bus, settingsDefs, true);
     this.navAngleUnitsSub = Subject.create(_UnitsSettingsManager.MAGNETIC_BEARING);
@@ -6005,8 +7220,19 @@ const _UnitsSettingsManager = class _UnitsSettingsManager extends DefaultUserSet
         );
     }
   }
+  /**
+   * Gets a unit type subscribable from a unit setting name
+   * @param settingName the name of the unit setting
+   * @returns a Subscribable containing the unit type. If the value in the dataStorage is unvalid, it returns the default unitType
+   */
   getSettingUnitType(settingName) {
-    return this.getSetting(settingName).map((settingValue) => UnitTypesMap[settingValue]);
+    const setting = this.getSetting(settingName);
+    return setting.map(
+      (settingValue) => {
+        var _a;
+        return (_a = UnitTypesMap[settingValue]) != null ? _a : UnitTypesMap[setting.definition.defaultValue];
+      }
+    );
   }
 };
 _UnitsSettingsManager.TRUE_BEARING = BasicNavAngleUnit.create(false);
@@ -6096,9 +7322,10 @@ var OrientationSettingMode = /* @__PURE__ */ ((OrientationSettingMode2) => {
   OrientationSettingMode2[OrientationSettingMode2["Horizontal"] = 1] = "Horizontal";
   return OrientationSettingMode2;
 })(OrientationSettingMode || {});
-class EfbSettingsManager extends DefaultUserSettingManager {
+class EfbSettingsManager extends EfbCommonSettingsManager {
   constructor(bus, settingsDefs) {
     super(bus, settingsDefs);
+    this.ignoredForceSaveSettingKeys = ["mode", "autoBrightnessPercentage"];
     let stringToArray = [];
     try {
       stringToArray = JSON.parse(this.getSetting("favoriteApps").get());
@@ -6243,7 +7470,7 @@ class EfbSettings {
       },
       {
         name: "defaultApp",
-        defaultValue: "AtlasApp"
+        defaultValue: ""
       }
     ]);
   }
@@ -6256,7 +7483,8 @@ class EfbSettingsSaveManager extends UserSettingSaveManager {
     ];
     super(settings, bus);
     this.bus = bus;
-    this.prefix = "efb-2024-08-28.";
+    this.prefix = "efb-core-settings.2025-04-01.";
+    this.oldPrefixes = ["efb-2024-11-07.", "efb-2024-08-28."];
     this.settings = [];
     this.settings.push(...settings);
   }
@@ -6264,7 +7492,7 @@ class EfbSettingsSaveManager extends UserSettingSaveManager {
     super.load(`${this.prefix}${key}`);
     UnitsSettings.getManager(this.bus).checkLoadedValues();
     EfbSettings.getManager(this.bus).checkLoadedValues();
-    this.save(`${this.prefix}${key}`);
+    this.save(key);
   }
   save(key) {
     super.save(`${this.prefix}${key}`);
@@ -6276,10 +7504,12 @@ class EfbSettingsSaveManager extends UserSettingSaveManager {
     super.stopAutoSave(`${this.prefix}${key}`);
   }
   pruneOldPrefixes() {
-    const storage = GetDataStorage().searchData("efb");
-    for (const entry of storage) {
-      if (entry.key.indexOf(`.${this.prefix}`) === -1) {
-        GetDataStorage().deleteData(entry.key);
+    for (const prefix of this.oldPrefixes) {
+      const storage = GetDataStorage().searchData(prefix);
+      for (const entry of storage) {
+        if (entry.key.startsWith(`persistent-setting.${this.prefix}`)) {
+          GetDataStorage().deleteData(entry.key);
+        }
       }
     }
   }
@@ -6337,27 +7567,28 @@ class ViewWrapper extends DisplayComponent {
   }
 }
 class ViewService {
-  constructor(viewKey, appViewService) {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  constructor(_viewKey, _appViewService) {
     this.registeredViews = MapSubject.create();
+    this.viewTabs = [];
+    this.visibleViewTabs = [];
+    this.viewTabVisibilitySubscriptions = [];
     this.hasInitialized = false;
     this.activeViewEntry = Subject.create(null);
-    if (viewKey && appViewService) {
-      appViewService.on("pause", viewKey, () => {
-        var _a;
-        const activeViewEntry = this.activeViewEntry.get();
-        if ((activeViewEntry == null ? void 0 : activeViewEntry.isActive.get()) === true) {
-          activeViewEntry.isActive.set(false);
-          (_a = activeViewEntry.ref) == null ? void 0 : _a.onPause();
-        }
-      }).on("resume", viewKey, () => {
-        var _a;
-        const activeViewEntry = this.activeViewEntry.get();
-        if ((activeViewEntry == null ? void 0 : activeViewEntry.isActive.get()) === false) {
-          activeViewEntry.isActive.set(true);
-          (_a = activeViewEntry.ref) == null ? void 0 : _a.onResume();
-        }
-      });
+    this.internalInputStackManager = new InternalInputManager(InternalInputActions);
+  }
+  openNextVisibleTab(forward = true) {
+    if (this.visibleViewTabs.length <= 1) {
+      return false;
     }
+    const activeTabIndex = this.visibleViewTabs.findIndex((tab) => tab.isActive.get());
+    if (activeTabIndex === -1) {
+      return false;
+    }
+    const direction = forward ? 1 : -1;
+    const nextTabIndex = (activeTabIndex + this.visibleViewTabs.length + direction) % this.visibleViewTabs.length;
+    this.openPage(this.visibleViewTabs[nextTabIndex].key);
+    return true;
   }
   getRegisteredViews() {
     return this.registeredViews;
@@ -6390,6 +7621,14 @@ class ViewService {
     };
     this.initViewEntry(viewEntry);
     this.registeredViews.set(key, viewEntry);
+    this.viewTabs.push(viewEntry);
+    this.viewTabVisibilitySubscriptions.push(
+      isTabVisible.sub(() => {
+        this.visibleViewTabs = this.viewTabs.filter(
+          (tab) => tab.isTabVisible.get() === true
+        );
+      })
+    );
     return viewEntry;
   }
   onContainerRendered(viewRef) {
@@ -6406,6 +7645,9 @@ class ViewService {
     (_a = this.viewRef) == null ? void 0 : _a.renderView(
       /* @__PURE__ */ FSComponent.buildComponent(ViewWrapper, { viewName: entry.key, isActive: entry.isActive, ref: entry.containerRef }, entry.vNode)
     );
+    entry.ref.onOpen();
+    entry.ref.onResume();
+    entry.ref.onPause();
   }
   initialize(key) {
     var _a;
@@ -6415,7 +7657,7 @@ class ViewService {
     this.hasInitialized = true;
     if (key) {
       const initViewEntry = this.getViewEntry(key);
-      (_a = initViewEntry.ref) == null ? void 0 : _a.onOpen();
+      (_a = initViewEntry.ref) == null ? void 0 : _a.onResume();
       initViewEntry.isActive.set(true);
       this.activeViewEntry.set(initViewEntry);
     }
@@ -6434,9 +7676,22 @@ class ViewService {
     this.activeViewEntry.set(newViewEntry);
     return newViewEntry;
   }
+  onPause() {
+    var _a, _b, _c, _d;
+    (_b = (_a = this.activeViewEntry.get()) == null ? void 0 : _a.ref) == null ? void 0 : _b.onPause();
+    (_c = this.prevTabActionDestructor) == null ? void 0 : _c.call(this);
+    (_d = this.nextTabActionDestructor) == null ? void 0 : _d.call(this);
+  }
+  onResume() {
+    var _a, _b;
+    (_b = (_a = this.activeViewEntry.get()) == null ? void 0 : _a.ref) == null ? void 0 : _b.onResume();
+  }
   onUpdate(time) {
     var _a, _b;
     (_b = (_a = this.activeViewEntry.get()) == null ? void 0 : _a.ref) == null ? void 0 : _b.onUpdate(time);
+  }
+  destroy() {
+    this.viewTabVisibilitySubscriptions.forEach((subscription) => subscription.destroy());
   }
 }
 class ViewServiceContainer extends DisplayComponent {
@@ -6524,6 +7779,8 @@ export {
   AppSuspendMode,
   AppView,
   AppViewService,
+  ArrayFilterSubject,
+  BearingDisplay,
   Button,
   CircularProgress,
   ClassicButton,
@@ -6531,6 +7788,7 @@ export {
   DateDisplay,
   DropdownButton,
   Efb,
+  EfbApiVersion,
   EfbMode,
   EfbSettings,
   EfbSettingsManager,
@@ -6546,9 +7804,14 @@ export {
   GamepadUiComponent,
   GamepadUiParser,
   GamepadUiView,
+  GhostListItem,
   IconButton,
   IconElement,
   Incremental,
+  InputAction,
+  InputActions,
+  InputManager,
+  InputStackListener,
   InputsListener,
   LargeAirportThresholdFt,
   List,
@@ -6606,9 +7869,12 @@ export {
   ViewWrapper,
   basicFormatter,
   checkUserSetting,
+  chunk,
   createCustomFacility,
   createPermanentNotif,
+  createPermanentNotification,
   createTemporaryNotif,
+  createTemporaryNotification,
   dayKeys,
   elementOffset,
   extractChunks,
@@ -6628,6 +7894,7 @@ export {
   isFunction,
   isIApp,
   isNotifPermanent,
+  isNotificationPermanent,
   isPromise,
   isSelectedAirportFacility,
   isVNode,
@@ -6646,5 +7913,6 @@ export {
   toString,
   unique,
   value,
-  where
+  where,
+  wrap
 };

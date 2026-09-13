@@ -62,4 +62,3 @@ export declare class NumberUnitDisplay<F extends string> extends AbstractNumberU
     private static createDefaultUnitTextMap;
     render(): VNode;
 }
-//# sourceMappingURL=NumberUnitDisplay.d.ts.map

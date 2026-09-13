@@ -30,4 +30,3 @@ export {};
  * les genre d'events que je peux recevoir.
  * Donc un set d'event est un la définition de plusieurs
  */
-//# sourceMappingURL=GamepadEvents.d.ts.map

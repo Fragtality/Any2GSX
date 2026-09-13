@@ -6,4 +6,3 @@ export * from './SelectableButton';
 export * from './TTButton';
 export * from './TabSelector';
 export * from './TypedButton';
-//# sourceMappingURL=index.d.ts.map

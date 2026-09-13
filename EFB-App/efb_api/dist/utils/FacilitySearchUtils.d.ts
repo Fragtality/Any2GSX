@@ -16,4 +16,3 @@ export declare class FacilitySearchUtils {
      */
     loadFacilities(ident: string, facilitySearchType?: FacilitySearchType, excludeTerminalFacilities?: boolean): Promise<readonly Facility[]>;
 }
-//# sourceMappingURL=FacilitySearchUtils.d.ts.map

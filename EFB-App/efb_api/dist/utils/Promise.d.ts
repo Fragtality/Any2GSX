@@ -12,4 +12,3 @@ export declare function isPromise<T>(value: unknown): value is Promise<T>;
  * @returns A promise of value.
  */
 export declare function toPromise<T>(value: Promiseable<T>): Promise<T>;
-//# sourceMappingURL=Promise.d.ts.map

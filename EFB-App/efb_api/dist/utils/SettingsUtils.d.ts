@@ -8,4 +8,3 @@ import { UserSetting, UserSettingValue } from '@microsoft/msfs-sdk';
  */
 export declare function checkUserSetting(setting: UserSetting<UserSettingValue>, type: object): void;
 export declare const basicFormatter: (number: number) => string;
-//# sourceMappingURL=SettingsUtils.d.ts.map

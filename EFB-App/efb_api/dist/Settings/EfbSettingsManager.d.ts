@@ -1,5 +1,6 @@
-import { DefaultUserSettingManager, EventBus, UserSettingDefinition, UserSettingManagerEntry } from '@microsoft/msfs-sdk';
+import { EventBus, UserSettingDefinition, UserSettingManagerEntry } from '@microsoft/msfs-sdk';
 import { IApp } from '../App';
+import { EfbCommonSettingsManager } from './EfbCommonSettingsManager';
 
 export declare enum EfbMode {
     '2D' = 0,
@@ -32,7 +33,7 @@ export type EfbSettingsType = {
     /** The app that appears when the efb is loaded for the first time */
     defaultApp: string;
 };
-export declare class EfbSettingsManager extends DefaultUserSettingManager<EfbSettingsType> {
+export declare class EfbSettingsManager extends EfbCommonSettingsManager<EfbSettingsType> {
     protected favoriteApps: string[];
     constructor(bus: EventBus, settingsDefs: Array<UserSettingDefinition<EfbSettingsType[keyof EfbSettingsType]>>);
     get favoriteAppsArray(): readonly string[];
@@ -57,6 +58,8 @@ export declare class EfbSettingsManager extends DefaultUserSettingManager<EfbSet
      */
     protected onFavoriteAppsUpdated(): void;
     protected updateFavoriteAppsArray(value: EfbSettingsType['favoriteApps']): void;
+    /** @inheritdoc */
+    protected ignoredForceSaveSettingKeys: Array<keyof EfbSettingsType>;
     protected onSettingValueChanged<K extends keyof EfbSettingsType>(entry: UserSettingManagerEntry<EfbSettingsType[K]>, value: EfbSettingsType[K]): void;
 }
 /**
@@ -68,4 +71,3 @@ export declare class EfbSettings {
     private constructor();
     static getManager(bus: EventBus): EfbSettingsManager;
 }
-//# sourceMappingURL=EfbSettingsManager.d.ts.map

@@ -24,4 +24,3 @@ export declare class TT<P extends TTProps = TTProps> extends DisplayComponent<P>
     destroy(): void;
 }
 export {};
-//# sourceMappingURL=TT.d.ts.map

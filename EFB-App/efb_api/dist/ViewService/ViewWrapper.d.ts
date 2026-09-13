@@ -13,4 +13,3 @@ export declare class ViewWrapper extends DisplayComponent<ViewWrapperProps> {
     destroy(): void;
 }
 export {};
-//# sourceMappingURL=ViewWrapper.d.ts.map

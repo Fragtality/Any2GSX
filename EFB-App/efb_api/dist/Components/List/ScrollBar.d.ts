@@ -33,4 +33,3 @@ export declare class ScrollBar extends DisplayComponent<ComponentProps> {
     render(): VNode;
     destroy(): void;
 }
-//# sourceMappingURL=ScrollBar.d.ts.map

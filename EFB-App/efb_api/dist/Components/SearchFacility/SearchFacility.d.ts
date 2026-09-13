@@ -1,4 +1,4 @@
-import { ArraySubject, EventBus, Facility, FacilityLoader, FacilitySearchType, GeoPoint, MappedSubject, Subscribable, VNode } from '@microsoft/msfs-sdk';
+import { ArraySubject, EventBus, Facility, FacilityLoader, FacilitySearchType, GeoPoint, MappedSubject, Subject, Subscribable, VNode } from '@microsoft/msfs-sdk';
 import { NullFacility } from '../../utils/FacilityUtils';
 import { SearchBar, SearchBarProps } from '../SearchBar';
 import { SearchFacilityHistoryManager } from './SearchFacilityHistoryManager';
@@ -37,11 +37,19 @@ export declare class SearchFacility extends SearchBar<Facility, SearchFacilityPr
     protected DEBOUNCE_DURATION: number;
     readonly ppos: GeoPoint;
     private selectedFacilitySubscription?;
+    protected readonly currentHoveredItemIndex: Subject<number>;
+    protected readonly gamepadNavigationOptions: {
+        onItemHovered: (item: Facility | null, index: number) => void;
+        onItemSelected: (item: Facility, index: number) => void;
+        isListFocused?: import('@microsoft/msfs-sdk').MutableSubscribable<boolean> | import('../..').MaybeSubscribable<boolean>;
+        navigationBetweenItemsDelayMs?: number;
+        wrap?: boolean;
+    };
     constructor(props: SearchFacilityProps);
     protected hideCustoms: MappedSubject<[boolean, string], boolean>;
     protected customItemSelectRef: import('@microsoft/msfs-sdk').NodeReference<HTMLDivElement>;
     protected customItemPositionRef: import('@microsoft/msfs-sdk').NodeReference<HTMLDivElement>;
-    protected renderItem(data: Facility): VNode;
+    protected renderItem(data: Facility, index: number): VNode;
     protected itemCallback(data: Facility): void;
     protected updateIcon(fac: Facility): void;
     protected updateResultItems(input: string): Promise<readonly Facility[]>;
@@ -53,4 +61,3 @@ export declare class SearchFacility extends SearchBar<Facility, SearchFacilityPr
     destroy(): void;
 }
 export {};
-//# sourceMappingURL=SearchFacility.d.ts.map

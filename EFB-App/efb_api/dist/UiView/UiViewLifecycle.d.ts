@@ -16,4 +16,3 @@ export declare enum ViewSuspendMode {
     /** Closed then destroyed. */
     TERMINATE = 1
 }
-//# sourceMappingURL=UiViewLifecycle.d.ts.map

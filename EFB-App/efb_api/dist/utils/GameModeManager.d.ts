@@ -1,4 +1,4 @@
-import { EventBus, MutableSubscribable, Subscribable, Subscription } from '@microsoft/msfs-sdk';
+import { EventBus, MutableSubscribable, Subject, Subscribable, Subscription } from '@microsoft/msfs-sdk';
 import { Nullable } from '../types';
 
 export declare enum GameMode {
@@ -22,7 +22,9 @@ declare class _GameModeManager {
     readonly isChallenge: import('@microsoft/msfs-sdk').MappedSubscribable<boolean>;
     readonly isDiscovery: import('@microsoft/msfs-sdk').MappedSubscribable<boolean>;
     readonly isFreeflight: import('@microsoft/msfs-sdk').MappedSubscribable<boolean>;
+    readonly isInMenu: Subject<boolean>;
     protected onGameModeChangedSubscription: Nullable<Subscription>;
+    protected onIsInMenuSubscription: Nullable<Subscription>;
     private constructor();
     /**
      * Static singleton instance of the Game mode manager
@@ -37,4 +39,3 @@ declare class _GameModeManager {
 }
 export declare const GameModeManager: _GameModeManager;
 export {};
-//# sourceMappingURL=GameModeManager.d.ts.map

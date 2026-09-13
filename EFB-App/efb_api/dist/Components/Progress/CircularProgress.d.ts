@@ -19,4 +19,3 @@ export declare class CircularProgress extends ProgressComponent<CircularProgress
     render(): VNode;
 }
 export {};
-//# sourceMappingURL=CircularProgress.d.ts.map

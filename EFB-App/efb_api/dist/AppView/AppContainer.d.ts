@@ -19,4 +19,3 @@ export declare class AppContainer extends DisplayComponent<AppContainerProps> {
     onAfterRender(node: VNode): void;
     render(): VNode | null;
 }
-//# sourceMappingURL=AppContainer.d.ts.map

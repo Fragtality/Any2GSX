@@ -9,4 +9,3 @@ export declare function where<T>(value: T): (input: T, currentVal?: boolean) => 
  * @returns A function which maps an input number to its string value.
  */
 export declare function toString<T extends number>(): (input: T, currentVal?: string) => string;
-//# sourceMappingURL=SubscribableMapFunctions.d.ts.map

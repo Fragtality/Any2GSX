@@ -42,4 +42,3 @@ export declare class MapSubject<K, V> implements MapSubscribable<K, V> {
     private initialNotify;
     private onSubDestroyed;
 }
-//# sourceMappingURL=MapSubject.d.ts.map
