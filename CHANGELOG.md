@@ -1,6 +1,12 @@
 # Changelog
 
 
+## v0.4.14
+
+### App
+- Fixed Input for Final Delay Min/Max Values
+
+<br/><br/>
 ## v0.4.13
 
 ### App
