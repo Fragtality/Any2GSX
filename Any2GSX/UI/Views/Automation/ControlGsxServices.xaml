@@ -490,7 +490,7 @@
                     <TextBlock>Call for Pushback when <Underline>Beacon</Underline> is turned on</TextBlock>
                 </CheckBox>
 
-                <CheckBox Grid.Column="0" Grid.Row="2" IsChecked="{Binding CallPushbackOnBeacon}" Style="{StaticResource CheckBoxSettingItem}"
+                <CheckBox Grid.Column="0" Grid.Row="2" IsChecked="{Binding CallPushbackOnFinal}" Style="{StaticResource CheckBoxSettingItem}"
                           ToolTip="Automatically call Pushback when the Final LS is received (time is expired).&#x0a;This Option is independent from the above - so Pushback is called regardless if the Tug was attached during Boarding.">
                     <TextBlock>Call for Pushback when <Underline>Final LS</Underline> is received</TextBlock>
                 </CheckBox>
