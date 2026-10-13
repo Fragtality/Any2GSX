@@ -22,7 +22,14 @@ namespace Any2GSX.PluginInterface.Interfaces
         public int TimerGsxProcessCheck { get; }
         public int TimerGsxStartupMenuCheck { get; }
         public bool RestartGsxOnTaxiIn { get; }
+        public bool GsxUseHardReset { get; }
         public int GsxServiceStartDelay { get; }
+        public int DelayGsxBinaryStart { get; }
+        public int GsxApiKeepAlive { get; }
+        public int GsxApiResultTimeout { get; }
+        public int GsxApiRetryInterval { get; }
+        public int WsReceiveBuffer { get; }
+        public string GsxApiConnectString { get; }
         public int GroundTicks { get; }
         public int MenuCheckInterval { get; }
         public int MenuOpenTimeout { get; }
@@ -42,12 +49,31 @@ namespace Any2GSX.PluginInterface.Interfaces
         public Dictionary<string, double> FuelFobSaved { get; }
         public double FuelResetPercent { get; }
         public int CargoPercentChangePerSec { get; }
+        public int PanelRefuelOperatorOpenDelay { get; }
+        public int PanelRefuelOperatorCloseDelay { get; }
         public int PanelRefuelOpenDelayUnderground { get; }
         public int PanelRefuelCloseDelayUnderground { get; }
         public int PanelRefuelOpenDelayTanker { get; }
         public int PanelRefuelCloseDelayTanker { get; }
         public int PanelLavatoryOpenDelay { get; }
         public int PanelWaterOpenDelay { get; }
+        public bool GsxSetGpuOnInternal { get; }
+        public bool GsxAllowSettingManipulation { get; }
+        public bool GsxChangePaxDensity { get; }
+        public int GsxPaxDensityJetway { get; }
+        public int GsxPaxDensityStairs { get; }
+        public bool GsxChangeLoadScale { get; }
+        public int GsxLoadScalePax { get; }
+        public int GsxLoadScaleCargo { get; }
+        public bool GsxChangeMultiTrips { get; }
+        public bool GsxMultiTripsPax { get; }
+        public bool GsxMultiTripsCargo { get; }
+        public bool GsxNotifyOnlyImportant { get; }
+        public bool GsxNotifyNoInvoice { get; }
+        public bool GsxNotifyNoAudio { get; }
+        public bool GsxNotifyNoCashRegister { get; }
+        public bool GsxNotifyPinnedMenuAuto { get; }
+        public bool GsxNotifyNoNumberKeys { get; }
 
 
         public event PropertyChangedEventHandler? PropertyChanged;

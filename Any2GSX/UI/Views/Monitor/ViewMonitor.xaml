@@ -86,12 +86,12 @@
             <GroupBox.Header>GSX State</GroupBox.Header>
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -103,8 +103,8 @@
                     <Label>Running</Label>
                     <Label Content="{Binding GsxRunning}" Foreground="{Binding GsxRunningColor}" FontStyle="Italic"/>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="GSX Startup completed?">
-                    <Label>Started</Label>
+                <StackPanel Grid.Column="1" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="GSX API is ready?">
+                    <Label>Ready</Label>
                     <Label Content="{Binding GsxStarted}" Foreground="{Binding GsxStartedColor}" FontStyle="Italic"/>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="State of the GSX Menu">
@@ -180,12 +180,13 @@
             <GroupBox.Header>App State</GroupBox.Header>
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -209,9 +210,9 @@
                     <Label>Audio Controller</Label>
                     <Label Content="{Binding AppAudioController}" Foreground="{Binding AppAudioControllerColor}" FontStyle="Italic"/>
                 </StackPanel>
-                <StackPanel Grid.Column="4" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="Notification Manager running?">
-                    <Label>Notification Manager</Label>
-                    <Label Content="{Binding AppDeckController}" Foreground="{Binding AppDeckControllerColor}" FontStyle="Italic"/>
+                <StackPanel Grid.Column="4" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="External Service Control set (i.e. by FLight Tracker)?">
+                    <Label>External Control</Label>
+                    <Label Content="{Binding AppExternalControl}" Foreground="{Binding AppExternalControlColor}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="0" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Operational Flight Phase the Automation is in">
@@ -225,21 +226,12 @@
                     <Label Content="{Binding AppSmartCall}" FontStyle="Italic"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="The OFP ID of the currently loaded SimBrief Flightplan">
-                    <Label>Flightplan ID</Label>
-                    <Label Content="{Binding AppFlightPlan}" FontStyle="Italic"/>
-                    <Button Style="{StaticResource BtnInfo}"
-                        Command="{Binding ShowFlightplanInfoCommand}">
-                        <Image Source="../../Icons/info.png" Width="16" Height="16" Margin="0"/>
-                    </Button>
-                </StackPanel>
-
-                <StackPanel Grid.Column="3" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Count of completed &amp; skipped / requested &amp; active / total Departure Services">
+                <StackPanel Grid.Column="2" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Count of completed / running / skipped / total Departure Services">
                     <Label>Departure Services</Label>
                     <Label Content="{Binding AppAutomationDepartureServices}" FontStyle="Italic"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="4" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Next Service in the Queue (regardless of Activation)?">
+                <StackPanel Grid.Column="3" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Next Service in the Queue (regardless of Activation)?">
                     <Label>Next Service</Label>
                     <Label Content="{Binding AppAutomationNextService}" FontStyle="Italic"/>
                 </StackPanel>
@@ -249,9 +241,14 @@
                     <Label Content="{Binding AppProfile}" FontStyle="Italic"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="Active Aircraft Plugin used by Any2GSX">
+                <StackPanel Grid.Column="2" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="Active Aircraft Plugin used by Any2GSX">
                     <Label>Aircraft Plugin</Label>
                     <Label Content="{Binding AppPlugin}" FontStyle="Italic"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="3" Grid.ColumnSpan="2" Grid.Row="2" Style="{StaticResource LabelMonitorPanel}" ToolTip="The GSX Aircraft Profile as reported through the API">
+                    <Label>GSX Profile</Label>
+                    <Label Content="{Binding AppGsxProfile}" FontStyle="Italic"/>
                 </StackPanel>
             </Grid>
         </GroupBox>
@@ -260,11 +257,11 @@
             <GroupBox.Header>Aircraft/Plugin State</GroupBox.Header>
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>

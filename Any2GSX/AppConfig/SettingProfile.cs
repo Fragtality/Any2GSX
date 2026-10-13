@@ -145,10 +145,9 @@ namespace Any2GSX.AppConfig
         public virtual bool CallJetwayStairsOnArrival { get; set; } = true;
         public virtual int RemoveStairsAfterDepature { get; set; } = 2; // 0 => false | 1 => true | 2 => only on jetway stand
         public virtual bool SecureAircraftOnSessionStart { get; set; } = true;
-        public virtual bool AttemptConnectStairRefuel { get; set; } = true;
-        public virtual int DelayCallRefuelAfterStair { get; set; } = 60;
         public virtual bool SkipFuelOnTankering { get; set; } = true;
         public virtual bool CallPushbackOnBeacon { get; set; } = false;
+        public virtual bool CallPushbackOnFinal { get; set; } = false;
         public virtual int CallPushbackWhenTugAttached { get; set; } = 2; // 0 => false | 1 => after Departure Services | 2 => after Final LS
         public virtual bool CancelServicesOnPushPhase { get; set; } = true;
         public virtual bool ClearGroundEquipOnBeacon { get; set; } = true;
@@ -167,7 +166,8 @@ namespace Any2GSX.AppConfig
         public virtual bool DoorServiceHandling { get; set; } = true;
         public virtual bool DoorPanelHandling { get; set; } = true;
         public virtual bool DoorCargoHandling { get; set; } = true;
-        public virtual bool DoorCargoOpenOnActive { get; set; } = false;
+        public virtual bool DoorCargoOpenOnActive { get; set; } = true;
+        public virtual bool DoorCargoOperateBulk { get; set; } = true;
         public virtual int DoorCargoOpenCloseDelay { get; set; } = 2;
         public virtual bool DoorsCargoKeepOpenOnDetachBoard { get; set; } = false;
         public virtual bool DoorsCargoKeepOpenOnDetachDeboard { get; set; } = false;
@@ -200,15 +200,20 @@ namespace Any2GSX.AppConfig
         public virtual GsxStopPush StopPushMenuOption { get; set; } = GsxStopPush.Pause;
         public virtual bool EnableMenuForSelection { get; set; } = true;
 
-        public virtual SortedDictionary<int, ServiceConfig> DepartureServices { get; set; } = new()
+        public virtual SortedDictionary<int, ServiceConfig> DepartureServices { get; set; } = GetDefaultQueue();
+
+        public static SortedDictionary<int, ServiceConfig> GetDefaultQueue()
         {
-            { 0, new ServiceConfig(GsxServiceType.Lavatory, GsxServiceActivation.AfterRequested, TimeSpan.Zero, GsxServiceConstraint.TurnAround, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
-            { 1, new ServiceConfig(GsxServiceType.Water, GsxServiceActivation.AfterRequested, TimeSpan.Zero, GsxServiceConstraint.NoneAlways, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
-            { 2, new ServiceConfig(GsxServiceType.Refuel, GsxServiceActivation.AfterRequested, TimeSpan.Zero, GsxServiceConstraint.NoneAlways, true, TimeSpan.Zero, TimeSpan.Zero,TimeSpan.Zero) },
-            { 3, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.AfterActive, TimeSpan.Zero, GsxServiceConstraint.TurnAround, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
-            { 4, new ServiceConfig(GsxServiceType.Catering, GsxServiceActivation.AfterRequested, TimeSpan.Zero, GsxServiceConstraint.NoneAlways, false, TimeSpan.Zero, TimeSpan.Zero,TimeSpan.Zero) },
-            { 5, new ServiceConfig(GsxServiceType.Boarding, GsxServiceActivation.AfterAllCompleted, TimeSpan.Zero, GsxServiceConstraint.NoneAlways, true, TimeSpan.Zero, TimeSpan.Zero,TimeSpan.Zero) },
-        };
+            return new()
+            {
+                { 0, new ServiceConfig(GsxServiceType.Lavatory, GsxServiceActivation.ServiceDependent, TimeSpan.Zero, GsxServiceDependency.Requested, GsxServiceDependencyScope.LastCalled, false, true, false, false, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
+                { 1, new ServiceConfig(GsxServiceType.Water, GsxServiceActivation.ServiceDependent, TimeSpan.Zero, GsxServiceDependency.Completed, GsxServiceDependencyScope.PreviousQueued, false, false, false, false, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
+                { 2, new ServiceConfig(GsxServiceType.Refuel, GsxServiceActivation.ServiceDependent, TimeSpan.Zero, GsxServiceDependency.Requested, GsxServiceDependencyScope.LastCalled, false, false, false, false, true, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
+                { 3, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.ServiceDependent, TimeSpan.Zero, GsxServiceDependency.Active, GsxServiceDependencyScope.PreviousQueued, false, true, false, false, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) { ServiceCancellation = GsxServiceActivation.ServiceDependent, ServiceCancelDependency = GsxServiceDependency.Completed, ServiceCancelDependencyScope = GsxServiceDependencyScope.AllCalled } },
+                { 4, new ServiceConfig(GsxServiceType.Catering, GsxServiceActivation.ServiceDependent, TimeSpan.Zero, GsxServiceDependency.Active, GsxServiceDependencyScope.AllQueued, false, false, false, false, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
+                { 5, new ServiceConfig(GsxServiceType.Boarding, GsxServiceActivation.ServiceDependent, TimeSpan.Zero, GsxServiceDependency.Completed, GsxServiceDependencyScope.AllCalled, false, false, false, false, true, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
+            };
+        }
 
         public virtual bool IsCompanyHub(string icao)
         {

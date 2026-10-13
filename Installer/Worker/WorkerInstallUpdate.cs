@@ -1,7 +1,9 @@
 ﻿using CFIT.AppLogger;
 using CFIT.Installer.LibFunc;
 using CFIT.Installer.LibWorker;
+using System;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Installer.Worker
@@ -62,7 +64,56 @@ namespace Installer.Worker
             if (!Directory.Exists(pluginDir))
                 Directory.CreateDirectory(pluginDir);
 
+            CheckCouatlConfig();
+
             return Directory.Exists(logDir) && Directory.Exists(channelDir) && Directory.Exists(pluginDir);
+        }
+
+        protected virtual void CheckCouatlConfig()
+        {
+            string pathConfig = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Virtuali\CouatlAddons.ini");
+            string pathBackup = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Virtuali\CouatlAddons.ini.bak");
+
+            if (!File.Exists(pathConfig))
+                return;
+
+            string content = File.ReadAllText(pathConfig);
+            var sectionRegex = new Regex(@"(?ms)^[ \t]*\[gsx\][ \t]*\r?\n.*?(?=^[ \t]*\[.*?\][ \t]*(?:\r?$)|\z)", RegexOptions.IgnoreCase);
+
+            if (sectionRegex.IsMatch(content))
+            {
+                content = sectionRegex.Replace(content, match =>
+                {
+                    string section = match.Value;
+
+                    var settingRegex = new Regex(@"(?m)^[ \t]*remote_server_enabled[ \t]*=[ \t]*(.*?)[ \t]*$", RegexOptions.IgnoreCase);
+                    var settingMatch = settingRegex.Match(section);
+
+                    if (settingMatch.Success)
+                    {
+                        if (settingMatch.Groups[1].Value.Trim() != "1")
+                        {
+                            section = settingRegex.Replace(section, "remote_server_enabled = 1", 1);
+                        }
+                    }
+                    else
+                    {
+                        section = section.TrimEnd('\r', '\n') + Environment.NewLine + "remote_server_enabled = 1" + Environment.NewLine + Environment.NewLine;
+                    }
+
+                    return section;
+                }, 1);
+            }
+
+            string originalContent = File.ReadAllText(pathConfig);
+            if (content != originalContent)
+            {
+                if (File.Exists(pathBackup))
+                    File.Delete(pathBackup);
+                File.Copy(pathConfig, pathBackup);
+
+                File.WriteAllText(pathConfig, content);
+            }
         }
     }
 }

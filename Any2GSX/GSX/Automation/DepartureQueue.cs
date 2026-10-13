@@ -1,12 +1,14 @@
 ﻿using Any2GSX.Aircraft;
 using Any2GSX.AppConfig;
 using Any2GSX.GSX.Services;
+using Any2GSX.Notifications;
 using Any2GSX.PluginInterface;
 using Any2GSX.PluginInterface.Interfaces;
 using CFIT.AppLogger;
 using CFIT.AppTools;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -21,67 +23,68 @@ namespace Any2GSX.GSX.Automation
         protected virtual AircraftController AircraftController => AppService.Instance?.AircraftController;
         protected virtual AircraftBase Aircraft => AircraftController?.Aircraft;
         protected virtual Flightplan Flightplan => AppService.Instance?.Flightplan;
+        public static string TextExternal => "EXT";
         protected virtual ConcurrentDictionary<GsxServiceType, GsxService> GsxServices => GsxController?.GsxServices;
-        protected virtual ConcurrentQueue<DepartureService> ServiceQueue { get; } = [];
-        public virtual bool ExternalServiceControl { get; set; } = false;
-        public virtual ConcurrentQueue<DepartureService> ExternalServiceQueue { get; } = [];
-        public virtual DepartureService Next => GetNext();
+        protected virtual ConcurrentDictionary<int, DepartureService> InternalServiceQueue { get; } = [];
+        public virtual bool ExternalServiceControl { get; protected set; } = false;
+        public virtual string ExternalServiceHandler { get; protected set; } = TextExternal;
+        protected virtual ConcurrentDictionary<int, DepartureService> ExternalServiceQueue { get; } = [];
+        protected virtual ConcurrentDictionary<int, DepartureService> ServicesQueued => ExternalServiceControl ? ExternalServiceQueue : InternalServiceQueue;
+        protected virtual int? NextIndex { get; set; } = null;
+        protected virtual int MaxIndex { get; set; } = 0;
+        public virtual DepartureService Next => NextIndex != null && ServicesQueued.TryGetValue((int)NextIndex, out var service) ? service : null;
+        public virtual DepartureService NextQueued => ServicesQueued.IsEmpty ? null : ServicesQueued.First().Value;
+        public virtual int? NextQueuedIndex => ServicesQueued.IsEmpty ? null : ServicesQueued.First().Key;
         public virtual ServiceConfig NextConfig => Next?.Config ?? null;
         public virtual GsxService NextService => Next?.Service ?? null;
         public virtual GsxServiceType NextType => NextService?.Type ?? GsxServiceType.Unknown;
+        public virtual bool HasNextQueued => NextQueued != null;
         public virtual bool HasNext => Next != null;
-        protected virtual bool IsFirst => !ServicesCalled.Any(s => !s.Service.IsSkipped);
-        protected virtual ConcurrentQueue<DepartureService> ServicesCalled { get; } = [];
-        public virtual DepartureService LastCalled => ServicesCalled?.LastOrDefault((s) => !s.Service.IsSkipped) ?? null;
+        protected virtual bool IsFirst => ServicesCalled.IsEmpty;
+        protected virtual ConcurrentDictionary<int, DepartureService> ServicesCalled { get; } = [];
+        protected virtual ConcurrentDictionary<int, DepartureService> ServicesSkipped { get; } = [];
+        public virtual DepartureService LastCalled => ServicesCalled.IsEmpty ? null : ServicesCalled?.Last().Value ?? null;
         protected virtual DateTime LastCallTime { get; set; } = DateTime.MinValue;
         public virtual bool HasLastService => LastCalled != null;
-        public virtual bool ServicesCompleted => !HasNext && AllCalledCompleted() && !ExternalServiceControl;
-        public virtual int CountTotal => ServiceQueue.Count(s => s.Config.ServiceActivation != GsxServiceActivation.Skip) + ServicesCalled.Count(s => s.Config.ServiceActivation != GsxServiceActivation.Skip);
-        public virtual int CountRunning => ServicesCalled.Count(s => s.Service.IsRunning);
-        public virtual int CountCompleted => ServicesCalled.Count(s => s.Service.IsCompleted || s.Service.IsSkipped);
+        public virtual bool ServicesCompleted => !ExternalServiceControl && !ServicesCalled.IsEmpty && HasAllCalled(s => s.Service.IsCompleted) && ServicesQueued.IsEmpty;
+        public virtual int CountTotal => ServicesQueued.Count + ServicesCalled.Count;
+        public virtual int CountRunning => ServicesCalled.Count(s => s.Value.Service.IsRunning);
+        public virtual int CountSkipped => ServicesSkipped.Count;
+        public virtual int CountCompleted => ServicesCalled.Count(s => s.Value.Service.IsCompleted);
+        public virtual string ErrorMessage { get; protected set; } = "";
+        public virtual string LastErrorMessage { get; protected set; } = "";
 
         public event Func<Task> ExternalControlChanged;
+        public event Func<List<GsxServiceType>, Task> ServiceQueueChanged;
 
-        protected virtual DepartureService GetNext()
+        public virtual bool HasQueued(Func<DepartureService, bool> func)
         {
-            if (!AutomationController.ExternalServiceControl)
-            {
-                return ServiceQueue?.TryPeek(out DepartureService service) == true ? service : null;
-            }
-            else
-            {
-                return ExternalServiceQueue?.TryPeek(out DepartureService service) == true ? service : null;
-            }
+            return ServicesQueued.Any(kv => func(kv.Value));
         }
 
-        public virtual DepartureService GetQueuedService(GsxServiceType serviceType)
+        public virtual bool HasAllQueued(Func<DepartureService, bool> func)
         {
-            return ServiceQueue.FirstOrDefault(s => s.Service.Type == serviceType);
-        }
-
-        public virtual bool IsQueued(GsxServiceType type)
-        {
-            return ServiceQueue.Any(s => s.Service.Type == type && s.Config.ServiceActivation > GsxServiceActivation.Skip);
-        }
-
-        public virtual bool AllCalledCompleted()
-        {
-            return ServicesCalled.All(s => s.Service.IsCompleted || s.Service.IsSkipped || s.Service.State == GsxServiceState.Callable || s.Service.State == GsxServiceState.Bypassed);
-        }
-
-        public virtual bool HasCalledRunning()
-        {
-            return ServicesCalled.Any(s => s.Service.IsRunning);
-        }
-
-        public virtual bool HasCalledRunning(GsxServiceType serviceType)
-        {
-            return ServicesCalled.Any(s => s.Service.Type == serviceType && s.Service.IsRunning);
+            return ServicesQueued.All(kv => func(kv.Value));
         }
 
         public virtual bool HasCalled(Func<DepartureService, bool> func)
         {
-            return ServicesCalled.Any(func);
+            return ServicesCalled.Any(kv => func(kv.Value));
+        }
+
+        public virtual IDictionary<int, DepartureService> SelectCalled(Func<DepartureService, bool> func)
+        {
+            return ServicesCalled.Where(kv => func(kv.Value)).ToDictionary();
+        }
+
+        public virtual bool HasLastCalled(Func<DepartureService, bool> func)
+        {
+            return LastCalled == null || func(LastCalled);
+        }
+
+        public virtual bool HasAllCalled(Func<DepartureService, bool> func)
+        {
+            return ServicesCalled.All(kv => func(kv.Value));
         }
 
         public virtual void Reset()
@@ -104,28 +107,266 @@ namespace Any2GSX.GSX.Automation
 
         public virtual void BuildQueue()
         {
-            ServiceQueue.Clear();
+            InternalServiceQueue.Clear();
             ServicesCalled.Clear();
+            ServicesSkipped.Clear();
+            MaxIndex = 0;
+            ErrorMessage = "";
+            LastErrorMessage = "";
             LastCallTime = DateTime.MinValue;
 
             if (Profile?.DepartureServices != null && !GsxController.GsxServices.IsEmpty)
             {
                 foreach (var config in Profile.DepartureServices.Values)
-                    ServiceQueue.Enqueue(new(GsxController.GsxServices[config.ServiceType], config));
+                {
+                    if (!config.IsSkipped)
+                        InternalServiceQueue.Add(MaxIndex++, new(GsxController.GsxServices[config.ServiceType], config));
+                }
             }
+
+            NotifyQueueChange();
         }
 
-        public virtual async Task CheckQueueSkips()
+        public virtual async Task<bool> EvaluateNextService()
         {
-            GsxServiceType lastType = GsxServiceType.Unknown;
-            while (ServiceQueue.TryPeek(out _) && lastType != NextType)
+            ErrorMessage = "";
+            foreach (var service in ServicesQueued)
+                await ApplyServiceConstraints(service.Key, service.Value);
+
+            int next = -1;
+            foreach (var service in ServicesQueued)
             {
-                lastType = NextType;
-                await ApplyServiceSkips();
+                if (CheckActivation(service.Key, service.Value))
+                {
+                    next = service.Key;
+                    break;
+                }
+            }
+
+            if (ServicesQueued.TryGetValue(next, out DepartureService nextService) && nextService.Config.HasCallDelay && LastCallTime + nextService.Config.CallDelay > DateTime.Now)
+                next = -1;
+
+            if (!string.IsNullOrWhiteSpace(ErrorMessage) && LastErrorMessage != ErrorMessage)
+                Logger.Debug($"Queue Evaluation: {ErrorMessage}");
+            LastErrorMessage = ErrorMessage;
+
+            if (next >= 0)
+            {
+                NextIndex = next;
+                return true;
+            }
+            else
+            {
+                NextIndex = null;
+                return false;
             }
         }
 
-        protected virtual void ResetActivations()
+        protected virtual bool CheckActivation(int index, DepartureService service)
+        {
+            bool isCallable = false;
+            switch (service.Config.ServiceActivation)
+            {
+                case GsxServiceActivation.Independent:
+                    isCallable = true;
+                    break;
+                case GsxServiceActivation.DepartureTime:
+                    isCallable = service.Config.MaxTimeBeforeDeparture >= Flightplan.ScheduledOutTime - GsxController.GetTime();
+                    break;
+                case GsxServiceActivation.ServiceDependent:
+                    isCallable = CheckServiceDependency(index, service);
+                    break;
+                default:
+                    break;
+            }
+
+            isCallable = CheckConflicts(isCallable, service);
+
+            return isCallable;
+        }
+
+        protected virtual bool CheckConflicts(bool isCallable, DepartureService service)
+        {
+            if ((service.Service.Type == GsxServiceType.Cleaning || service.Service.Type == GsxServiceType.Catering || service.Service.Type == GsxServiceType.Boarding) && (GsxController.ServiceDeboard.IsRunning || GsxController.ServiceBoard.IsRunning))
+            {
+                if (isCallable)
+                    ErrorMessage = $"Service {service.Service.Type} not allowed while Board or Deboard is running";
+                isCallable = false;
+            }
+
+            if (service.Service.HasStairConflict && (HasCalled(s => s.Service.IsRunning && s.Service.RequiresStair) || GsxController.ServiceDeboard.IsRunning))
+            {
+                if (isCallable)
+                    ErrorMessage = $"Service {service.Service.Type} has Stair Conflict and running Services require Stairs";
+                isCallable = false;
+            }
+
+            if (service.Service.RequiresStair && HasCalled(s => s.Service.IsRequested && s.Service.HasStairConflict) && (!GsxController.ServiceStairs.IsConnected || GsxController.ServiceStairs.IsOperating || GsxController.Menu.WasStairRemoved || GsxController.Tracker.IsActive(AppNotification.UpdatesBlocked)))
+            {
+                if (isCallable)
+                    ErrorMessage = $"Service {service.Service.Type} requires Stair but running Services have Stair Conflict";
+                isCallable = false;
+            }
+
+            return isCallable;
+        }
+
+        protected virtual bool CheckServiceDependency(int index, DepartureService service)
+        {
+            var dependency = service.Config.ServiceDependency;
+            return IsFirst
+                    || (dependency == GsxServiceDependency.Requested && CheckServiceDependencyState(index, GsxServiceState.Requested, service))
+                    || (dependency == GsxServiceDependency.Active && CheckServiceDependencyState(index, GsxServiceState.Active, service))
+                    || (dependency == GsxServiceDependency.Completed && CheckServiceDependencyState(index, GsxServiceState.Completed, service));
+        }
+
+        protected virtual bool CheckServiceDependencyState(int index, GsxServiceState minState, DepartureService service)
+        {
+            return service.Config.ServiceDependencyScope switch
+            {
+                GsxServiceDependencyScope.LastCalled => HasLastCalled(s => s.Service.State >= minState || s.Service.IsCompleted),
+                GsxServiceDependencyScope.PreviousQueued => ServicesSkipped.ContainsKey(index - 1) || ServicesCalled.Any(kv => kv.Key == index - 1 && (kv.Value.Service.State >= minState || kv.Value.Service.IsCompleted)),
+                GsxServiceDependencyScope.AllCalled => HasAllCalled(s => s.Service.State >= minState || s.Service.IsCompleted),
+                GsxServiceDependencyScope.AllQueued => ServicesCalled.Where(kv => kv.Key < index).All(kv => kv.Value.Service.State >= minState || kv.Value.Service.IsCompleted),
+                _ => false
+            };
+        }
+
+        protected virtual bool CheckServiceCancelDependency(int index, DepartureService service)
+        {
+            var dependency = service.Config.ServiceCancelDependency;
+            return (dependency == GsxServiceDependency.Requested && CheckServiceCancelDependencyState(index, GsxServiceState.Requested, service))
+                    || (dependency == GsxServiceDependency.Active && CheckServiceCancelDependencyState(index, GsxServiceState.Active, service))
+                    || (dependency == GsxServiceDependency.Completed && CheckServiceCancelDependencyState(index, GsxServiceState.Completed, service));
+        }
+
+        protected virtual bool CheckServiceCancelDependencyState(int index, GsxServiceState minState, DepartureService service)
+        {
+            return service.Config.ServiceCancelDependencyScope switch
+            {
+                GsxServiceDependencyScope.LastCalled => HasLastCalled(s => s.Service.State >= minState && s.Service.Type != service.Service.Type),
+                GsxServiceDependencyScope.PreviousQueued => ServicesSkipped.ContainsKey(index - 1) || ServicesCalled.Any(kv => kv.Key == index - 1 && (kv.Value.Service.State >= minState || kv.Value.Service.IsCompleted)),
+                GsxServiceDependencyScope.AllCalled => HasAllCalled(s => (s.Service.State >= minState && s.Service.Type != service.Service.Type) || s.Service.Type == service.Service.Type),
+                GsxServiceDependencyScope.AllQueued => ServicesCalled.Where(kv => kv.Key < index).All(kv => kv.Value.Service.State >= minState || kv.Value.Service.IsCompleted || kv.Value.Service.Type == service.Service.Type),
+                _ => false
+            };
+        }
+
+        protected virtual bool CheckCancellation(int index, DepartureService service)
+        {
+            bool isCallable = false;
+            switch (service.Config.ServiceCancellation)
+            {
+                case GsxServiceActivation.DepartureTime:
+                    isCallable = service.Service.IsRunning && !service.Service.IsCompleted && service.Config.HasMaxRunTime && service.Service.ActivationTime != DateTime.MaxValue && DateTime.Now - service.Service.ActivationTime >= service.Config.MaxRunTime;
+                    break;
+                case GsxServiceActivation.ServiceDependent:
+                    isCallable = CheckServiceCancelDependency(index, service);
+                    break;
+                default:
+                    break;
+            }
+
+            return isCallable;
+        }
+
+        public virtual async Task ApplyCancellations()
+        {
+            foreach (var service in ServicesCalled)
+            {
+                if (CheckCancellation(service.Key, service.Value) && !service.Value.Service.WasCanceled)
+                {
+                    Logger.Information($"Automation: Cancel Service {service.Value.Service.Type} due to {(service.Value.Config.HasMaxRunTime ? "Max Run Time" : "Service Dependency")}");
+                    await service.Value.Service.Cancel();
+                }
+            }
+        }
+
+        protected virtual async Task ApplyServiceConstraints(int index, DepartureService queueItem)
+        {
+            ServiceConfig config = queueItem.Config;
+            GsxService service = queueItem.Service;
+
+            bool move = false;
+            bool asSkipped = false;
+            string reason = "";
+
+            if (service.IsCalled || service.IsRunning)
+            {
+                move = true;
+                if (AutomationController.HasFuelSync && service.Type == GsxServiceType.Refuel
+                    && !AircraftController.RefuelTimer.IsEnabled && service.IsActive && GsxController.ServiceRefuel.IsHoseConnected)
+                {
+                    Logger.Debug($"Starting Refuel Sync for already running GSX Service");
+                    await AircraftController.OnRefuelHoseChanged(true);
+                }
+            }
+            else if (service.IsBypassed)
+            {
+                asSkipped = true;
+                reason = $"Service State '{service.TextState}'";
+            }
+            else if (service.IsCompleted || service.IsCompleting)
+            {
+                move = true;
+                reason = "Service Completed";
+
+            }
+            else if (!config.CallOnCargo && AutomationController.IsCargo)
+            {
+                asSkipped = true;
+                reason = "Constraint 'Cargo'";
+            }
+            else if (config.HasDurationConstraint && Flightplan.Duration < config.MinimumFlightDuration)
+            {
+                asSkipped = true;
+                reason = "Constraint 'Min. Flight Time'";
+            }
+            else if (config.TurnCount > 0 && config.OnlyDeparture)
+            {
+                asSkipped = true;
+                reason = $"Constraint 'Only Departure'";
+            }
+            else if (config.TurnCount == 0 && config.OnlyTurn)
+            {
+                asSkipped = true;
+                reason = $"Constraint 'Only Turn'";
+            }
+            else if (config.OnlyHub && !Profile.IsCompanyHub(Flightplan.Origin))
+            {
+                asSkipped = true;
+                reason = $"Constraint 'Only Hub'";
+            }
+            else if (config.OnlyNonHub && Profile.IsCompanyHub(Flightplan.Origin))
+            {
+                asSkipped = true;
+                reason = $"Constraint 'Only Non-Hub'";
+            }
+            else if (config.OnlyPreferredOp && GsxController.Menu.OperatorSelectionState[GsxMenuCommandOperatorType.Handling] && !GsxController.Menu.WasOperatorPreferred)
+            {
+                asSkipped = true;
+                reason = $"Constraint 'Preferred Operator'";
+            }
+            else if (Profile.SkipFuelOnTankering && service.Type == GsxServiceType.Refuel && Flightplan.IsLoaded && AutomationController.FuelOnBoard >= Flightplan.FuelRampKg - Config.FuelCompareVariance)
+            {
+                asSkipped = true;
+                reason = "FOB is greater than planned";
+            }
+            else if (service.RequiresStair && !GsxController.HasGateStair)
+            {
+                asSkipped = true;
+                reason = "Gate has no Stairs";
+            }
+
+            if (move || asSkipped)
+            {
+                if (!string.IsNullOrWhiteSpace(reason))
+                    Logger.Information($"Automation: Departure Service {service.Type} {(asSkipped ? "skipped" : "bypassed")} because: {reason}");
+                MoveQueue(index, asSkipped);
+            }
+        }
+
+        public virtual void ResetActivations()
         {
             if (Profile?.DepartureServices != null)
             {
@@ -136,30 +377,35 @@ namespace Any2GSX.GSX.Automation
 
         public virtual void FinishServices()
         {
-            while (ServiceQueue.TryPeek(out _))
-                MoveQueue(true);
-
-            foreach (var called in ServicesCalled)
+            foreach (var called in ServicesCalled.Values)
             {
-                if (!called.Service.IsSkipped)
-                    called.Service.IsSkipped = true;
+                if (!called.Service.IsCompleted)
+                    called.Service.ForceComplete();
+            }
+
+            while (!ServicesQueued.IsEmpty)
+            {
+                var service = ServicesQueued.First();
+                service.Value.Service.ForceComplete();
+                MoveQueue(service.Key);
             }
         }
 
-        protected virtual void MoveQueue(bool asSkipped = false)
+        protected virtual void MoveQueue(int index, bool asSkipped = false)
         {
-            if (HasNext)
+            if (ServicesQueued.TryGetValue(index, out DepartureService service))
             {
-                DepartureService service;
-                if (!ExternalServiceControl)
-                    service = ServiceQueue.Dequeue();
-                else
-                    service = ExternalServiceQueue.Dequeue();
+                ServicesQueued.Remove(index);
 
                 if (asSkipped)
-                    service.Service.IsSkipped = true;
-                LastCallTime = DateTime.Now;
-                ServicesCalled.Enqueue(service);
+                    ServicesSkipped.Add(index, service);
+                else
+                {
+                    LastCallTime = DateTime.Now;
+                    ServicesCalled.Add(index, service);
+                }
+
+                NotifyQueueChange();
             }
         }
 
@@ -168,143 +414,54 @@ namespace Any2GSX.GSX.Automation
             return CancelCalledServices(s => s.Service.IsRunning, reason);
         }
 
-        protected virtual async Task CancelCalledServices(Func<DepartureService, bool> cancelCheck, string reason)
+        public virtual Task<bool> CancelService(GsxServiceType type, string reason)
         {
-            foreach (var service in ServicesCalled)
+            return CancelCalledServices(s => s.Service.Type == type, reason);
+        }
+
+        protected virtual async Task<bool> CancelCalledServices(Func<DepartureService, bool> cancelCheck, string reason)
+        {
+            bool hasFailed = false;
+            foreach (var service in ServicesCalled.Values)
             {
                 if (cancelCheck(service))
                 {
                     Logger.Information($"Automation: Cancel Service {service.Service.Type} due to {reason}");
-                    await service.Service.Cancel(GsxCancelService.Complete);
+                    if (await service.Service.Cancel(GsxCancelService.Complete) == false)
+                        hasFailed = true;
                 }
             }
-        }
 
-        public virtual Task ApplyRunTime()
-        {
-            return CancelCalledServices(s => s.Service.IsRunning && s.Config.HasMaxRunTime && s.Service.ActivationTime != DateTime.MaxValue && DateTime.Now - s.Service.ActivationTime >= s.Config.MaxRunTime, "Run Time Constraint");
-        }
-
-        public virtual async Task ApplyServiceSkips()
-        {
-            if (!HasNext)
-                return;
-
-            bool move = false;
-            bool asSkipped = false;
-            string reason = "";
-
-            if (NextConfig.ServiceActivation == GsxServiceActivation.Skip)
-            {
-                asSkipped = true;
-                reason = "Set to Skip/Ignore";
-            }
-            else if (NextService.IsCalled || NextService.IsRunning)
-            {
-                move = true;
-                if (AutomationController.HasFuelSync && NextType == GsxServiceType.Refuel
-                    && !AircraftController.RefuelTimer.IsEnabled && NextService.IsActive && GsxController.ServiceRefuel.IsHoseConnected)
-                {
-                    Logger.Debug($"Starting Refuel Sync for already running GSX Service");
-                    await AircraftController.OnRefuelHoseChanged(true);
-                }
-            }
-            else if (NextService.State == GsxServiceState.NotAvailable || NextService.State == GsxServiceState.Bypassed)
-            {
-                asSkipped = true;
-                reason = $"Service State '{NextService.TextState}'";
-            }
-            else if (NextService.IsCompleted || NextService.IsCompleting)
-            {
-                move = true;
-                reason = "Service Completed";
-
-            }
-            else if (!NextConfig.CallOnCargo && AutomationController.IsCargo)
-            {
-                asSkipped = true;
-                reason = "not enabled for Cargo Airplane";
-            }
-            else if (NextConfig.HasDurationConstraint && Flightplan.Duration < NextConfig.MinimumFlightDuration)
-            {
-                asSkipped = true;
-                reason = "Min. Flight Time";
-            }
-            else if (NextConfig.TurnCount > 0 && NextConfig.ServiceConstraint == GsxServiceConstraint.FirstLeg)
-            {
-                asSkipped = true;
-                reason = $"Constraint '{NextConfig.ServiceConstraintName}'";
-            }
-            else if (NextConfig.TurnCount == 0 && NextConfig.ServiceConstraint == GsxServiceConstraint.TurnAround)
-            {
-                asSkipped = true;
-                reason = $"Constraint '{NextConfig.ServiceConstraintName}'";
-            }
-            else if (NextConfig.ServiceConstraint == GsxServiceConstraint.CompanyHub && !Profile.IsCompanyHub(Flightplan.Origin))
-            {
-                asSkipped = true;
-                reason = $"Constraint '{NextConfig.ServiceConstraintName}'";
-            }
-            else if (NextConfig.ServiceConstraint == GsxServiceConstraint.NonCompanyHub && Profile.IsCompanyHub(Flightplan.Origin))
-            {
-                asSkipped = true;
-                reason = $"Constraint '{NextConfig.ServiceConstraintName}'";
-            }
-            else if (NextConfig.ServiceConstraint == GsxServiceConstraint.TurnOnHub && (NextConfig.TurnCount == 0 || !Profile.IsCompanyHub(Flightplan.Origin)))
-            {
-                asSkipped = true;
-                reason = $"Constraint '{NextConfig.ServiceConstraintName}'";
-            }
-            else if (NextConfig.ServiceConstraint == GsxServiceConstraint.TurnOnNonHub && (NextConfig.TurnCount == 0 || Profile.IsCompanyHub(Flightplan.Origin)))
-            {
-                asSkipped = true;
-                reason = $"Constraint '{NextConfig.ServiceConstraintName}'";
-            }
-            else if (NextConfig.ServiceConstraint == GsxServiceConstraint.PreferredOp && GsxController.Menu.WasOperatorHandlingSelected && !GsxController.Menu.WasOperatorPreferred)
-            {
-                asSkipped = true;
-                reason = $"Constraint '{NextConfig.ServiceConstraintName}'";
-            }
-            else if (Profile.SkipFuelOnTankering && NextType == GsxServiceType.Refuel && Flightplan.IsLoaded && AutomationController.FuelOnBoard >= Flightplan.FuelRampKg - Config.FuelCompareVariance)
-            {
-                asSkipped = true;
-                reason = "FOB is greater than planned";
-            }
-
-            if (move || asSkipped)
-            {
-                if (!string.IsNullOrWhiteSpace(reason))
-                    Logger.Information($"Automation: Departure Service {NextType} {(asSkipped ? "skipped" : "bypassed")} because: {reason}");
-                MoveQueue(asSkipped);
-            }
-        }
-
-        public virtual bool IsNextCallable()
-        {
-            if (!HasNext)
-                return false;
-
-            var activation = NextConfig.ServiceActivation;
-
-            return activation != GsxServiceActivation.Skip && activation != GsxServiceActivation.Manual &&
-                (IsFirst
-                    || activation == GsxServiceActivation.AfterCalled
-                    || (activation == GsxServiceActivation.AfterRequested && LastCalled?.Service?.State >= GsxServiceState.Requested)
-                    || (activation == GsxServiceActivation.AfterActive && LastCalled?.Service?.State >= GsxServiceState.Active)
-                    || (activation == GsxServiceActivation.AfterPrevCompleted && LastCalled?.Service?.IsCompleted == true)
-                    || (activation == GsxServiceActivation.AfterAllCompleted && AllCalledCompleted()))
-                && (!NextConfig.HasTobtConstraint || NextConfig.MaxTimeBeforeDeparture >= Flightplan.ScheduledOutTime - GsxController.GetTime())
-                && (!NextConfig.HasCallDelay || LastCallTime + NextConfig.CallDelay <= DateTime.Now);
+            return !hasFailed;
         }
 
         public virtual async Task<bool> CallNext(string message = "")
         {
+            if (!HasNext)
+                return false;
+
             Logger.Information($"Automation: Call Departure Service {NextType}{(!string.IsNullOrWhiteSpace(message) ? " " : "")}{message}");
             await NextService.Call();
 
             if (NextService.IsCalled || NextService.IsCompleted)
             {
-                MoveQueue();
+                MoveQueue((int)NextIndex);
+                return true;
+            }
+            else
+                return false;
+        }
+
+        public virtual async Task<bool> CallNextQueued()
+        {
+            if (!HasNextQueued)
+                return false;
+
+            await NextQueued.Service.Call();
+
+            if (NextQueued.Service.IsCalled || NextQueued.Service.IsCompleted)
+            {
+                MoveQueue((int)NextQueuedIndex);
                 return true;
             }
             else
@@ -314,17 +471,29 @@ namespace Any2GSX.GSX.Automation
         protected virtual void SetExternalState(bool state)
         {
             bool notify = ExternalServiceControl != state;
+            if (notify && state)
+            {
+                ExternalServiceQueue.Clear();
+                MaxIndex = 0;
+            }
             ExternalServiceControl = state;
             if (notify)
             {
                 Logger.Information($"External Service Control is set to: {(state ? "On" : "Off")}");
-                try { ExternalControlChanged?.Invoke(); } catch { }
+                _ = TaskTools.RunPool(() => ExternalControlChanged?.Invoke(), GsxController.RequestToken);
+                NotifyQueueChange();
             }
         }
 
-        public virtual void SetExternalControl(bool state)
+        public virtual void SetExternalControl(bool state, string handler = null)
         {
             SetExternalState(state);
+
+            if (!string.IsNullOrWhiteSpace(handler))
+                ExternalServiceHandler = handler;
+            else
+                ExternalServiceHandler = TextExternal;
+
             if (!ExternalServiceControl)
             {
                 ExternalServiceQueue.Clear();
@@ -332,16 +501,42 @@ namespace Any2GSX.GSX.Automation
             }
         }
 
-        public virtual bool QueueExternalService(GsxServiceType serviceType, GsxServiceActivation serviceActivation)
+        public virtual bool QueueExternalService(ServiceConfig serviceConfig)
         {
-            if (serviceType >= GsxServiceType.Refuel && serviceType != GsxServiceType.Jetway && serviceType != GsxServiceType.Stairs && serviceType != GsxServiceType.Pushback
-                && !ExternalServiceQueue.Any(svc => svc.Service.Type == serviceType) && GsxController.GsxServices.TryGetValue(serviceType, out GsxService? gsxService))
+            if (serviceConfig != null && !serviceConfig.IsSkipped && serviceConfig.ServiceType >= GsxServiceType.Refuel && serviceConfig.ServiceType != GsxServiceType.Jetway && serviceConfig.ServiceType != GsxServiceType.Stairs && serviceConfig.ServiceType != GsxServiceType.Pushback
+                && !ExternalServiceQueue.Any(svc => svc.Value.Service.Type == serviceConfig.ServiceType) && GsxController.GsxServices.TryGetValue(serviceConfig.ServiceType, out GsxService? gsxService))
             {
-                ExternalServiceQueue.Enqueue(new(gsxService, new ServiceConfig(serviceType, serviceActivation)));
+                ExternalServiceQueue.Add(MaxIndex++, new(gsxService, serviceConfig));
+                NotifyQueueChange();
                 return true;
             }
             else
                 return false;
+        }
+
+        protected virtual void NotifyQueueChange()
+        {
+            _ = TaskTools.RunPool(() => ServiceQueueChanged?.Invoke(GetQueuedServicesTypes()), GsxController.RequestToken);
+        }
+
+        public virtual List<GsxServiceType> GetQueuedServicesTypes()
+        {
+            return ServicesQueued?.Values?.Select(s => s.Service.Type)?.ToList() ?? [];
+        }
+
+        public virtual List<string> GetQueuedServicesTypeNames()
+        {
+            return ServicesQueued?.Values?.Select(s => s.Service.Type.ToString())?.ToList() ?? [];
+        }
+
+        public virtual List<string> GetCalledServicesTypeNames()
+        {
+            return ServicesCalled?.Values?.Select(s => s.Service.Type.ToString())?.ToList() ?? [];
+        }
+
+        public virtual List<string> GetSkippedServicesTypeNames()
+        {
+            return ServicesSkipped?.Values?.Select(s => s.Service.Type.ToString())?.ToList() ?? [];
         }
     }
 

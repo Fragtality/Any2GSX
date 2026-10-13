@@ -1,45 +1,31 @@
-﻿using Any2GSX.GSX.Menu;
+﻿using Any2GSX.Notifications;
 using Any2GSX.PluginInterface.Interfaces;
+using Any2GSX.PluginInterface.Interfaces.GSX;
+using CFIT.AppLogger;
+using CFIT.AppTools;
 using CFIT.SimConnectLib.SimResources;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Any2GSX.GSX.Services
 {
-    public class GsxServiceCleaning(GsxController controller) : GsxService(controller)
+    public class GsxServiceCleaning() : GsxService()
     {
         public override GsxServiceType Type => GsxServiceType.Cleaning;
-        protected override double NumStateCompleted { get; } = 1;
-        public virtual ISimResourceSubscription SubCleaningService { get; protected set; }
-        protected override ISimResourceSubscription SubStateVar => SubCleaningService;
+        protected override int MenuSelectionService => 5;
+        protected override string StateVarName => GsxConstants.VarServiceCleaning;
+        protected override List<string> ServiceVariables => [GsxConstants.VarVehicleCleaning];
+        protected virtual ISimResourceSubscription SubVehicleCleaning { get; set; }
+        public override bool RequiresStair => true;
+        public override bool IsActive => IsRunning && GetTruckState() == 3;
 
-        protected override GsxMenuSequence InitCallSequence()
+        public event Func<int, Task> OnVehicleChanged;
+
+        protected override void DoInit()
         {
-            var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(GsxMenuCommand.Open());
-            sequence.Commands.Add(GsxMenuCommand.Select(8, GsxConstants.MenuGate));
-            sequence.Commands.Add(GsxMenuCommand.Select(5, GsxConstants.MenuAdditionalServices));
-            sequence.Commands.Add(GsxMenuCommand.Operator());
-
-            return sequence;
-        }
-
-        protected override GsxMenuSequence InitCancelSequence()
-        {
-            var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(GsxMenuCommand.Open());
-            sequence.Commands.Add(GsxMenuCommand.Select(8, GsxConstants.MenuGate));
-            sequence.Commands.Add(GsxMenuCommand.Select(5, GsxConstants.MenuAdditionalServices));
-            sequence.Commands.Add(GsxMenuCommand.Wait());
-            sequence.Commands.Add(GsxMenuCommand.Open());
-
-            return sequence;
-        }
-
-        public override void InitSubscriptions()
-        {
-            SubCleaningService = SimStore.AddVariable(GsxConstants.VarServiceCleaning);
-            SubCleaningService?.OnReceived += OnStateChange;
+            SubVehicleCleaning = SimStore[GsxConstants.VarVehicleCleaning];
+            SubVehicleCleaning?.OnReceived += OnVehicleChange;
         }
 
         protected override Task DoReset()
@@ -47,28 +33,56 @@ namespace Any2GSX.GSX.Services
             return Task.CompletedTask;
         }
 
-        public override void FreeResources()
+        protected override void DoRelease()
         {
-            SubCleaningService?.OnReceived -= OnStateChange;
-
-            SimStore.Remove(GsxConstants.VarServiceCleaning);
+            SubVehicleCleaning?.OnReceived -= OnVehicleChange;
         }
 
-        protected override void RunStateRequested()
+        protected override GsxServiceState ReadState(bool raw = false)
         {
-            base.RunStateRequested();
-            WasActive = true;
-            NotifyActive();
+            var state = base.ReadState(raw);
+            if (EvaluateRunning(state) && GetTruckState() == 3 && !raw)
+                return GsxServiceState.Active;
+            else
+                return state;
         }
 
-        protected override void RunStateActive()
+        protected virtual int GetTruckState()
         {
-            if (!WasActive)
+            return (int)(SubVehicleCleaning?.GetNumber() ?? 0);
+        }
+
+        protected virtual Task OnVehicleChange(ISimResourceSubscription sub, object value)
+        {
+            if (InhibitStateUpdates)
+                return Task.CompletedTask;
+
+            int state = GetTruckState();
+            Logger.Debug($"Vehicle State Change for Cleaning: {state}");
+            _ = TaskTools.RunPool(() => OnVehicleChanged?.Invoke(state), Controller.RequestToken);
+
+            if (GetTruckState() == 3)
             {
-                WasActive = true;
+                StatesReceived.TryAdd(GsxServiceState.Active, true);
                 ActivationTime = DateTime.Now;
-                NotifyActive();
+                NotifyStateChange(GsxServiceState.Active);
             }
+            return Task.CompletedTask;
+        }
+
+        public override async Task ResetVehicleState(bool force = false)
+        {
+            InhibitStateUpdates = true;
+            try
+            {
+                if (force || (SubStateVar.GetNumber() <= (int)GsxServiceState.Bypassed && GetTruckState() > 1) || Controller.Tracker.IsActive(AppNotification.GsxRestart))
+                {
+                    Logger.Debug($"Reset Vehicle State for {Type}");
+                    await SubVehicleCleaning?.WriteValue(0);
+                }
+            }
+            catch { }
+            InhibitStateUpdates = false;
         }
     }
 }

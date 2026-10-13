@@ -1,6 +1,5 @@
 ﻿using Any2GSX.Aircraft;
 using Any2GSX.AppConfig;
-using CFIT.AppFramework.UI.ViewModels;
 using CFIT.AppLogger;
 using CFIT.AppTools;
 using CoreAudio;
@@ -71,7 +70,7 @@ namespace Any2GSX.Audio
                 }
 
                 if (result)
-                    ModelHelper.RunOnDispatcher(() => DevicesChanged?.Invoke());
+                    _ = TaskTools.RunPool(() => DevicesChanged?.Invoke(), AppService.Instance.RequestToken);
             }
             catch (Exception ex)
             {

@@ -40,7 +40,7 @@ namespace Any2GSX.CommBus
             if (!IsPingReceived && ClientDataAreaCreated && Manager.IsSessionRunning && Port > 0 && NextPing < DateTime.Now)
             {
                 Logger.Debug($"Sending Ping to CommBus Module (Port {Port})");
-                NextPing = DateTime.Now + TimeSpan.FromMilliseconds(3000);
+                NextPing = DateTime.Now + TimeSpan.FromMilliseconds(5000);
                 return PingModule(Port.ToString());
             }
             else
@@ -101,7 +101,7 @@ namespace Any2GSX.CommBus
         public virtual void PushEvent(string @event, string data)
         {
             if (EventCallbacks.TryGetValue(@event, out var callback))
-                _ = TaskTools.RunPool(() => callback?.Invoke(@event, data));
+                _ = TaskTools.RunPool(() => callback?.Invoke(@event, data), AppService.Instance.RequestToken);
             else
                 Logger.Warning($"No Callback found for Event '{@event}'");
         }

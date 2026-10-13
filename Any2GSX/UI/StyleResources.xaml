@@ -14,6 +14,11 @@
 
     <pluginui:BoolColorConverter x:Key="BoolColorConverter"/>
 
+    <Style x:Key="GlobalToolTipStyle" TargetType="FrameworkElement">
+        <Setter Property="ToolTipService.InitialShowDelay" Value="200" />
+        <Setter Property="ToolTipService.ShowDuration" Value="15000" />
+    </Style>
+
     <Style TargetType="{x:Type ContentPresenter}">
         <Setter Property="RecognizesAccessKey" Value="False" />
     </Style>
@@ -132,15 +137,6 @@
         <Setter Property="MinHeight" Value="24"/>
         <Setter Property="Margin" Value="0,4,0,0" />
     </Style>
-    <Style x:Key="ProfileInputSelect" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="HorizontalAlignment" Value="Left" />
-        <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="MinWidth" Value="196"/>
-        <Setter Property="MinHeight" Value="24"/>
-        <Setter Property="Margin" Value="0,4,0,0" />
-    </Style>
 
     <Style x:Key="CheckBoxDefault" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
         <Setter Property="VerticalAlignment" Value="Center" />
@@ -164,11 +160,6 @@
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Margin" Value="6,6,6,6"/>
-    </Style>
-    <Style x:Key="ComboBoxDefault" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
-        <Setter Property="VerticalAlignment" Value="Center"/>
-        <Setter Property="VerticalContentAlignment" Value="Center"/>
-        <Setter Property="HorizontalContentAlignment" Value="Left"/>
     </Style>
     <Style x:Key="TextBlockDefault" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
         <Setter Property="VerticalAlignment" Value="Center"/>
@@ -213,7 +204,7 @@
         <Setter Property="MinHeight" Value="24" />
         <Setter Property="Padding" Value="2" />
     </Style>
-    <Style TargetType="DataGrid">
+    <Style TargetType="DataGrid" BasedOn="{StaticResource GlobalToolTipStyle}">
         <Setter Property="Margin" Value="6,0,6,6" />
         <Setter Property="MinWidth" Value="384" />
         <Setter Property="AutoGenerateColumns" Value="False" />
@@ -224,4 +215,124 @@
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="GridLinesVisibility" Value="None" />
     </Style>
+    
+    <SolidColorBrush x:Key="ComboBoxNormalBackground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="ComboBoxNormalBorder" Color="#CCCCCC" />
+    <SolidColorBrush x:Key="ComboBoxMouseOverBorder" Color="{DynamicResource {x:Static SystemColors.AccentColorLight2Key}}" />
+    <SolidColorBrush x:Key="ComboBoxArrowColor" Color="#444444" />
+    
+    <ControlTemplate x:Key="FlatComboBoxToggleButton" TargetType="{x:Type ToggleButton}">
+        <Border x:Name="templateRoot" 
+                Background="{TemplateBinding Background}" 
+                BorderBrush="{TemplateBinding BorderBrush}" 
+                BorderThickness="{TemplateBinding BorderThickness}" 
+                SnapsToDevicePixels="true">
+            <Grid HorizontalAlignment="Right" Width="24">
+                <Path x:Name="arrow" 
+                      Data="M0,0 L4,4 L8,0 Z" 
+                      Fill="{StaticResource ComboBoxArrowColor}" 
+                      HorizontalAlignment="Center" 
+                      VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="true">
+                <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource ComboBoxMouseOverBorder}" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+    
+    <Style x:Key="ComboBoxDefault" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+        <Setter Property="Background" Value="{StaticResource ComboBoxNormalBackground}" />
+        <Setter Property="BorderBrush" Value="{StaticResource ComboBoxNormalBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="6,3,24,3" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+        <Setter Property="ScrollViewer.CanContentScroll" Value="true" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ComboBox}">
+                    <Grid x:Name="templateRoot" SnapsToDevicePixels="true">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="0" MaxWidth="0" />
+                        </Grid.ColumnDefinitions>
+                        <Popup x:Name="PART_Popup" 
+                               AllowsTransparency="true" 
+                               Grid.ColumnSpan="2" 
+                               IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}" 
+                               Placement="Bottom" 
+                               PopupAnimation="{DynamicResource {x:Static SystemParameters.ComboBoxPopupAnimationKey}}">
+                            <Border x:Name="dropDownBorder" 
+                                    Background="{StaticResource ComboBoxNormalBackground}" 
+                                    BorderBrush="{StaticResource ComboBoxNormalBorder}" 
+                                    BorderThickness="1" 
+                                    MaxHeight="{TemplateBinding MaxDropDownHeight}" 
+                                    MinWidth="{Binding ActualWidth, ElementName=templateRoot}">
+                                <ScrollViewer x:Name="DropDownScrollViewer">
+                                    <Grid x:Name="grid" RenderOptions.ClearTypeHint="Enabled">
+                                        <Canvas x:Name="canvas" HorizontalAlignment="Left" Height="0" VerticalAlignment="Top" Width="0">
+                                            <Rectangle x:Name="opaqueRect" 
+                                                       Fill="{Binding Background, ElementName=dropDownBorder}" 
+                                                       Height="{Binding ActualHeight, ElementName=dropDownBorder}" 
+                                                       Width="{Binding ActualWidth, ElementName=dropDownBorder}" />
+                                        </Canvas>
+                                        <ItemsPresenter x:Name="ItemsPresenter" KeyboardNavigation.DirectionalNavigation="Contained" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                                    </Grid>
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                        <ToggleButton x:Name="toggleButton" 
+                                      Background="{TemplateBinding Background}" 
+                                      BorderBrush="{TemplateBinding BorderBrush}" 
+                                      BorderThickness="{TemplateBinding BorderThickness}" 
+                                      Grid.ColumnSpan="2" 
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" 
+                                      Template="{StaticResource FlatComboBoxToggleButton}" />
+                        <ContentPresenter x:Name="contentPresenter" 
+                                          Content="{TemplateBinding SelectionBoxItem}" 
+                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" 
+                                          ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" 
+                                          ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" 
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                          IsHitTestVisible="false" 
+                                          Margin="{TemplateBinding Padding}" 
+                                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="HasItems" Value="false">
+                            <Setter TargetName="dropDownBorder" Property="Height" Value="95" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter Property="BorderBrush" Value="{StaticResource ComboBoxMouseOverBorder}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="false">
+                            <Setter Property="Opacity" Value="0.56" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ProfileInputSelect" TargetType="ComboBox" BasedOn="{StaticResource ComboBoxDefault}">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="MinWidth" Value="196"/>
+        <Setter Property="MinHeight" Value="24"/>
+        <Setter Property="Margin" Value="0,4,0,0" />
+        <Setter Property="Padding" Value="6,3,24,3" />
+    </Style>
+
+    <Style TargetType="Button" BasedOn="{StaticResource GlobalToolTipStyle}" />
+    <Style TargetType="TextBlock" BasedOn="{StaticResource GlobalToolTipStyle}" />
+    <Style TargetType="Image" BasedOn="{StaticResource GlobalToolTipStyle}" />
+    <Style TargetType="Label" BasedOn="{StaticResource GlobalToolTipStyle}" />
+    <Style TargetType="TextBox" BasedOn="{StaticResource GlobalToolTipStyle}" />
+    <Style TargetType="ComboBox" BasedOn="{StaticResource GlobalToolTipStyle}" />
+    <Style TargetType="ListBox" BasedOn="{StaticResource GlobalToolTipStyle}" />
 </ResourceDictionary>

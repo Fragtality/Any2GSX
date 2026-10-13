@@ -61,10 +61,8 @@ namespace Any2GSX.UI.Views.Plugins
                 sb.AppendLine($"• Payload-Sync by {GetSyncString(Capabilities.PayloadSync)}");
             if (Capabilities.DoorHandling != SyncType.ManualNone)
                 sb.AppendLine($"• Door-Handling by {GetSyncString(Capabilities.DoorHandling)}");
-            if (Capabilities.DoorsSynced != DoorTypeSynced.None)
+            if (Capabilities.DoorsSynced > DoorTypeSynced.Standard)
                 sb.AppendLine($"• Door Types {GetDoorsSyncString(Capabilities.DoorsSynced)}");
-            if (Capabilities.DoorsCloseAll)
-                sb.AppendLine($"• Door Close All");
             if (Capabilities.GroundEquipmentHandling != GroundEquipment.ManualNone)
                 sb.AppendLine($"• Equipment-Handling of {GetEquipString(Capabilities.GroundEquipmentHandling)}");
 

@@ -67,6 +67,7 @@ namespace Any2GSX.Notifications
 
         public abstract Task SetConnected(bool connected, string profile);
         public abstract Task SetAircraftConnected(bool connected);
+        public abstract Task SetExternalConnected(bool connected);
         public abstract Task SetBoardPaxInfo(int pax);
         public abstract Task SetBoardCargoInfo(int percent);
         public abstract Task SetDeboardPaxInfo(int pax);
@@ -85,7 +86,7 @@ namespace Any2GSX.Notifications
             return SetSmartCall(call, callInfo.ToString(), force);
         }
 
-        public abstract Task SetDepartureServices(int completed, int running, int total);
+        public abstract Task SetDepartureServices(int completed, int running, int total, int skipped);
         public abstract Task ClearDepartureServices();
         public abstract Task SetMenuTitle(string title);
         public virtual async Task SetMenuLines(List<string> menuLines)

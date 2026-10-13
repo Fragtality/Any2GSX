@@ -1,39 +1,41 @@
-﻿using Any2GSX.GSX.Menu;
+﻿using Any2GSX.Notifications;
 using Any2GSX.PluginInterface.Interfaces;
+using Any2GSX.PluginInterface.Interfaces.GSX;
+using CFIT.AppLogger;
+using CFIT.AppTools;
 using CFIT.SimConnectLib.SimResources;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Any2GSX.GSX.Services
 {
-    public class GsxServiceCatering(GsxController controller) : GsxService(controller)
+    public class GsxServiceCatering() : GsxService()
     {
         public override GsxServiceType Type => GsxServiceType.Catering;
-        public virtual ISimResourceSubscription SubCaterService { get; protected set; }
-        protected override ISimResourceSubscription SubStateVar => SubCaterService;
+        protected override int MenuSelectionService => 2;
+        protected override string StateVarName => GsxConstants.VarServiceCatering;
+        protected override List<string> ServiceVariables => [GsxConstants.VarVehicleCateringFront, GsxConstants.VarVehicleCateringRear];
+        public override GsxMenuCommandOperatorType OperatorType => GsxMenuCommandOperatorType.Catering;
+        public override bool HasStairConflict => Controller.HasGateStair && Controller.Aircraft.HasRearStair() && Controller.IsLavatoryOnStairSide && Controller.ApiData?.HandlerData?.aircraft?.HasLavatoryConflict() == true;
 
-        protected override GsxMenuSequence InitCallSequence()
+        protected virtual ConcurrentDictionary<GsxVehicleLocation, ISimResourceSubscription> SubVehicleTrucks { get; } = [];
+        protected virtual ConcurrentDictionary<GsxVehicleLocation, Func<ISimResourceSubscription, object, Task>> SubVehicleCallbacks { get; } = [];
+
+        public event Func<GsxVehicleLocation, GsxVehicleCateringState, Task> OnVehicleChanged;
+
+        protected override void DoInit()
         {
-            var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(GsxMenuCommand.Open());
-            sequence.Commands.Add(GsxMenuCommand.Select(2, GsxConstants.MenuGate));
-            sequence.Commands.Add(GsxMenuCommand.Operator(false));
+            SubVehicleTrucks.Add(GsxVehicleLocation.Front, SimStore[GsxConstants.VarVehicleCateringFront]);
+            SubVehicleTrucks.Add(GsxVehicleLocation.Rear, SimStore[GsxConstants.VarVehicleCateringRear]);
 
-            return sequence;
-        }
+            SubVehicleCallbacks.Add(GsxVehicleLocation.Front, (s, v) => OnVehicleChange(GsxVehicleLocation.Front, s?.GetNumber() ?? 0));
+            SubVehicleCallbacks.Add(GsxVehicleLocation.Rear, (s, v) => OnVehicleChange(GsxVehicleLocation.Rear, s?.GetNumber() ?? 0));
 
-        protected override GsxMenuSequence InitCancelSequence()
-        {
-            var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(GsxMenuCommand.Open());
-            sequence.Commands.Add(GsxMenuCommand.Select(2, GsxConstants.MenuGate));
-
-            return sequence;
-        }
-
-        public override void InitSubscriptions()
-        {
-            SubCaterService = SimStore.AddVariable(GsxConstants.VarServiceCatering);
-            SubCaterService?.OnReceived += OnStateChange;
+            SubVehicleTrucks[GsxVehicleLocation.Front]?.OnReceived += SubVehicleCallbacks[GsxVehicleLocation.Front];
+            SubVehicleTrucks[GsxVehicleLocation.Rear]?.OnReceived += SubVehicleCallbacks[GsxVehicleLocation.Rear];
         }
 
         protected override Task DoReset()
@@ -41,11 +43,55 @@ namespace Any2GSX.GSX.Services
             return Task.CompletedTask;
         }
 
-        public override void FreeResources()
+        protected override void DoRelease()
         {
-            SubCaterService?.OnReceived -= OnStateChange;
+            SubVehicleTrucks[GsxVehicleLocation.Front]?.OnReceived -= SubVehicleCallbacks[GsxVehicleLocation.Front];
+            SubVehicleTrucks[GsxVehicleLocation.Rear]?.OnReceived -= SubVehicleCallbacks[GsxVehicleLocation.Rear];
+            SubVehicleCallbacks.Clear();
+            SubVehicleTrucks.Clear();
+        }
 
-            SimStore.Remove(GsxConstants.VarServiceCatering);
+        protected virtual Task OnVehicleChange(GsxVehicleLocation truck, double state)
+        {
+            if (InhibitStateUpdates)
+                return Task.CompletedTask;
+
+            Logger.Debug($"Vehicle State Change for Catering {truck}: {(GsxVehicleCateringState)(int)state}");
+            _ = TaskTools.RunPool(() => OnVehicleChanged?.Invoke(truck, (GsxVehicleCateringState)(int)state), Controller.RequestToken);
+            return Task.CompletedTask;
+        }
+
+        public virtual GsxVehicleCateringState GetTruckState(GsxVehicleLocation truck)
+        {
+            try
+            {
+                return (GsxVehicleCateringState)(int)SubVehicleTrucks[truck].GetNumber();
+            }
+            catch
+            {
+                return GsxVehicleCateringState.Unknown;
+            }
+        }
+
+        public virtual bool IsAnyTruck(Func<GsxVehicleCateringState, bool> func)
+        {
+            return Enum.GetValues<GsxVehicleLocation>().Any((s) => func(GetTruckState(s)));
+        }
+
+        public override async Task ResetVehicleState(bool force = false)
+        {
+            InhibitStateUpdates = true;
+            try
+            {
+                if (force || (SubStateVar.GetNumber() <= (int)GsxServiceState.Bypassed && IsAnyTruck((state) => state > GsxVehicleCateringState.Idle)) || Controller.Tracker.IsActive(AppNotification.GsxRestart))
+                {
+                    Logger.Debug($"Reset Vehicle State for {Type}");
+                    await SubVehicleTrucks[GsxVehicleLocation.Front]?.WriteValue(0);
+                    await SubVehicleTrucks[GsxVehicleLocation.Rear]?.WriteValue(0);
+                }
+            }
+            catch { }
+            InhibitStateUpdates = false;
         }
     }
 }

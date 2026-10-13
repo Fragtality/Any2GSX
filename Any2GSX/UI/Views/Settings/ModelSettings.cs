@@ -77,6 +77,7 @@ namespace Any2GSX.UI.Views.Settings
         public virtual bool RestartGsxStartupFail { get => Source.RestartGsxStartupFail; set => SetModelValue<bool>(value); }
         public virtual int GsxMenuStartupMaxFail { get => Source.GsxMenuStartupMaxFail; set => SetModelValue<int>(value); }
         public virtual int SpeedTresholdTaxiIn { get => Source.SpeedTresholdTaxiIn; set => SetModelValue<int>(value); }
+        public virtual bool GsxUseHardReset { get => Source.GsxUseHardReset; set => SetModelValue<bool>(value); }
 
         public virtual bool OpenMenuOnTaxiIn { get => Source.OpenMenuOnTaxiIn; set => SetModelValue<bool>(value); }
         public virtual int DelayOpenTaxiInMenu { get => Source.DelayOpenTaxiInMenu; set => SetModelValue<int>(value); }
@@ -86,7 +87,35 @@ namespace Any2GSX.UI.Views.Settings
         public virtual int PanelRefuelCloseDelayTanker { get => Source.PanelRefuelCloseDelayTanker; set => SetModelValue<int>(value); }
         public virtual int PanelLavatoryOpenDelay { get => Source.PanelLavatoryOpenDelay; set => SetModelValue<int>(value); }
         public virtual int PanelWaterOpenDelay { get => Source.PanelWaterOpenDelay; set => SetModelValue<int>(value); }
-        public virtual int OperatorSelectTimeout { get => Source.OperatorSelectTimeout / 1000; set => SetModelValue<int>(value * 1000); }
+        public virtual bool GsxSetGpuOnInternal { get => Source.GsxSetGpuOnInternal; set => SetModelValue<bool>(value); }
+
+        public virtual bool GsxNotifyOnlyImportant { get => Source.GsxNotifyOnlyImportant; set => SetModelValue<bool>(value); }
+        public virtual bool GsxNotifyNoInvoice { get => Source.GsxNotifyNoInvoice; set => SetModelValue<bool>(value); }
+        public virtual bool GsxNotifyNoAudio { get => Source.GsxNotifyNoAudio; set => SetModelValue<bool>(value); }
+        public virtual bool GsxNotifyNoCashRegister { get => Source.GsxNotifyNoCashRegister; set => SetModelValue<bool>(value); }
+        public virtual bool GsxNotifyPinnedMenuAuto { get => Source.GsxNotifyPinnedMenuAuto; set => SetModelValue<bool>(value); }
+        public virtual bool GsxNotifyNoNumberKeys { get => Source.GsxNotifyNoNumberKeys; set => SetModelValue<bool>(value); }
+
+        public virtual bool GsxChangePaxDensity { get => Source.GsxChangePaxDensity; set => SetModelValue<bool>(value); }
+        public virtual int GsxPaxDensityJetway { get => Source.GsxPaxDensityJetway; set => SetModelValue<int>(value); }
+        public virtual int GsxPaxDensityStairs { get => Source.GsxPaxDensityStairs; set => SetModelValue<int>(value); }
+        public static Dictionary<int, string> DensityDictionary { get; } = new()
+        {
+            { 0, "Sparse" },
+            { 1, "Normal" },
+            { 2, "Dense" },
+            { 3, "Very dense" },
+            { 4, "Insane" },
+        };
+        public virtual Dictionary<int, string> DensityValues => DensityDictionary;
+        public virtual bool GsxChangeLoadScale { get => Source.GsxChangeLoadScale; set => SetModelValue<bool>(value); }
+        public virtual int GsxLoadScalePax { get => Source.GsxLoadScalePax; set => SetModelValue<int>(value); }
+        public virtual int GsxLoadScaleCargo { get => Source.GsxLoadScaleCargo; set => SetModelValue<int>(value); }
+        public static List<int> ListLoadScales { get; } = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+        public virtual List<int> LoadScaleValues => ListLoadScales;
+        public virtual bool GsxChangeMultiTrips { get => Source.GsxChangeMultiTrips; set => SetModelValue<bool>(value); }
+        public virtual bool GsxMultiTripsPax { get => Source.GsxMultiTripsPax; set => SetModelValue<bool>(value); }
+        public virtual bool GsxMultiTripsCargo { get => Source.GsxMultiTripsCargo; set => SetModelValue<bool>(value); }
 
         //APP
         public virtual double FuelResetPercent { get => Source.FuelResetPercent * 100.0; set => SetModelValue<double>(value / 100.0); }
@@ -94,8 +123,26 @@ namespace Any2GSX.UI.Views.Settings
 
         public virtual int AudioDeviceCheckInterval { get => Source.AudioDeviceCheckInterval; set => SetModelValue<int>(value); }
         public virtual int AudioProcessCheckInterval { get => Source.AudioProcessCheckInterval; set => SetModelValue<int>(value); }
-        public virtual int PortBase { get => Source.PortBase; set => SetModelValue<int>(value); }
-        public virtual int PortRange { get => Source.PortRange; set => SetModelValue<int>(value); }
+        public virtual int PortFindRetries { get => Source.PortFindRetries; set => SetModelValue<int>(value); }
+        public virtual int PortFindRetryInterval { get => Source.PortFindRetryInterval / 1000; set => SetModelValue<int>(value * 1000); }
+        public virtual int PortMin
+        {
+            get => Source.PortMin;
+            set
+            {
+                if (value < PortMax)
+                    SetModelValue<int>(value);
+            }
+        }
+        public virtual int PortMax
+        {
+            get => Source.PortMax;
+            set
+            {
+                if (value > PortMin)
+                    SetModelValue<int>(value);
+            }
+        }
         public virtual string DeckUrlBase { get => Source.DeckUrlBase; set => SetModelValue<string>(value); }
         public virtual bool OpenAppWindowOnStart { get => Source.OpenAppWindowOnStart; set => SetModelValue<bool>(value); }
         public virtual bool AppWindowRestorePosition { get => Source.AppWindowRestorePosition; set => SetModelValue<bool>(value); }

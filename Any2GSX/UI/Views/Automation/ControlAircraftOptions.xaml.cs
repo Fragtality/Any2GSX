@@ -134,6 +134,9 @@ namespace Any2GSX.UI.Views.Automation
                 if (setting.Key.StartsWith("Generic.Var.SmartButton") && manifest?.Capabilities?.HasSmartButton == true)
                     continue;
 
+                if (setting.Key.StartsWith("Generic.Option.Aircraft.DoorMap") && (manifest?.Capabilities == null || (manifest?.Capabilities?.DoorHandling.HasFlag(SyncType.Plugin) == false && manifest?.Capabilities?.DoorHandling.HasFlag(SyncType.Aircraft) == false)))
+                    continue;
+
                 if ((manifest == null || manifest?.Settings?.Where(s => s.Key == setting.Key)?.Any() == false) || setting.Key.StartsWith("Generic.Option."))
                     PanelSettingsGeneric.Children.Add(CreateSetting(profile, setting));
             }

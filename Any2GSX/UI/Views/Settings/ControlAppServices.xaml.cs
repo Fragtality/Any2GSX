@@ -18,8 +18,10 @@ namespace Any2GSX.UI.Views.Settings
             ViewModel.BindStringInteger(nameof(ViewModel.DeckClearedMenuRefresh), InputClearDelay, "5", new ValidationRuleRange<int>(0, 60));
             ViewModel.BindStringInteger(nameof(ViewModel.AudioDeviceCheckInterval), InputAudioScanDevice, "60000", new ValidationRuleRange<int>(5000, 600000));
             ViewModel.BindStringInteger(nameof(ViewModel.AudioProcessCheckInterval), InputAudioScanProcess, "2500", new ValidationRuleRange<int>(1000, 120000));
-            ViewModel.BindStringInteger(nameof(ViewModel.PortBase), InputPortBase, "60060");
-            ViewModel.BindStringInteger(nameof(ViewModel.PortRange), InputPortRange, "10");
+            ViewModel.BindStringInteger(nameof(ViewModel.PortFindRetries), InputPortRetries, "5", new ValidationRuleRange<int>(1, 10));
+            ViewModel.BindStringInteger(nameof(ViewModel.PortFindRetryInterval), InputPortRetryInterval, "1", new ValidationRuleRange<int>(1, 10));
+            ViewModel.BindStringInteger(nameof(ViewModel.PortMin), InputPortMin, "10000", new ValidationRuleRange<int>(1025, 49151));
+            ViewModel.BindStringInteger(nameof(ViewModel.PortMax), InputPortMax, "49151", new ValidationRuleRange<int>(1025, 49151));
             ViewModel.BindElement(nameof(ViewModel.DeckUrlBase), InputDeckUrl, null, new ValidationRuleString());
         }
 

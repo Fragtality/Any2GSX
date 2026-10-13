@@ -1,11 +1,15 @@
 ﻿using Any2GSX.Aircraft;
 using Any2GSX.AppConfig;
+using Any2GSX.GSX.API;
 using Any2GSX.GSX.Automation;
 using Any2GSX.GSX.Menu;
 using Any2GSX.GSX.Services;
 using Any2GSX.Notifications;
 using Any2GSX.PluginInterface;
 using Any2GSX.PluginInterface.Interfaces;
+using Any2GSX.PluginInterface.Interfaces.GSX;
+using Any2GSX.PluginInterface.Interfaces.GSX.API;
+using Any2GSX.PluginInterface.Interfaces.GSX.API.Payload;
 using Any2GSX.Tools;
 using CFIT.AppFramework.Services;
 using CFIT.AppLogger;
@@ -16,14 +20,14 @@ using CFIT.SimConnectLib.SimResources;
 using CFIT.SimConnectLib.SimVars;
 using System;
 using System.Collections.Concurrent;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Any2GSX.GSX
 {
-    public class GsxController(Config config) : ServiceController<Any2GSX, AppService, Config, Definition>(config), IGsxController
+    public class GsxController : ServiceController<Any2GSX, AppService, Config, Definition>, IGsxController
     {
-        protected bool _lock = false;
         public virtual CancellationToken RequestToken => AppService.Instance.RequestToken;
         public virtual SimConnectManager SimConnect => AppService.Instance?.SimConnect;
         public virtual SimConnectController SimController => AppService.Instance?.SimService?.Controller;
@@ -32,12 +36,15 @@ namespace Any2GSX.GSX
         public virtual SettingProfile Profile => AppService.Instance.SettingProfile;
         public virtual bool IsMsfs2024 => SimConnect.GetSimVersion() == SimVersion.MSFS2024;
         public virtual string PathInstallation { get; } = Sys.GetRegistryValue<string>(GsxConstants.RegPath, GsxConstants.RegValue, null) ?? GsxConstants.PathDefault;
+        public virtual GsxApiClient ApiClient { get; } = new();
+        public virtual IGsxApiClient IApiClient => ApiClient;
+        public virtual GsxApiData ApiData => ApiClient.ApiData;
         public virtual GsxMenu Menu { get; } = new();
         public virtual IGsxMenu IMenu => Menu;
         protected virtual DateTime NextMenuStartupCheck { get; set; } = DateTime.MinValue;
         public virtual IConfig IConfig => Config;
         public virtual GsxAutomationController AutomationController { get; } = new();
-        public virtual IGsxAutomationController IAutomationController => AutomationController;
+        public virtual IGsxAutomationController IAutomationController => AutomationController as IGsxAutomationController;
         public virtual NotificationTracker Tracker => AppService.Instance.NotificationTracker;
         public virtual AutomationState AutomationState => AutomationController.State;
         public event Func<IGsxController, Task> OnCouatlStarted;
@@ -62,25 +69,25 @@ namespace Any2GSX.GSX
         public virtual GsxServiceState StairsOperation => ServiceStairs.OperatingState;
         public virtual bool IsStairConnected => ServiceStairs.IsConnected;
         public virtual bool IsGateConnected => ServiceJetway.IsConnected || ServiceStairs.IsConnected;
-        public virtual bool HasGateJetway => ServiceJetway.State != GsxServiceState.NotAvailable && ServiceJetway.State != GsxServiceState.Unknown;
-        public virtual bool HasGateStair => ServiceStairs.State != GsxServiceState.NotAvailable && ServiceStairs.State != GsxServiceState.Unknown;
+        public virtual bool HasGateJetway => ServiceJetway.IsAvailable;
+        public virtual bool HasGateStair => ServiceStairs.IsAvailable;
         public virtual bool HasUndergroundRefuel => ServiceRefuel?.IsUnderground == true;
-        public virtual bool ServicesValid => ServiceStairs.State != GsxServiceState.Unknown || ServiceJetway.State != GsxServiceState.Unknown || !IsOnGround;
+        public virtual bool HasRefuelDialog => ApiClient.IsReady && (ApiData?.HandlerData?.aircraft?.refueling ?? false);
+        public virtual bool IsRefuelOnStairSide => ApiClient.IsReady && (ApiData?.HandlerData?.aircraft?.IsRefuelOnStairSide ?? false);
+        public virtual bool IsWaterOnStairSide => ApiClient.IsReady && (ApiData?.HandlerData?.aircraft?.IsWaterOnStairSide ?? false);
+        public virtual bool IsLavatoryOnStairSide => ApiClient.IsReady && (ApiData?.HandlerData?.aircraft?.IsLavatorOnStairSide ?? false);
+        public virtual bool GateServicesValid => ApiClient.IsReady && !string.IsNullOrWhiteSpace(ApiData?.HandlerData?.gate?.uiGateName);
+        public virtual bool GsxHandlerValid => ApiClient.IsReady && ApiData?.HandlerData?.airport != null;
         public virtual bool IsDeiceAvail => SubDeiceAvail?.GetNumber() != 0;
-        public virtual bool IsRefuelActive => GsxServices[GsxServiceType.Refuel].State == GsxServiceState.Active;
-        public virtual bool IsFuelHoseConnected => (GsxServices[GsxServiceType.Refuel] as GsxServiceRefuel)?.SubRefuelHose?.GetNumber() == 1;
+        public virtual bool IsRefuelActive => GsxServices[GsxServiceType.Refuel].IsActive;
+        public virtual bool IsFuelHoseConnected => (GsxServices[GsxServiceType.Refuel] as GsxServiceRefuel)?.IsHoseConnected ?? false;
 
-        public virtual bool CouatlVarsValid { get; protected set; } = false;
-        public virtual int CouatlLastProgress { get; protected set; } = 0;
-        public virtual int CouatlLastStarted { get; protected set; } = 0;
-        public virtual int CouatlLastSimbrief { get; protected set; } = 0;
-        public virtual DateTime CouatlInhibitStateChanges { get; protected set; } = DateTime.MinValue;
+        public virtual bool LastReadyState { get; protected set; } = false;
         public virtual int CouatlInvalidCount { get; protected set; } = 0;
-        public virtual bool CouatlVarsReceived { get; protected set; } = false;
         public virtual bool IsProcessRunning { get; protected set; } = false;
         protected virtual DateTime NextProcessCheck { get; set; } = DateTime.MinValue;
         public virtual bool IsActive { get; protected set; } = false;
-        public virtual bool IsGsxRunning => IsProcessRunning && CouatlVarsValid;
+        public virtual bool IsGsxRunning => IsProcessRunning && ApiClient.IsReady;
         public virtual bool SimGroundState => SimStore["SIM ON GROUND"]?.GetNumber() == 1;
         public virtual bool IsOnGround { get; protected set; } = true;
         public virtual bool FirstGroundCheck { get; protected set; } = true;
@@ -93,10 +100,16 @@ namespace Any2GSX.GSX
         public virtual bool WalkAroundSkipActive { get; protected set; } = false;
         public virtual bool WalkaroundPreActionNotified { get; protected set; } = false;
         public virtual bool WalkaroundNotified { get; protected set; } = false;
+        public virtual string AutoSelectionPushback { get; set; } = "";
+        public virtual bool HasSelectionPushback => !string.IsNullOrWhiteSpace(AutoSelectionPushback);
+        public virtual JsonNode AutoSelectionArrivalGate { get; set; } = null;
+        public virtual bool HasSelectionArrivalGate => !string.IsNullOrWhiteSpace(AutoSelectionArrivalGate?.ToString());
 
         public event Func<Task> WalkaroundPreAction;
         public event Func<Task> WalkaroundWasSkipped;
-        public event Func<Task> RepositionSignal;
+        public event Func<bool, Task> RepositionSignal;
+        public event Func<string, Task> OnPushDirectionChanged;
+        public event Func<string, Task> OnArrivalGateChanged;
 
         public virtual ISimResourceSubscription SubDoorToggleExit1 { get; protected set; }
         public virtual ISimResourceSubscription SubDoorToggleExit2 { get; protected set; }
@@ -110,34 +123,28 @@ namespace Any2GSX.GSX
         public virtual ISimResourceSubscription SubLoaderAttachCargo1 { get; protected set; }
         public virtual ISimResourceSubscription SubLoaderAttachCargo2 { get; protected set; }
         public virtual ISimResourceSubscription SubLoaderAttachCargo3 { get; protected set; }
+        public virtual ConcurrentDictionary<GsxDoor, ISimResourceSubscription> SubsCargoTrainsEmpty { get; } = [];
+        public virtual ConcurrentDictionary<GsxDoor, ISimResourceSubscription> SubsCargoTrainsFull { get; } = [];
         public virtual ISimResourceSubscription SubDefaultSmartButton { get; protected set; }
         public virtual ISimResourceSubscription SubPilotTarget { get; protected set; }
         public virtual ISimResourceSubscription SubCrewTarget { get; protected set; }
         public virtual ISimResourceSubscription SubDeiceAvail { get; protected set; }
 
-        protected virtual void InitGsxServices()
+        public GsxController(Config config) : base(config)
         {
-            if (GsxServices.IsEmpty)
-            {
-                _ = new GsxServiceReposition(this);
-                _ = new GsxServiceRefuel(this);
-                _ = new GsxServiceCatering(this);
-                _ = new GsxServiceJetway(this);
-                _ = new GsxServiceStairs(this);
-                _ = new GsxServiceBoarding(this);
-                _ = new GsxServiceDeboarding(this);
-                _ = new GsxServicePushback(this);
-                _ = new GsxServiceGpu(this);
-                _ = new GsxServiceDeice(this);
-                _ = new GsxServiceLavatory(this);
-                _ = new GsxServiceWater(this);
-                _ = new GsxServiceCleaning(this);
-            }
-            else
-            {
-                foreach (var service in GsxServices)
-                    service.Value.InitSubscriptions();
-            }
+            GsxServices.Add(GsxServiceType.Reposition, new GsxServiceReposition());
+            GsxServices.Add(GsxServiceType.Refuel, new GsxServiceRefuel());
+            GsxServices.Add(GsxServiceType.Catering, new GsxServiceCatering());
+            GsxServices.Add(GsxServiceType.Jetway, new GsxServiceJetway());
+            GsxServices.Add(GsxServiceType.Stairs, new GsxServiceStairs());
+            GsxServices.Add(GsxServiceType.Boarding, new GsxServiceBoarding());
+            GsxServices.Add(GsxServiceType.Deboarding, new GsxServiceDeboarding());
+            GsxServices.Add(GsxServiceType.Pushback, new GsxServicePushback());
+            GsxServices.Add(GsxServiceType.GPU, new GsxServiceGpu());
+            GsxServices.Add(GsxServiceType.Deice, new GsxServiceDeice());
+            GsxServices.Add(GsxServiceType.Lavatory, new GsxServiceLavatory());
+            GsxServices.Add(GsxServiceType.Water, new GsxServiceWater());
+            GsxServices.Add(GsxServiceType.Cleaning, new GsxServiceCleaning());
         }
 
         public virtual IGsxService GetService(GsxServiceType type)
@@ -162,12 +169,6 @@ namespace Any2GSX.GSX
 
         protected override Task DoInit()
         {
-            SimStore.AddVariable(GsxConstants.VarCouatlStarted)?.OnReceived += OnCouatlVariable;
-            SimStore.AddVariable(GsxConstants.VarCouatlSimbrief)?.OnReceived += OnCouatlSimbrief;
-            SimStore.AddVariable(GsxConstants.VarCouatlStartProg5)?.OnReceived += OnCouatlVariable;
-            SimStore.AddVariable(GsxConstants.VarCouatlStartProg6)?.OnReceived += OnCouatlVariable;
-            SimStore.AddVariable(GsxConstants.VarCouatlStartProg7)?.OnReceived += OnCouatlVariable;
-
             SimStore.AddVariable("SIM ON GROUND", SimUnitType.Bool);
             SimStore.AddVariable("ABSOLUTE TIME", SimUnitType.Seconds);
             if (IsMsfs2024)
@@ -176,6 +177,7 @@ namespace Any2GSX.GSX
                 SimStore.AddVariable("IS AVATAR", SimUnitType.Number);
             }
 
+            SimStore.AddVariable(GsxConstants.VarSetRemoteServer);
             SubDoorToggleExit1 = SimStore.AddVariable(GsxConstants.VarDoorToggleExit1);
             SubDoorToggleExit2 = SimStore.AddVariable(GsxConstants.VarDoorToggleExit2);
             SubDoorToggleExit3 = SimStore.AddVariable(GsxConstants.VarDoorToggleExit3);
@@ -188,6 +190,12 @@ namespace Any2GSX.GSX
             SubLoaderAttachCargo1 = SimStore.AddVariable(GsxConstants.VarCargoLoader1);
             SubLoaderAttachCargo2 = SimStore.AddVariable(GsxConstants.VarCargoLoader2);
             SubLoaderAttachCargo3 = SimStore.AddVariable(GsxConstants.VarCargoLoader3);
+            SubsCargoTrainsEmpty.Add(GsxDoor.CargoDoor1, SimStore.AddVariable(GsxConstants.VarCargoTrainEmptyFront));
+            SubsCargoTrainsEmpty.Add(GsxDoor.CargoDoor2, SimStore.AddVariable(GsxConstants.VarCargoTrainEmptyRear));
+            SubsCargoTrainsEmpty.Add(GsxDoor.CargoDoor3Main, SimStore.AddVariable(GsxConstants.VarCargoTrainEmptyMain));
+            SubsCargoTrainsFull.Add(GsxDoor.CargoDoor1, SimStore.AddVariable(GsxConstants.VarCargoTrainFullFront));
+            SubsCargoTrainsFull.Add(GsxDoor.CargoDoor2, SimStore.AddVariable(GsxConstants.VarCargoTrainFullRear));
+            SubsCargoTrainsFull.Add(GsxDoor.CargoDoor3Main, SimStore.AddVariable(GsxConstants.VarCargoTrainFullMain));
 
             SubPilotTarget = SimStore.AddVariable(GsxConstants.VarPilotTarget);
             SubCrewTarget = SimStore.AddVariable(GsxConstants.VarCrewTarget);
@@ -196,31 +204,27 @@ namespace Any2GSX.GSX
 
             SubDefaultSmartButton = SimStore.AddVariable(GenericSettings.VarSmartButtonDefault);
 
-            SimStore.AddVariable(GsxConstants.VarReadAutoMode);
-            SimStore.AddVariable(GsxConstants.VarSetAutoMode);
-            SimStore.AddVariable(GsxConstants.VarReadCustFuel);
-            SimStore.AddVariable(GsxConstants.VarSetCustFuel);
-            SimStore.AddVariable(GsxConstants.VarReadProgFuel);
-            SimStore.AddVariable(GsxConstants.VarSetProgFuel);
             SimStore.AddVariable(GsxConstants.VarSetAutoDoors);
             SimStore.AddVariable(GsxConstants.VarSetAutoFuel);
             SimStore.AddVariable(GsxConstants.VarSetAutoPayload);
             SimStore.AddVariable(GsxConstants.VarSetAutoEquip);
             SimStore.AddVariable(GsxConstants.VarSetDoorMsg);
 
-            InitGsxServices();
+            foreach (var service in GsxServices)
+                service.Value.InitSubscriptions();
             Menu.Init();
             AutomationController.Init();
 
-            ServiceReposition.SubRepositioning.OnReceived += OnRepositionSignal;
+            ServiceReposition.OnRepositionSignal += OnRepositionSignal;
+
+            ApiClient.ReadyStateChanged += OnReadyStateChange;
 
             return Task.CompletedTask;
         }
 
-        protected virtual Task OnRepositionSignal(ISimResourceSubscription sub, object data)
+        protected virtual Task OnRepositionSignal(bool state)
         {
-            if (sub?.GetNumber() > 0)
-                _ = TaskTools.RunPool(() => RepositionSignal?.Invoke());
+            _ = TaskTools.RunPool(() => RepositionSignal?.Invoke(state));
 
             return Task.CompletedTask;
         }
@@ -247,75 +251,57 @@ namespace Any2GSX.GSX
             return DateTime.UtcNow;
         }
 
-        protected virtual Task OnCouatlSimbrief(ISimResourceSubscription sub, object data)
+        protected virtual void LogHandlerData()
         {
             try
             {
-                while (_lock && !Token.IsCancellationRequested) { }
-                int state = (int)sub.GetNumber();
-                int started = (int)(SimStore[GsxConstants.VarCouatlStarted]?.GetNumber() ?? 0);
-                if (CouatlLastSimbrief == 1 && state == 0 && started == 1 && CouatlInhibitStateChanges < DateTime.Now)
+                if (ApiData?.HandlerData?.aircraft != null)
                 {
-                    Logger.Debug("Simbrief Refresh detected - inhibiting Couatl State Changes for 5s");
-                    CouatlInhibitStateChanges = DateTime.Now + TimeSpan.FromSeconds(5);
+                    Logger.Debug($"GSX Aircraft Profile: '{ApiData?.HandlerData?.aircraft?.dataSourceUsed ?? ""}' (dbKey: {ApiData?.HandlerData?.aircraft?.aircraftDbKey ?? ""})");
+                    foreach (var exitGroup in ApiData?.HandlerData?.aircraft?.exits)
+                    {
+                        int index = 0;
+                        foreach (var exit in ApiData?.HandlerData?.aircraft?.exits[exitGroup.Key ?? "0"])
+                        {
+                            Logger.Debug($"Exits: Group {exitGroup.Key ?? ""} | Index {index} | NoDoor {exit == null || exit?.HasDoor == false} | NoCheck {exit?.IsTypeNoCheck ?? false} | Standard {exit?.IsTypeStandard ?? false} | Custom {exit?.IsTypeCustom ?? false}");
+                            index++;
+                        }
+                    }
                 }
 
-                CouatlLastSimbrief = state;
+                if (ApiData?.HandlerData?.airport != null)
+                {
+                    Logger.Debug($"GSX Airport Profile for {ApiData?.HandlerData?.airport?.icao}: '{ApiData?.HandlerData?.airport?.USER_CUSTOMIZATION_DATASOURCE_NAME}' [ {string.Join(" ", ApiData?.HandlerData?.airport?.dataSourcesAvailable ?? [])} ]");
+                }
             }
-            catch (Exception ex)
+            catch
             {
-                if (ex is not TaskCanceledException)
-                    Logger.LogException(ex);
-                CouatlInhibitStateChanges = DateTime.MinValue;
-                CouatlLastSimbrief = 0;
+                Logger.Debug($"Error while logging Aircraft Data");
             }
-            return Task.CompletedTask;
         }
 
-        protected virtual Task OnCouatlVariable(ISimResourceSubscription sub, object data)
+        protected virtual Task OnReadyStateChange(bool state)
         {
-            while (_lock && !Token.IsCancellationRequested) { }
-            _lock = true;
+            if (!IsActive)
+                return Task.CompletedTask;
 
-            try
+            if (!LastReadyState && state)
             {
-                CouatlLastStarted = (int)(SimStore[GsxConstants.VarCouatlStarted]?.GetNumber() ?? 0);
-                CouatlLastProgress = (int)Math.Max(
-                    Math.Max(SimStore[GsxConstants.VarCouatlStartProg5]?.GetNumber() ?? 100, SimStore[GsxConstants.VarCouatlStartProg6]?.GetNumber() ?? 100),
-                    SimStore[GsxConstants.VarCouatlStartProg7]?.GetNumber() ?? 100
-                    );
-                if (CouatlLastStarted == 1 && CouatlLastProgress == 0)
-                {
-                    if (!CouatlVarsValid)
-                    {
-                        Logger.Debug($"Couatl Variables valid!");
-                        CouatlVarsValid = true;
-                        CouatlInhibitStateChanges = DateTime.MinValue;
-                        CouatlInvalidCount = 0;
-                        _ = TaskTools.RunPool(() => OnCouatlStarted?.Invoke(this));
-                    }
-                }
-                else if (CouatlVarsValid)
-                {
-                    if (CouatlInhibitStateChanges < DateTime.Now)
-                    {
-                        Logger.Debug($"Couatl Variables NOT valid! (started: {CouatlLastStarted} / progress: {CouatlLastProgress})");
-                        CouatlVarsValid = false;
-                        _ = TaskTools.RunPool(() => ServiceStairs.ResetVehicleState());
-                        _ = TaskTools.RunPool(() => OnCouatlStopped?.Invoke(this));
-                    }
-                    else
-                        Logger.Debug($"Couatl Variables invalid-Change ignored (started: {CouatlLastStarted} / progress: {CouatlLastProgress})");
-                }
-
-                CouatlVarsReceived = true;
+                LastReadyState = state;
+                LogHandlerData();
+                Logger.Information($"GSX State changed to READY");
+                CouatlInvalidCount = 0;
+                return TaskTools.RunPool(() => OnCouatlStarted?.Invoke(this), RequestToken);
             }
-            catch (Exception ex)
+            else if (LastReadyState && !state)
             {
-                Logger.LogException(ex);
+                LastReadyState = state;
+                Logger.Warning($"GSX State changed to NOT Ready");
+                Menu.ResetNotRunning();
+                App.AppService.SetGsxStartTime();
+                return TaskTools.RunPool(() => OnCouatlStopped?.Invoke(this), RequestToken);
             }
 
-            _lock = false;
             return Task.CompletedTask;
         }
 
@@ -348,8 +334,10 @@ namespace Any2GSX.GSX
         {
             try
             {
+                ApiClient.Start();
                 Menu.Reset();
-                await Task.Delay(1000, Token);
+                CheckProcess();
+                await Task.Delay(1000, RequestToken);
 
                 if (IsMsfs2024 && SimConnect.CameraState == 30)
                 {
@@ -373,29 +361,28 @@ namespace Any2GSX.GSX
                 bool external = AutomationController.DepartureQueue.ExternalServiceControl;
                 await AutomationController.Reset();
                 if (external)
-                    AutomationController.DepartureQueue.SetExternalControl(external);
-                IsActive = true;
-                Logger.Debug($"GsxService active (VarsReceived: {CouatlVarsReceived} | FirstReady: {Menu.FirstReadyReceived})");
-                Logger.Information($"GsxController active - GSX Ready: {CouatlVarsReceived && IsProcessRunning} | GSX Menu: {Menu.FirstReadyReceived} | Aircraft Ready: {AircraftController.IsConnected} | Walkaround: {IsWalkaround}");
+                    AutomationController.DepartureQueue.SetExternalControl(external, AutomationController.DepartureQueue.ExternalServiceHandler);
 
+                IsActive = true;
                 Logger.Debug($"Wait up to {Config.GsxServiceStartDelay}ms for Aircraft Plugin Connection");
                 int delay = 0;
-                while (delay <= Config.GsxServiceStartDelay && (AircraftController?.IsConnected == false || delay <= 3000) && !RequestToken.IsCancellationRequested)
+                while (delay <= Config.GsxServiceStartDelay && AircraftController?.IsConnected == false && !RequestToken.IsCancellationRequested)
                 {
                     delay += Config.StateMachineInterval;
                     await Task.Delay(Config.StateMachineInterval, RequestToken);
                 }
                 Logger.Debug($"Continue after {delay}ms");
                 await AppService.Instance.CommBus.PingModule();
-                if (!Config.GsxMenuTimeoutFix)
-                    Logger.Warning($"GsxMenuTimeoutFix is disabled!");
+                NextMenuStartupCheck = DateTime.Now + TimeSpan.FromMilliseconds(Config.TimerGsxStartupMenuCheck);
 
+                await Menu.RunCommand(GsxMenuCommand.Disable(), false);
+                Logger.Debug($"GsxService active (Process: {IsProcessRunning} | IsReady: {ApiClient.IsReady} | FirstReady: {Menu.FirstReadyReceived})");
+                Logger.Information($"GsxController active - GSX Ready: {IsGsxRunning} | GSX Menu: {Menu.FirstReadyReceived} | Aircraft Ready: {AircraftController.IsConnected} | Walkaround: {IsWalkaround}");
                 while (SimConnect.IsSessionRunning && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
                 {
+                    if (FirstGroundCheck && ApiClient.IsReady)
+                        await OnReadyStateChange(ApiClient.IsReady);
                     CheckGround();
-
-                    if (!CouatlVarsReceived && IsProcessRunning)
-                        await OnCouatlVariable(null, null);
 
                     //Walkaround handling
                     if (!SkippedWalkAround && Profile.SkipWalkAround && !WalkAroundSkipActive)
@@ -417,43 +404,48 @@ namespace Any2GSX.GSX
                     if (AutomationController.IsStarted && SkippedWalkAround && !WalkaroundNotified)
                     {
                         if (IsOnGround && AutomationController.State < AutomationState.Departure && WalkaroundWasSkipped != null)
-                            _ = TaskTools.RunPool(() => WalkaroundWasSkipped?.Invoke());
+                            _ = TaskTools.RunPool(() => WalkaroundWasSkipped?.Invoke(), RequestToken);
                         WalkaroundNotified = true;
                     }
 
                     //GSX Startup handling
-                    if (!Menu.FirstReadyReceived && NextMenuStartupCheck <= DateTime.Now && IsOnGround)
+                    if (!Menu.FirstReadyReceived && NextMenuStartupCheck <= DateTime.Now)
                     {
-                        if (Profile.SecureAircraftOnSessionStart && IsGsxRunning && Profile.RunAutomationService && NextMenuStartupCheck != DateTime.MinValue && !AutomationController.IsStarted && AircraftController.IsConnected
+                        if (Profile.SecureAircraftOnSessionStart && IsProcessRunning && ApiClient.IsReady && Profile.RunAutomationService && !AutomationController.IsStarted && AircraftController.IsConnected && IsOnGround
                             && SkippedWalkAround && await Aircraft.GetSpeed() < 1 && !await Aircraft.GetEngineRunning() && !await Aircraft.GetLightBeacon() && ServicePushBack.PushStatus == 0)
                         {
-                            Logger.Debug($"HasChocks {await Aircraft.GetHasChocks()} | EquipmentChocks {await Aircraft.GetEquipmentChocks()} | IsBrakeSet {await Aircraft.GetBrakeSet()} | Type {Aircraft.GetType().Name}");
-                            if (await Aircraft.GetHasChocks() && !await Aircraft.GetEquipmentChocks())
+                            bool chocks = await Aircraft.GetEquipmentChocks();
+                            bool hasChocks = await Aircraft.GetHasChocks();
+                            Logger.Debug($"HasChocks {hasChocks} | EquipmentChocks {chocks} | IsBrakeSet {await Aircraft.GetBrakeSet()} | Type {Aircraft.GetType().Name}");
+                            if (hasChocks && !chocks)
                             {
                                 Logger.Information($"GSX Menu not opening - setting Chocks ...");
                                 await Aircraft.SetEquipmentChocks(true, true);
                             }
-                            else if (!await Aircraft.GetHasChocks() && !await Aircraft.GetBrakeSet())
+                            else if (!hasChocks && Aircraft.ISettingProfile.GetSetting<bool>(GenericSettings.VarParkBrakeToggleStart) && !await Aircraft.GetBrakeSet())
                             {
                                 Logger.Information($"GSX Menu not opening - setting Parking Brake ...");
                                 await Aircraft.SetParkingBrake(true);
                             }
                         }
 
-                        if (IsGsxRunning && Menu.MenuCommandsAllowed && AutomationState == AutomationState.SessionStart)
+                        if (IsProcessRunning && ApiClient.IsReady && Menu.MenuCommandsAllowed && (AutomationState != AutomationState.TaxiIn || !Config.OpenMenuOnTaxiIn))
                         {
                             Menu.ExternalSequence = true;
-                            Logger.Information($"Open GSX Menu on Startup ...");
-                            await Menu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection || !Profile.RunAutomationService);
-                            if (Menu.FirstReadyReceived && Menu.MenuState == GsxMenuState.READY && Menu.IsGateMenu && Profile.RunAutomationService)
+                            Logger.Information($"Open GSX Menu on {AutomationState} ...");
+                            await Menu.RunCommand(GsxMenuCommand.Close(), false);
+                            await Menu.WaitInterval();
+                            await Menu.RunCommand(GsxMenuCommand.Open(), IsOnGround && (Profile.EnableMenuForSelection || !Profile.RunAutomationService) && !Profile.PilotsDeckIntegration && AutomationState == AutomationState.SessionStart);
+                            await Menu.WaitInterval(2);
+                            if (Menu.FirstReadyReceived && Menu.MenuState == GsxMenuState.READY && (Menu.IsGateMenu || !IsOnGround) && Profile.RunAutomationService && !Profile.PilotsDeckIntegration)
                                 await Menu.RunCommand(GsxMenuCommand.Disable(), false);
                             Menu.ExternalSequence = false;
                         }
 
-                        if ((!CouatlVarsValid || !IsProcessRunning) && NextMenuStartupCheck != DateTime.MinValue && AppService.Instance.LastGsxRestart <= DateTime.Now - TimeSpan.FromSeconds(Config.WaitGsxRestart))
+                        if (!IsGsxRunning && AppService.Instance.LastGsxRestart <= DateTime.Now - TimeSpan.FromSeconds(Config.WaitGsxRestart) && IsOnGround)
                         {
                             if (CouatlInvalidCount > 0)
-                                Logger.Warning($"GSX Variable/Process State is still invalid #{CouatlInvalidCount}");
+                                Logger.Warning($"GSX API/Process State is still invalid #{CouatlInvalidCount}");
                             CouatlInvalidCount++;
                             if (CouatlInvalidCount > Config.GsxMenuStartupMaxFail && Config.RestartGsxStartupFail)
                             {
@@ -467,14 +459,12 @@ namespace Any2GSX.GSX
                         NextMenuStartupCheck = DateTime.Now + TimeSpan.FromMilliseconds(Config.TimerGsxStartupMenuCheck);
                     }
 
-                    await SetCouatlConf();
+                    await CheckCouatlConf();
 
                     //Start Automation
                     if (!AutomationController.IsStarted && CanAutomationRun && !AutomationController.RunFlag)
                     {
-                        await Task.Delay(Config.GsxServiceStartDelay / 2, Token);
-                        Tracker.Clear(AppNotification.GateSelect);
-                        Tracker.Clear(AppNotification.GateMove);
+                        await Task.Delay(Config.GsxServiceStartDelay / 2, RequestToken);
                         _ = AutomationController.Run();
                     }
 
@@ -486,7 +476,10 @@ namespace Any2GSX.GSX
             catch (Exception ex)
             {
                 if (ex is not TaskCanceledException)
+                {
                     Logger.LogException(ex);
+                    try { await ApiClient.Stop(); } catch { }
+                }
             }
 
             IsActive = false;
@@ -499,15 +492,6 @@ namespace Any2GSX.GSX
             {
                 IsProcessRunning = CheckBinaries();
                 NextProcessCheck = DateTime.Now + TimeSpan.FromMilliseconds(Config.TimerGsxProcessCheck);
-            }
-
-            if (CouatlVarsValid && !IsProcessRunning)
-            {
-                Logger.Debug($"Couatl Process not running!");
-                CouatlVarsValid = false;
-                Menu.ResetNotRunning();
-                App.AppService.SetGsxStartTime();
-                _ = TaskTools.RunPool(() => OnCouatlStopped?.Invoke(this));
             }
         }
 
@@ -547,7 +531,7 @@ namespace Any2GSX.GSX
                         await WalkaroundPreActionNotify();
                     await ToggleWalkaround();
                     if (IsWalkaround)
-                        await Task.Delay(Config.TimerGsxCheck, Token);
+                        await Task.Delay(Config.TimerGsxCheck, RequestToken);
 
                     SkippedWalkAround = (CheckSessionReady() && !IsWalkaround) || !Profile.RunAutomationService;
                 }
@@ -567,7 +551,7 @@ namespace Any2GSX.GSX
             {
                 WalkaroundPreActionNotified = true;
                 if (WalkaroundPreAction != null)
-                    return TaskTools.RunPool(() => WalkaroundPreAction?.Invoke());
+                    return TaskTools.RunPool(() => WalkaroundPreAction?.Invoke(), RequestToken);
             }
 
             return Task.CompletedTask;
@@ -608,7 +592,10 @@ namespace Any2GSX.GSX
                     if (AircraftController.IsConnected)
                         await Aircraft.HandleWalkaroundEquipment();
 
-                    if (ServiceStairs.IsConnectable && !await AircraftController.GetIsFuelOnStairSide())
+                    bool hasAirStairForward = await Aircraft.GetHasAirStairForward();
+                    bool hasAirStairAft = await Aircraft.GetHasAirStairAft();
+                    if (!ServiceStairs.IsCalled
+                        && ((!ServiceJetway.IsAvailable && !hasAirStairForward && !hasAirStairAft) || (ServiceJetway.IsAvailable && !hasAirStairAft)))
                     {
                         Logger.Information("Automation: Call GSX Stairs on Walkaround");
                         await ServiceStairs.Call();
@@ -624,72 +611,182 @@ namespace Any2GSX.GSX
             }
         }
 
-        protected virtual async Task SetCouatlConf()
+        protected virtual async Task CheckCouatlConf()
         {
-            if (Aircraft == null || NextProcessCheck > DateTime.Now)
+            if (NextProcessCheck > DateTime.Now)
+                return;
+
+            if (!ApiClient.IsSocketValid && SimStore[GsxConstants.VarSetRemoteServer].GetNumber() != 1)
+                Logger.Error("The GSX Remote Control Server needs to be enabled! (GSX Settings > Network)");
+
+            if (Aircraft == null || Aircraft?.IsConnected == false || !IsGsxRunning)
                 return;
 
             try
             {
-                bool gsxMode = SimStore[GsxConstants.VarReadAutoMode]?.GetNumber() > 0;
-                bool acPref = await Aircraft.GetSettingAutoMode();
-                if (gsxMode != acPref)
-                {
-                    Logger.Debug($"Set GSX Setting AutoMode to '{acPref}'");
-                    SimStore[GsxConstants.VarSetAutoMode]?.WriteValue(acPref ? 1 : -1);
-                }
+                bool acPref;
+                acPref = await Aircraft.GetSettingAutoMode();
+                await CheckSettingApi(GsxConstants.SettingAutoMode, acPref);
 
-                var setProgFuel = SimStore[GsxConstants.VarSetProgFuel]?.GetNumber();
                 acPref = await Aircraft.GetSettingProgRefuel();
-                if (setProgFuel == 0 || (acPref && setProgFuel < 0) || (!acPref && setProgFuel >= 0))
+                await CheckSettingApi(GsxConstants.SettingProgFuel, acPref);
+
+                acPref = await Aircraft.GetSettingDetectCustFuel();
+                await CheckSettingApi(GsxConstants.SettingCustFuel, acPref);
+
+                if (Config.GsxAllowSettingManipulation)
+                    await CheckSettingApi(GsxConstants.SettingAutoStairs, 2);
+
+                if (Config.GsxNotifyOnlyImportant)
+                    await CheckSettingApi(GsxConstants.SettingMessageVerbosity, 1);
+                else
+                    CheckConfigSetting(nameof(Config.GsxNotifyOnlyImportant), GsxConstants.SettingMessageVerbosity, 1);
+
+                if (Config.GsxNotifyNoInvoice)
+                    await CheckSettingApi(GsxConstants.SettingDisableInvoices, 1);
+                else
+                    CheckConfigSetting(nameof(Config.GsxNotifyNoInvoice), GsxConstants.SettingDisableInvoices, 1);
+
+                if (Config.GsxNotifyNoAudio)
+                    await CheckSettingApi(GsxConstants.SettingAuralCues, 0);
+                else
+                    CheckConfigSetting(nameof(Config.GsxNotifyNoAudio), GsxConstants.SettingAuralCues, 0);
+
+                if (Config.GsxNotifyNoCashRegister)
+                    await CheckSettingApi(GsxConstants.SettingCashRegisterBeep, 0);
+                else
+                    CheckConfigSetting(nameof(Config.GsxNotifyNoCashRegister), GsxConstants.SettingCashRegisterBeep, 0);
+
+                if (Config.GsxNotifyPinnedMenuAuto)
+                    await CheckSettingApi(GsxConstants.SettingPinnedMenuMode, 3);
+                else
+                    CheckConfigSetting(nameof(Config.GsxNotifyPinnedMenuAuto), GsxConstants.SettingPinnedMenuMode, 3);
+
+                if (Config.GsxNotifyNoNumberKeys)
+                    await CheckSettingApi(GsxConstants.SettingMenuNumberKey, 0);
+                else
+                    CheckConfigSetting(nameof(Config.GsxNotifyNoNumberKeys), GsxConstants.SettingMenuNumberKey, 0);
+
+                if (Config.GsxChangePaxDensity)
                 {
-                    Logger.Debug($"Set GSX Setting ProgRefuel to '{acPref}'");
-                    SimStore[GsxConstants.VarSetProgFuel]?.WriteValue(acPref ? 1 : -1);
+                    int density = HasGateJetway ? Config.GsxPaxDensityJetway : Config.GsxPaxDensityStairs;
+                    await CheckSettingApi(GsxConstants.SettingPaxDensityBoard, density);
+                    await CheckSettingApi(GsxConstants.SettingPaxDensityDeboard, density);
                 }
 
-                gsxMode = SimStore[GsxConstants.VarReadCustFuel]?.GetNumber() > 0;
-                acPref = await Aircraft.GetSettingDetectCustFuel();
-                if (gsxMode != acPref)
+                bool isCargo = await Aircraft.GetIsCargo();
+                if (Config.GsxChangeMultiTrips)
                 {
-                    Logger.Debug($"Set GSX Setting DetectCustFuel to '{acPref}'");
-                    SimStore[GsxConstants.VarSetCustFuel]?.WriteValue(acPref ? 1 : -1);
+                    bool target = isCargo ? Config.GsxMultiTripsCargo : Config.GsxMultiTripsPax;
+                    await CheckSettingApi(GsxConstants.SettingMultiTripsTrains, target ? 1 : 0);
+                    await Task.Delay(Config.MenuCheckInterval, RequestToken);
+                }
+
+                if (Config.GsxChangeLoadScale && ApiClient.GetSetting(GsxConstants.SettingMultiTripsTrains) == 1)
+                {
+                    int density = isCargo ? Config.GsxLoadScaleCargo : Config.GsxLoadScalePax;
+                    await CheckSettingApi(GsxConstants.SettingLoadScaleBag, density);
+                    await CheckSettingApi(GsxConstants.SettingLoadScaleCargo, density);
                 }
 
                 SyncType doorSync = AppService.Instance?.PluginCapabilities?.DoorHandling ?? SyncType.ManualNone;
-                gsxMode = SimStore[GsxConstants.VarSetDoorMsg]?.GetNumber() > 0;
                 acPref = doorSync.HasFlag(SyncType.Aircraft) || doorSync.HasFlag(SyncType.Plugin);
-                if (doorSync != SyncType.ManualNone && gsxMode != acPref)
+                if (doorSync != SyncType.ManualNone && acPref)
+                    await CheckSettingVariable(GsxConstants.VarSetDoorMsg, acPref);
+
+                acPref = await Aircraft.GetSettingAdvAutomation();
+                await CheckSettingVariable(GsxConstants.VarSetAutoDoors, acPref);
+                await CheckSettingVariable(GsxConstants.VarSetAutoFuel, acPref);
+                await CheckSettingVariable(GsxConstants.VarSetAutoPayload, acPref);
+                await CheckSettingVariable(GsxConstants.VarSetAutoEquip, acPref);
+                if (!acPref)
+                    await CheckSettingApi(GsxConstants.SettingProgFuel, 0);
+
+                bool? underground = ApiData?.HandlerData?.gate?.undergroundRefueling;
+                acPref = Profile?.GetSetting<bool>(GenericSettings.OptionGateForceUnderground) == true;
+                if (underground is false && acPref)
                 {
-                    Logger.Debug($"Disable GSX Door Message");
-                    await SimStore[GsxConstants.VarSetDoorMsg]?.WriteValue(1);
+                    Logger.Information($"Enabling 'Underground refueling' for the Gate in GSX' Airport Profile");
+                    await ApiClient.SetHandlerGate("undergroundRefueling", true);
                 }
 
-                gsxMode = SimStore[GsxConstants.VarSetAutoDoors]?.GetNumber() > 0 || SimStore[GsxConstants.VarSetAutoFuel]?.GetNumber() > 0 || SimStore[GsxConstants.VarSetAutoPayload]?.GetNumber() > 0 || SimStore[GsxConstants.VarSetAutoEquip]?.GetNumber() > 0;
-                acPref = await Aircraft.GetSettingAdvAutomation();
-                if (gsxMode != acPref)
+                if (ApiData?.HandlerData?.aircraft?.refueling == true && await Aircraft.GetHasFuelSync())
                 {
-                    Logger.Debug($"Disable GSX own Automation for PMDG");
-                    await SimStore[GsxConstants.VarSetAutoDoors]?.WriteValue(0);
-                    await SimStore[GsxConstants.VarSetAutoFuel]?.WriteValue(0);
-                    await SimStore[GsxConstants.VarSetAutoPayload]?.WriteValue(0);
-                    await SimStore[GsxConstants.VarSetAutoEquip]?.WriteValue(0);
+                    Logger.Information("Disabling 'Default Fuel system' in GSX' Aircraft Profile");
+                    await ApiClient.SetHandlerAircraft("refueling", false);
+                }
+
+                if (Profile?.HasSetting<int>(GenericSettings.OptionAircraftDoorPreferred, out int value) == true && value > 0 && ApiData?.HandlerData?.aircraft?.preferredExit != value - 1)
+                {
+                    Logger.Information($"Changing preferred Exit to {(AircraftDoor)value} (#{value - 1})");
+                    await ApiClient.SetHandlerAircraft("preferredExit", value - 1);
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogException(ex);
+                if (ex is not TaskCanceledException)
+                    Logger.LogException(ex);
             }
+        }
+
+        protected Task CheckSettingApi(string key, bool target)
+        {
+            return CheckSettingApi(key, target ? 1 : 0);
+        }
+
+        protected async Task CheckSettingApi(string key, double target)
+        {
+            try
+            {
+                if (ApiClient.GetSetting(key) != target)
+                    await ApiClient.SetSetting(key, target);
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug($"{ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        protected void CheckConfigSetting(string property, string key, dynamic target)
+        {
+            try
+            {
+                if (Config.GetPropertyValue<bool>(property) == false && ApiClient.GetSetting(key) == target)
+                {
+                    Config.SetPropertyValue<bool>(property, true);
+                    Config.SaveConfiguration();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug($"{ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        protected Task CheckSettingVariable(string name, bool target)
+        {
+            return CheckSettingVariable(name, target ? 1 : 0);
+        }
+
+        protected async Task CheckSettingVariable(string name, double target)
+        {
+            if (SimStore.TryGet(name, out var sub))
+            {
+                if (sub.GetNumber() != target)
+                {
+                    Logger.Debug($"Change GSX Config Variable '{name}' to '{target}'");
+                    await sub.WriteValue(target);
+                }
+            }
+            else
+                Logger.Error($"GSX Config Variable '{name}' not in SimStore");
         }
 
         public virtual async Task ReloadSimbrief()
         {
             Logger.Information($"Automation: Refreshing GSX SimBrief/VDGS Data");
             Logger.Debug($"Simbrief Refresh - inhibiting Couatl State Changes for {(double)Config.MenuOpenTimeout / 1000.0}s");
-            CouatlInhibitStateChanges = DateTime.Now + TimeSpan.FromMilliseconds(Config.MenuOpenTimeout);
-            var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(GsxMenuCommand.Open());
-            sequence.Commands.Add(GsxMenuCommand.Select(15));
-            await Menu.RunSequence(sequence);
+            await ApiClient.CommandRun(GsxCommandRunType.ReloadSimbrief);
 
             await Task.Delay(Config.OperatorWaitTimeout * 2, RequestToken);
         }
@@ -709,8 +806,49 @@ namespace Any2GSX.GSX
             return GsxServices[GsxServiceType.Refuel].Cancel();
         }
 
+        public virtual void SetPushDirection(string direction)
+        {
+            bool notify = AutoSelectionPushback != direction;
+            if (notify)
+            {
+                AutoSelectionPushback = direction;
+                _ = TaskTools.RunPool(() => OnPushDirectionChanged?.Invoke(AutoSelectionPushback), RequestToken);
+            }
+        }
+
+        public virtual void SetArrivalGate(JsonNode node)
+        {
+            bool notify = AutoSelectionArrivalGate?.ToString() != node?.ToString();
+            if (notify)
+            {
+                AutoSelectionArrivalGate = node;
+                _ = TaskTools.RunPool(() => OnArrivalGateChanged?.Invoke(AutoSelectionArrivalGate?.ToString() ?? ""), RequestToken);
+            }
+        }
+
+        public virtual void SetArrivalGateName(string name)
+        {
+            bool notify = AutoSelectionArrivalGate?.ToString() != name;
+            if (notify)
+            {
+                AutoSelectionArrivalGate = JsonValue.Create(name);
+                _ = TaskTools.RunPool(() => OnArrivalGateChanged?.Invoke(AutoSelectionArrivalGate?.ToString() ?? ""), RequestToken);
+            }
+        }
+
+        public virtual void SetArrivalGateNumber(int number)
+        {
+            bool notify = AutoSelectionArrivalGate?.ToString() != number.ToString();
+            if (notify)
+            {
+                AutoSelectionArrivalGate = JsonValue.Create(number);
+                _ = TaskTools.RunPool(() => OnArrivalGateChanged?.Invoke(AutoSelectionArrivalGate?.ToString() ?? ""), RequestToken);
+            }
+        }
+
         public override async Task Stop()
         {
+            await ApiClient.Stop();
             AutomationController.Stop();
             Menu.Reset();
 
@@ -722,11 +860,8 @@ namespace Any2GSX.GSX
             WalkaroundPreActionNotified = false;
             WalkaroundNotified = false;
             WalkAroundSkipActive = false;
-            CouatlVarsValid = false;
-            CouatlVarsReceived = false;
-            CouatlLastProgress = 0;
-            CouatlLastStarted = 0;
             CouatlInvalidCount = 0;
+            LastReadyState = false;
             FirstGroundCheck = true;
             GroundCounter = 0;
             IsAirStart = false;
@@ -739,8 +874,12 @@ namespace Any2GSX.GSX
         {
             try
             {
+                ApiClient.ReadyStateChanged -= OnReadyStateChange;
+
+                ServiceReposition.OnRepositionSignal -= OnRepositionSignal;
+
                 foreach (var service in GsxServices)
-                    service.Value.FreeResources();
+                    service.Value.ReleaseSubscriptions();
 
                 Menu.FreeResources();
                 AutomationController.FreeResources();
@@ -750,12 +889,6 @@ namespace Any2GSX.GSX
                 SimStore.Remove(GsxConstants.VarSetAutoFuel);
                 SimStore.Remove(GsxConstants.VarSetAutoPayload);
                 SimStore.Remove(GsxConstants.VarSetAutoEquip);
-                SimStore.Remove(GsxConstants.VarReadAutoMode);
-                SimStore.Remove(GsxConstants.VarSetAutoMode);
-                SimStore.Remove(GsxConstants.VarReadCustFuel);
-                SimStore.Remove(GsxConstants.VarSetCustFuel);
-                SimStore.Remove(GsxConstants.VarReadProgFuel);
-                SimStore.Remove(GsxConstants.VarSetProgFuel);
                 SimStore.Remove(GenericSettings.VarSmartButtonDefault);
                 SimStore.Remove(GsxConstants.VarDeiceAvail);
                 SimStore.Remove(GsxConstants.VarCrewTarget);
@@ -772,15 +905,15 @@ namespace Any2GSX.GSX
                 SimStore.Remove(GsxConstants.VarCargoLoader1);
                 SimStore.Remove(GsxConstants.VarCargoLoader2);
                 SimStore.Remove(GsxConstants.VarCargoLoader3);
-                SimStore[GsxConstants.VarCouatlStarted]?.OnReceived -= OnCouatlVariable;
-                SimStore[GsxConstants.VarCouatlSimbrief]?.OnReceived -= OnCouatlSimbrief;
-                SimStore[GsxConstants.VarCouatlStartProg5]?.OnReceived -= OnCouatlVariable;
-                SimStore[GsxConstants.VarCouatlStartProg6]?.OnReceived -= OnCouatlVariable;
-                SimStore[GsxConstants.VarCouatlStartProg7]?.OnReceived -= OnCouatlVariable;
-                SimStore.Remove(GsxConstants.VarCouatlStarted);
-                SimStore.Remove(GsxConstants.VarCouatlStartProg5);
-                SimStore.Remove(GsxConstants.VarCouatlStartProg6);
-                SimStore.Remove(GsxConstants.VarCouatlStartProg7);
+                SimStore.Remove(GsxConstants.VarCargoTrainEmptyFront);
+                SimStore.Remove(GsxConstants.VarCargoTrainEmptyRear);
+                SimStore.Remove(GsxConstants.VarCargoTrainEmptyMain);
+                SimStore.Remove(GsxConstants.VarCargoTrainFullFront);
+                SimStore.Remove(GsxConstants.VarCargoTrainFullRear);
+                SimStore.Remove(GsxConstants.VarCargoTrainFullMain);
+                SimStore.Remove(GsxConstants.VarSetRemoteServer);
+                SubsCargoTrainsEmpty.Clear();
+                SubsCargoTrainsFull.Clear();
 
                 SimStore.Remove("SIM ON GROUND");
                 SimStore.Remove("ABSOLUTE TIME");

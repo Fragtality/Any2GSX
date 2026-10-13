@@ -1,4 +1,5 @@
 ﻿using Any2GSX.Aircraft;
+using Any2GSX.API;
 using Any2GSX.AppConfig;
 using Any2GSX.Audio;
 using Any2GSX.CommBus;
@@ -6,6 +7,8 @@ using Any2GSX.GSX;
 using Any2GSX.Notifications;
 using Any2GSX.PluginInterface;
 using Any2GSX.PluginInterface.Interfaces;
+using Any2GSX.PluginInterface.Interfaces.GSX;
+using Any2GSX.PluginInterface.Interfaces.GSX.API.Payload;
 using Any2GSX.Plugins;
 using Any2GSX.Tools;
 using CFIT.AppFramework.Messages;
@@ -46,7 +49,6 @@ namespace Any2GSX
         public virtual ICommBus ICommBus => CommBus;
         public virtual InputEventManager InputEventManager => SimConnect.InputManager;
         public virtual IWeightConverter WeightConverter { get; } = new WeightConverter();
-        public virtual double FuelWeightKgPerGallon => AircraftController?.FuelWeightKgPerGallon ?? 3.03907;
         public virtual Flightplan Flightplan { get; set; }
         public virtual IFlightplan IFlightplan => Flightplan;
         public virtual NotificationManager NotificationManager { get; protected set; }
@@ -65,7 +67,8 @@ namespace Any2GSX
         public virtual SettingProfile SettingProfile { get; protected set; } = null;
         public virtual string ProfileName => SettingProfile?.Name ?? "NULL";
         public virtual PluginCapabilities PluginCapabilities { get; protected set; } = new();
-        public virtual ApiController ApiController { get; protected set; }
+        public virtual CommBusServer CommBusServer { get; protected set; }
+        public virtual ApiServer ApiServer { get; protected set; }
         public virtual AppResetRequest ResetRequested { get; set; } = AppResetRequest.None;
         public virtual bool IsSessionInitialized { get; protected set; } = false;
         protected virtual DateTime NextGarbageCollection { get; set; } = DateTime.Now + TimeSpan.FromSeconds(300);
@@ -95,8 +98,10 @@ namespace Any2GSX
         {
             CommBus = SimConnect.AddModule(typeof(ModuleCommBus), Config) as ModuleCommBus;
 
-            ApiController = new(Config);
-            ServiceControllers.Add(ApiController);
+            CommBusServer = new();
+            ServiceControllers.Add(CommBusServer);
+            ApiServer = new();
+            ServiceControllers.Add(ApiServer);
 
             Flightplan = new();
             NotificationManager = new();
@@ -120,6 +125,7 @@ namespace Any2GSX
             else
                 SimStore.AddVariable("TITLE", SimUnitType.String).OnReceived += OnAtcTitleChanged;
             SimStore.AddVariable("ATC ID", SimUnitType.String).OnReceived += OnAtcIdChanged;
+            SimStore.AddVariable(Definition.ApiPortLvar, SimUnitType.Number);
 
             PluginController.Refresh();
             Config.InhibitSave = true;
@@ -240,6 +246,12 @@ namespace Any2GSX
                 SettingProfile = Config.SettingProfiles.First(p => p.Name == name);
                 SettingProfile.Load();
                 Logger.Debug($"Using Profile {SettingProfile}");
+                if (Config.CheckServices(SettingProfile))
+                {
+                    Config.InhibitSave = false;
+                    Config.SaveConfiguration();
+                    Config.InhibitSave = true;
+                }
                 PluginCapabilities = PluginController.GetPluginCapabilities(SettingProfile.PluginId);
                 NotifyProfileChanged();
                 NotifyPluginCapabilitiesChanged();
@@ -274,7 +286,7 @@ namespace Any2GSX
             profile ??= Config.SettingProfiles.Where(p => p.IsDefault).First() ?? new SettingProfile() { IsReadOnly = true };
 
             Logger.Information($"Matched Setting Profile: {profile}");
-            return Config.CheckServices(profile);
+            return profile;
         }
 
         protected virtual SettingProfile SearchSettingProfile(IEnumerable<SettingProfile> settingProfiles)
@@ -300,6 +312,8 @@ namespace Any2GSX
                 if (IsSessionInitialized)
                     return;
 
+                MessageService.Send<MsgAppSessionStarting>();
+
                 if (string.IsNullOrWhiteSpace(Config?.SimbriefUser))
                 {
                     MessageBox.Show("SimBrief User is not set!\r\nConfigure your User Name or ID in the App Settings.", "SimBrief User", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -317,18 +331,18 @@ namespace Any2GSX
 
                 Logger.Debug($"Reset CommBus");
                 await CommBus.Reset();
-                await Task.Delay(750, Token);
+                await Task.Delay(750, RequestToken);
 
                 Logger.Debug($"Waiting for CommBus Module ...");
                 while (!CommBus.IsConnected && !Token.IsCancellationRequested && !RequestToken.IsCancellationRequested)
-                    await Task.Delay(Config.CheckInterval, Token);
+                    await Task.Delay(Config.CheckInterval, RequestToken);
                 Logger.Debug($"CommBus Module connected");
-                if (!IsExecutionAllowed || RequestToken.IsCancellationRequested)
+                if (!IsExecutionAllowed || Token.IsCancellationRequested || RequestToken.IsCancellationRequested)
                     return;
 
                 Logger.Debug($"Fetching Setting Profile");
                 SetSettingProfile();
-                if (!IsExecutionAllowed || RequestToken.IsCancellationRequested)
+                if (!IsExecutionAllowed || Token.IsCancellationRequested || RequestToken.IsCancellationRequested)
                     return;
 
                 Logger.Debug($"Reset Notification Tracker");
@@ -338,14 +352,14 @@ namespace Any2GSX
                 await GsxController.Start();
                 Logger.Debug($"Waiting for GSX Controller active ...");
                 while (!GsxController.IsActive && !Token.IsCancellationRequested)
-                    await Task.Delay(Config.CheckInterval, Token);
+                    await Task.Delay(Config.CheckInterval, RequestToken);
                 Logger.Debug($"GSX Controller active");
-                if (!IsExecutionAllowed || RequestToken.IsCancellationRequested)
+                if (!IsExecutionAllowed || Token.IsCancellationRequested || RequestToken.IsCancellationRequested)
                     return;
 
                 Logger.Debug($"Start AircraftController");
                 await AircraftController.Start();
-                if (!IsExecutionAllowed || RequestToken.IsCancellationRequested)
+                if (!IsExecutionAllowed || Token.IsCancellationRequested || RequestToken.IsCancellationRequested)
                     return;
 
                 Logger.Debug($"Start Notification Manager");
@@ -357,7 +371,9 @@ namespace Any2GSX
                     await AudioController.Start();
                 }
 
+                ApiServer.UpdatePortInfo();
                 IsSessionInitialized = true;
+                MessageService.Send<MsgAppSessionStarted>();
             }
             catch (Exception ex)
             {
@@ -374,6 +390,8 @@ namespace Any2GSX
             {
                 if (!IsSessionInitialized)
                     return;
+
+                MessageService.Send<MsgAppSessionStopping>();
 
                 Logger.Debug($"Cancel Request Token");
                 RequestTokenSource.Cancel();
@@ -402,6 +420,7 @@ namespace Any2GSX
                 Config.SetDisplayUnit(Config.DisplayUnitDefault);
 
                 LastGsxRestart = DateTime.MinValue;
+                RequestTokenSource.Dispose();
             }
             catch (Exception ex)
             {
@@ -410,6 +429,7 @@ namespace Any2GSX
             }
 
             IsSessionInitialized = false;
+            MessageService.Send<MsgAppSessionStopped>();
             Logger.Debug("--- Session Cleanup Done ---"); ;
         }
 
@@ -424,11 +444,40 @@ namespace Any2GSX
             LastGsxRestart = DateTime.Now;
         }
 
-        public virtual async Task RestartGsx()
+        public virtual async Task RestartGsx(bool force = false)
+        {
+            NotificationTracker.Track(AppNotification.GsxRestart);
+            await GsxController.ApiClient.Disconnect();
+            if (Config.GsxUseHardReset || force)
+                await KillGsx();
+            else
+                await ResetGsx();
+            NotificationTracker.Clear(AppNotification.GsxRestart);
+        }
+
+        protected virtual async Task ResetGsx()
         {
             try
             {
-                NotificationTracker.Track(AppNotification.GsxRestart);
+                await GsxController.ApiClient.CommandRun(GsxCommandRunType.RestartCouatl);
+
+                Logger.Debug($"Wait for Couatl Restart ({Config.DelayGsxBinaryStart}ms) ...");
+                await Task.Delay(Config.DelayGsxBinaryStart, Token);
+
+                Logger.Debug($"GSX Restart finished");
+                SetGsxStartTime();
+            }
+            catch (Exception ex)
+            {
+                if (ex is not TaskCanceledException)
+                    Logger.LogException(ex);
+            }
+        }
+
+        protected virtual async Task KillGsx()
+        {
+            try
+            {
                 Sys.KillProcess(App.Config.BinaryGsx2020);
                 Sys.KillProcess(App.Config.BinaryGsx2024);
 
@@ -449,7 +498,6 @@ namespace Any2GSX
                     Sys.StartProcess(Path.Join(dir, $"{App.Config.BinaryGsx2024}.exe"), dir);
                 }
 
-                await GsxController.ServiceStairs.ResetVehicleState();
                 Logger.Debug($"Wait for Binary Start ({Config.DelayGsxBinaryStart}ms) ...");
                 await Task.Delay(Config.DelayGsxBinaryStart, Token);
 
@@ -461,7 +509,6 @@ namespace Any2GSX
                 if (ex is not TaskCanceledException)
                     Logger.LogException(ex);
             }
-            NotificationTracker.Clear(AppNotification.GsxRestart);
         }
 
         protected override async Task MainLoop()
@@ -472,15 +519,17 @@ namespace Any2GSX
             {
                 Logger.Debug($"Reset was requested: {ResetRequested}");
                 Logger.Information($"Restarting App Services ...");
+                bool session = IsSessionInitialized;
                 await SessionCleanup();
                 if (ResetRequested == AppResetRequest.App)
                     await Task.Delay(2500, Token);
                 else
                 {
                     Logger.Information($"Restarting GSX ...");
-                    await RestartGsx();
+                    await RestartGsx(true);
                 }
-                await SessionInitialize();
+                if (session)
+                    await SessionInitialize();
                 ResetRequested = AppResetRequest.None;
             }
             else if (DateTime.Now >= NextGarbageCollection)
@@ -513,6 +562,7 @@ namespace Any2GSX
                 }
                 SimStore["ATC ID"]?.OnReceived -= OnAtcIdChanged;
                 SimStore.Remove("ATC ID");
+                SimStore.Remove(Definition.ApiPortLvar);
 
                 MessageService.Unsubscribe<MsgSessionReady>(SessionInitialize);
                 MessageService.Unsubscribe<MsgSessionEnded>(SessionCleanup);
@@ -522,18 +572,6 @@ namespace Any2GSX
             catch { }
 
             return Task.CompletedTask;
-        }
-
-        public virtual void UpdatePortFile()
-        {
-            try
-            {
-                File.WriteAllText(".port", CommBus.Port.ToString());
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-            }
         }
     }
 }

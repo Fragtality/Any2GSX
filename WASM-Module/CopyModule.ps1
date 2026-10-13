@@ -18,10 +18,12 @@ $moduleNameOut = $packageName + ".wasm"
 
 $pathPackageProj20 = "MSFS2020-Package\PackageSources\WASM"
 $pathPackageProj24 = "MSFS2024-Package\PackageSources\WASM"
+$pathPackage20 = "MSFS2020-Package\Packages\" + $packageName + "\modules"
+$pathPackage24 = "MSFS2024-Package\Packages\" + $packageName + "\modules"
 
 $copySim = $false
-$pathMSFS20 = "F:\MSFS2020\Packages\Community\" + $packageName + "\modules"
-$pathMSFS24 = "F:\MSFS2020\Packages2024\Community\" + $packageName + "\modules"
+$pathMSFS20 = "F:\Addons\Packages2020\Community\" + $packageName + "\modules"
+$pathMSFS24 = "F:\Addons\Packages2024\Community\" + $packageName + "\modules"
 
 try {	
 	$pathModule = Join-Path $pathProject (Join-Path "bin" (Join-Path $buildConfiguration $moduleNameIn))
@@ -29,9 +31,13 @@ try {
 	#Package 2020
 	$pathOutput = Join-Path (Join-Path $pathBase $pathPackageProj20) $moduleNameOut
 	Copy-Item -Path $pathModule -Destination $pathOutput -Force | Out-Null
+	$pathOutput = Join-Path (Join-Path $pathBase $pathPackage20) $moduleNameOut
+	Copy-Item -Path $pathModule -Destination $pathOutput -Force | Out-Null
 	
 	#Package 2024
 	$pathOutput = Join-Path (Join-Path $pathBase $pathPackageProj24) $moduleNameOut
+	Copy-Item -Path $pathModule -Destination $pathOutput -Force | Out-Null
+	$pathOutput = Join-Path (Join-Path $pathBase $pathPackage24) $moduleNameOut
 	Copy-Item -Path $pathModule -Destination $pathOutput -Force | Out-Null
 	
 	#Direct Sim Output

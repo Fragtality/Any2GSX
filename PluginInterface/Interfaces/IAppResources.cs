@@ -1,4 +1,5 @@
-﻿using CFIT.AppFramework.ResourceStores;
+﻿using Any2GSX.PluginInterface.Interfaces.GSX;
+using CFIT.AppFramework.ResourceStores;
 using CFIT.SimConnectLib.InputEvents;
 using System.ComponentModel;
 using System.Threading;
@@ -19,7 +20,6 @@ namespace Any2GSX.PluginInterface.Interfaces
         public bool IsMsfs2020 { get; }
         public bool IsMsfs2024 { get; }
         public IWeightConverter WeightConverter { get; }
-        public double FuelWeightKgPerGallon { get; }
         public IFlightplan IFlightplan { get; }
         public CancellationToken Token { get; }
         public ICommBus ICommBus { get; }

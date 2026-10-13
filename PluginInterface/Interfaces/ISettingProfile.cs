@@ -41,7 +41,6 @@ namespace Any2GSX.PluginInterface.Interfaces
         public bool CallJetwayStairsOnArrival { get; }
         public int RemoveStairsAfterDepature { get; }
         public bool SecureAircraftOnSessionStart { get; }
-        public bool AttemptConnectStairRefuel { get; }
         public bool SkipFuelOnTankering { get; }
         public bool CallPushbackOnBeacon { get; }
         public int CallPushbackWhenTugAttached { get; }
@@ -61,6 +60,7 @@ namespace Any2GSX.PluginInterface.Interfaces
         public bool DoorPanelHandling { get; }
         public bool DoorCargoHandling { get; }
         public bool DoorCargoOpenOnActive { get; }
+        public bool DoorCargoOperateBulk { get; }
         public int DoorCargoOpenCloseDelay { get; }
         public bool DoorsCargoKeepOpenOnDetachBoard { get; }
         public bool DoorsCargoKeepOpenOnDetachDeboard { get; }

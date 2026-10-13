@@ -114,22 +114,34 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Column="0" Grid.Row="0" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The base Port to listen for CommBus Module Messages. If the Port can't be used, the next Port in the Range is tried.">
-                    CommBus Port:
+                <TextBlock Grid.Column="0" Grid.Row="0" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The Number of Attempts and Time between to search for free Ports (between Min and Max) and start the HTTP Listeners for CommBus &amp; API.">
+                    Port Scan:
                 </TextBlock>
-                <StackPanel Grid.Column="1" Grid.Row="0" Style="{StaticResource SettingItemPanel}" ToolTip="The base Port to listen for CommBus Module Messages. If the Port can't be used, the next Port in the Range is tried.">
-                    <TextBlock Margin="0,0,4,0" Style="{StaticResource TextBlockDefault}">Base Port:</TextBlock>
-                    <TextBox Name="InputPortBase" Style="{StaticResource TextBoxCentered}" MinWidth="72"/>
-                    <TextBlock Margin="11,0,4,0" Style="{StaticResource TextBlockDefault}">Range:</TextBlock>
-                    <TextBox Name="InputPortRange" Style="{StaticResource TextBoxCentered}"/>
+                <StackPanel Grid.Column="1" Grid.Row="0" Style="{StaticResource SettingItemPanel}" ToolTip="The Number of Attempts and Time between to search for free Ports (between Min and Max) and start the HTTP Listeners for CommBus &amp; API.">
+                    <TextBlock Margin="0,0,4,0" Style="{StaticResource TextBlockDefault}">Retries:</TextBlock>
+                    <TextBox Name="InputPortRetries" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="11,0,4,0" Style="{StaticResource TextBlockDefault}">Interval:</TextBlock>
+                    <TextBox Name="InputPortRetryInterval" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="4,0,4,0" Style="{StaticResource TextBlockDefault}" FontWeight="Light"><Italic>s</Italic></TextBlock>
                 </StackPanel>
 
-                <TextBlock Grid.Column="0" Grid.Row="1" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The Base URL used for connecting to the PilotsDeck API.">
+                <TextBlock Grid.Column="0" Grid.Row="1" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The Minimum and Maximum Port Number to search for free Ports - cannot be below 1025 or above 49151.">
+                    Port Range:
+                </TextBlock>
+                <StackPanel Grid.Column="1" Grid.Row="1" Style="{StaticResource SettingItemPanel}" ToolTip="The Minimum and Maximum Port Number to search for free Ports - cannot be below 1025 or above 49151.">
+                    <TextBlock Margin="15,0,4,0" Style="{StaticResource TextBlockDefault}">Min:</TextBlock>
+                    <TextBox Name="InputPortMin" Style="{StaticResource TextBoxCentered}"/>
+                    <TextBlock Margin="28,0,4,0" Style="{StaticResource TextBlockDefault}">Max:</TextBlock>
+                    <TextBox Name="InputPortMax" Style="{StaticResource TextBoxCentered}"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="0" Grid.Row="2" Margin="6" Style="{StaticResource TextBlockDefault}" ToolTip="The Base URL used for connecting to the PilotsDeck API.">
                     PilotsDeck URL:
                 </TextBlock>
-                <StackPanel Grid.Column="1" Grid.Row="1" Style="{StaticResource SettingItemPanel}" ToolTip="The Base URL used for connecting to the PilotsDeck API.">
+                <StackPanel Grid.Column="1" Grid.Row="2" Style="{StaticResource SettingItemPanel}" ToolTip="The Base URL used for connecting to the PilotsDeck API.">
                     <TextBox Name="InputDeckUrl" Style="{StaticResource TextBoxLeft}" MinWidth="228"/>
                 </StackPanel>
             </Grid>

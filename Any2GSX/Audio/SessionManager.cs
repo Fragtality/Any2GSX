@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Any2GSX.Audio
 {
@@ -106,7 +107,7 @@ namespace Any2GSX.Audio
                     session.RestoreVolumes();
         }
 
-        public virtual void CheckSessions(bool force = false)
+        public virtual async Task CheckSessions(bool force = false)
         {
             foreach (var channel in MappedAudioSessions)
             {
@@ -122,7 +123,7 @@ namespace Any2GSX.Audio
                         if (session.SessionControls.Count == 0 && sessions.Count != 0)
                         {
                             session.SetSessionList(sessions);
-                            session.SyncControls();
+                            await session.SyncControls();
                             if (!force)
                                 Logger.Debug($"Added {sessions.Count} SessionControls to AudioSession {session}");
                             else
@@ -135,11 +136,11 @@ namespace Any2GSX.Audio
             }
         }
 
-        public virtual void SyncControls()
+        public virtual async Task SyncControls()
         {
             foreach (var channel in MappedAudioSessions)
                 foreach (var session in channel.Value)
-                    session.SyncControls();
+                    await session.SyncControls();
         }
     }
 }

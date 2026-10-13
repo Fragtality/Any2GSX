@@ -6,6 +6,7 @@
         public virtual string CouatlVarsValid { get; set; }
         public virtual string AppConnectionState { get; set; }
         public virtual string AircraftConnectionState { get; set; }
+        public virtual string ExternalControlState { get; set; }
         public virtual string ProfileName { get; set; }
         public virtual string FlightPhase { get; set; }
         public virtual string PhaseStatus { get; set; }

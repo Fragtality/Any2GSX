@@ -1,5 +1,6 @@
 ﻿using Any2GSX.GSX.Automation;
 using Any2GSX.PluginInterface.Interfaces;
+using Any2GSX.PluginInterface.Interfaces.GSX;
 using CFIT.AppFramework.AppConfig;
 using CFIT.AppFramework.UI.ViewModels;
 using CFIT.AppLogger;
@@ -17,8 +18,10 @@ namespace Any2GSX.AppConfig
 {
     public class Config : AppConfigBase<Definition>, INotifyPropertyChanged, IConfig
     {
-        public virtual int PortBase { get; set; } = 60060;
-        public virtual int PortRange { get; set; } = 10;
+        public virtual int PortFindRetries { get; set; } = 5;
+        public virtual int PortFindRetryInterval { get; set; } = 1000;
+        public virtual int PortMin { get; set; } = 10000;
+        public virtual int PortMax { get; set; } = 49151;
         public virtual bool OpenAppWindowOnStart { get; set; } = false;
         [JsonIgnore]
         public virtual bool ForceOpen { get; set; } = false;
@@ -62,7 +65,13 @@ namespace Any2GSX.AppConfig
         public virtual int WaitGsxRestart { get; set; } = 15;
         public virtual bool ResetGsxStateVarsFlight { get; set; } = true;
         public virtual bool RestartGsxOnTaxiIn { get; set; } = false;
+        public virtual bool GsxUseHardReset { get; set; } = true;
         public virtual int DelayGsxBinaryStart { get; set; } = 2000;
+        public virtual int GsxApiKeepAlive { get; set; } = 10;
+        public virtual int GsxApiResultTimeout { get; set; } = 3000;
+        public virtual int GsxApiRetryInterval { get; set; } = 5000;
+        public virtual int WsReceiveBuffer { get; set; } = 4096;
+        public virtual string GsxApiConnectString { get; set; } = "ws://127.0.0.1:{0}";
         public virtual string AudioDebugFile { get; set; } = "log\\AudioDebug.txt";
         public virtual DataFlow AudioDeviceFlow { get; set; } = DataFlow.Render;
         public virtual DeviceState AudioDeviceState { get; set; } = DeviceState.Active;
@@ -73,7 +82,7 @@ namespace Any2GSX.AppConfig
         public virtual int AudioProcessMaxSearchCount { get; set; } = 30;
         public virtual bool AudioSynchSessionOnCountChange { get; set; } = false;
         public virtual List<string> AudioDeviceBlacklist { get; set; } = [];
-        public virtual int GsxServiceStartDelay { get; set; } = 8000;
+        public virtual int GsxServiceStartDelay { get; set; } = 3000;
         public virtual int GroundTicks { get; set; } = 2;
         public virtual int DelayForegroundChange { get; set; } = 1250;
         public virtual int DelayAircraftModeChange { get; set; } = 1500;
@@ -85,13 +94,13 @@ namespace Any2GSX.AppConfig
         public string DisplayUnitCurrentString => DisplayUnitCurrent.ToString().ToLowerInvariant();
         public virtual DisplayUnit DisplayUnitDefault { get; set; } = DisplayUnit.KG;
         public virtual DisplayUnitSource DisplayUnitSource { get; set; } = DisplayUnitSource.Simbrief;
-        public virtual int OperatorWaitTimeout { get; set; } = 1500;
-        public virtual int OperatorSelectTimeout { get; set; } = 25000;
+        public virtual int OperatorWaitTimeout { get; set; } = 3000;
+        [JsonIgnore]
+        public virtual int OperatorSelectTimeout => (int)(AppService.Instance?.GsxController?.ApiClient?.GetSetting<double>(GsxConstants.SettingOperatorTimeout) * 1000.0 ?? 10000.0);
         public virtual bool DebugArrival { get; set; } = false;
         public virtual int StateMachineInterval { get; set; } = 500;
         public virtual int DelayServiceStateChange { get; set; } = 750;
         public virtual bool GsxToolbarFixes { get; set; } = true;
-        public virtual bool GsxMenuTimeoutFix { get; set; } = true;
         public virtual int SpeedTresholdTaxiOut { get; set; } = 2;
         public virtual int SpeedTresholdTaxiIn { get; set; } = 30;
         public virtual bool OpenMenuOnTaxiIn { get; set; } = true;
@@ -99,12 +108,31 @@ namespace Any2GSX.AppConfig
         public virtual int RefuelDisconnectTimeout { get; set; } = 30000;
         public virtual int CargoPercentChangePerSec { get; set; } = 5;
         public virtual double RefuelMinimumRate { get; set; } = 5;
+        public virtual int PanelRefuelOperatorOpenDelay { get; set; } = 10;
+        public virtual int PanelRefuelOperatorCloseDelay { get; set; } = 45;
         public virtual int PanelRefuelOpenDelayUnderground { get; set; } = 80;
-        public virtual int PanelRefuelCloseDelayUnderground { get; set; } = 23;
+        public virtual int PanelRefuelCloseDelayUnderground { get; set; } = 15;
         public virtual int PanelRefuelOpenDelayTanker { get; set; } = 24;
         public virtual int PanelRefuelCloseDelayTanker { get; set; } = 20;
         public virtual int PanelLavatoryOpenDelay { get; set; } = 27;
         public virtual int PanelWaterOpenDelay { get; set; } = 27;
+        public virtual bool GsxSetGpuOnInternal { get; set; } = true;
+        public virtual bool GsxAllowSettingManipulation { get; set; } = true;
+        public virtual bool GsxChangePaxDensity { get; set; } = false;
+        public virtual int GsxPaxDensityJetway { get; set; } = 3;
+        public virtual int GsxPaxDensityStairs { get; set; } = 3;
+        public virtual bool GsxChangeLoadScale { get; set; } = false;
+        public virtual int GsxLoadScalePax { get; set; } = 50;
+        public virtual int GsxLoadScaleCargo { get; set; } = 50;
+        public virtual bool GsxChangeMultiTrips { get; set; } = false;
+        public virtual bool GsxMultiTripsPax { get; set; } = false;
+        public virtual bool GsxMultiTripsCargo { get; set; } = true;
+        public virtual bool GsxNotifyOnlyImportant { get; set; } = false;
+        public virtual bool GsxNotifyNoInvoice { get; set; } = false;
+        public virtual bool GsxNotifyNoAudio { get; set; } = false;
+        public virtual bool GsxNotifyNoCashRegister { get; set; } = false;
+        public virtual bool GsxNotifyPinnedMenuAuto { get; set; } = true;
+        public virtual bool GsxNotifyNoNumberKeys { get; set; } = true;
 
         public virtual List<SettingProfile> SettingProfiles { get; set; } = new()
         {
@@ -143,23 +171,49 @@ namespace Any2GSX.AppConfig
                 SettingProfiles.Add(new SettingProfile() { IsReadOnly = true });
         }
 
-        public virtual SettingProfile CheckServices(SettingProfile profile)
+        public static SettingProfile ResetServices(SettingProfile profile)
         {
-            if (!profile.DepartureServices.Any(s => s.Value.ServiceType == GsxServiceType.Cleaning))
+            profile.DepartureServices.Clear();
+            var defaultQueue = SettingProfile.GetDefaultQueue();
+            foreach (var service in defaultQueue)
+                profile.DepartureServices.Add(service.Key, service.Value);
+
+            return profile;
+        }
+
+        public virtual bool CheckServices(SettingProfile profile)
+        {
+            bool changed = false;
+            if (profile.DepartureServices.Any(s => s.Value.ServiceDependency == GsxServiceDependency.Unknown || s.Value.ServiceActivation > GsxServiceActivation.ServiceDependent))
             {
+                Logger.Warning($"Old Service Queue in Profile '{profile.Name}' - reset to default");
+                ResetServices(profile);
+                changed = true;
+            }
+            else if (!profile.DepartureServices.Any(s => s.Value.ServiceType == GsxServiceType.Cleaning))
+            {
+                Logger.Warning($"Cleaning missing in Profile '{profile.Name}' - adding to Queue");
                 var old = profile.DepartureServices.ToDictionary();
                 profile.DepartureServices.Clear();
                 int index = 0;
-                profile.DepartureServices.Add(index, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.AfterCalled, TimeSpan.Zero, GsxServiceConstraint.TurnAround, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero));
+                profile.DepartureServices.Add(index, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.ServiceDependent, TimeSpan.Zero, GsxServiceDependency.Requested, GsxServiceDependencyScope.LastCalled, false, true, false, false, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero));
                 index++;
                 foreach (var service in old)
                 {
                     profile.DepartureServices.Add(index, service.Value);
                     index++;
                 }
+                changed = true;
             }
 
-            return profile;
+            if (profile.PluginSettings.Remove("Generic.Option.Aircraft.RefuelStair"))
+                changed = true;
+            if (profile.PluginSettings.Remove("Generic.Option.Aircraft.FuelDialog"))
+                changed = true;
+            if (profile.PluginSettings.TryAdd(GenericSettings.VarParkBrakeToggleStart, true))
+                changed = true;
+
+            return changed;
         }
 
         protected override void UpdateConfiguration(int buildConfigVersion)
@@ -178,7 +232,7 @@ namespace Any2GSX.AppConfig
                         var old = profile.DepartureServices.ToDictionary();
                         profile.DepartureServices.Clear();
                         int index = 0;
-                        profile.DepartureServices.Add(index, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.AfterCalled, TimeSpan.Zero, GsxServiceConstraint.TurnAround, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero));
+                        profile.DepartureServices.Add(index, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.ServiceDependent, TimeSpan.Zero, GsxServiceDependency.Requested, GsxServiceDependencyScope.LastCalled, false, true, false, false, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero));
                         index++;
                         foreach (var service in old)
                         {
@@ -197,14 +251,43 @@ namespace Any2GSX.AppConfig
             if (ConfigVersion < 18 && buildConfigVersion >= 18)
             {
                 ResetGsxStateVarsFlight = false;
-                OperatorSelectTimeout = 25000;
                 DelayServiceStateChange = 750;
                 RefuelDisconnectTimeout = 30000;
                 GsxServiceStartDelay = 8000;
                 foreach (var profile in SettingProfiles)
                 {
-                    profile.DelayCallRefuelAfterStair = 60;
                     profile.ClearGateMenuOption = GsxChangePark.ClearAI;
+                }
+            }
+
+            if ((ConfigVersion < 23 && buildConfigVersion >= 23)
+                || ConfigVersion < 24 && buildConfigVersion >= 24)
+            {
+                PanelRefuelOpenDelayUnderground = 82;
+                PanelRefuelCloseDelayUnderground = 10;
+                PanelRefuelOpenDelayTanker = 75;
+                PanelRefuelCloseDelayTanker = 8;
+                PanelLavatoryOpenDelay = 35;
+                PanelWaterOpenDelay = 35;
+                OperatorWaitTimeout = 3000;
+                GsxServiceStartDelay = 3000;
+                GsxSetGpuOnInternal = true;
+                PortFindRetries = 5;
+                PortFindRetryInterval = 1000;
+                PortMin = 10000;
+                PortMax = 49151;
+
+                foreach (var profile in SettingProfiles)
+                {
+                    profile.CallJetwayStairsDuringDeparture = true;
+                    profile.PluginSettings.Remove("Generic.Option.Aircraft.RefuelStair");
+                    profile.PluginSettings.Remove("Generic.Option.Aircraft.FuelDialog");
+                    profile.PluginSettings.TryAdd(GenericSettings.VarParkBrakeToggleStart, true);
+
+                    profile.DepartureServices.Clear();
+                    var defaultQueue = SettingProfile.GetDefaultQueue();
+                    foreach (var service in defaultQueue)
+                        profile.DepartureServices.Add(service.Key, service.Value);
                 }
             }
         }
@@ -239,7 +322,7 @@ namespace Any2GSX.AppConfig
                 Logger.Warning($"SettingProfile is NULL");
                 return result;
             }
-            profile = CheckServices(profile);
+            CheckServices(profile);
 
             var query = SettingProfiles.Where(p => p.Name.Equals(profile.Name, StringComparison.InvariantCultureIgnoreCase));
             if (query.Any())

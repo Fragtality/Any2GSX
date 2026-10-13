@@ -1,4 +1,4 @@
-$msfsPackageDir = "F:\MSFS2020\Packages2024\Community"
+$msfsPackageDir = "F:\Addons\Packages2024\Community"
 ####
 
 $pathSource = (Join-Path $pwd.Path "dist") + "\*"

@@ -26,6 +26,6 @@
 
         <TextBlock Grid.Column="0" Grid.Row="0" Style="{StaticResource TextBlockDefault}" MinWidth="48" Padding="4" FontWeight="DemiBold" FontSize="14">Profile:</TextBlock>
         <TextBlock Grid.Column="1" Grid.Row="0" Name="ProfileDisplay" Text="{Binding Source={x:Static app:AppService.Instance}, Path=ProfileName}" Style="{StaticResource TextBlockDefault}" MinWidth="132" Padding="4" FontWeight="DemiBold" FontSize="14"/>
-        <ComboBox Grid.Column="1" Grid.Row="0" Name="SelectorProfiles" DisplayMemberPath="Name" IsEnabled="{Binding IsSessionStopped}" IsHitTestVisible="{Binding IsSessionStopped}" Style="{StaticResource ComboBoxDefault}" MinWidth="132" Padding="4" FontWeight="DemiBold" FontSize="14" Visibility="Hidden"/>
+        <ComboBox Grid.Column="1" Grid.Row="0" Name="SelectorProfiles" DisplayMemberPath="Name" IsEnabled="{Binding IsSessionStopped}" IsHitTestVisible="{Binding IsSessionStopped}" Style="{StaticResource ComboBoxDefault}" MinWidth="132" FontWeight="DemiBold" FontSize="14" Visibility="Hidden"/>
     </Grid>
 </UserControl>

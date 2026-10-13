@@ -6,8 +6,9 @@ namespace Any2GSX.UI.Views.Settings
     public enum AppSettingControl
     {
         OfpWeights = 0,
-        GsxSettings = 1,
-        AppServices = 2,
+        GsxParameter = 1,
+        GsxOptions = 2,
+        AppServices = 3,
     }
 
     public partial class ViewSettings : UserControl, IView
@@ -17,7 +18,8 @@ namespace Any2GSX.UI.Views.Settings
         protected static Dictionary<AppSettingControl, string> SettingGroups { get; } = new()
         {
             { AppSettingControl.OfpWeights, "OFP & Weights" },
-            { AppSettingControl.GsxSettings, "GSX Parameter" },
+            { AppSettingControl.GsxParameter, "GSX Parameter" },
+            { AppSettingControl.GsxOptions, "GSX Options" },
             { AppSettingControl.AppServices, "App Behavior" },
         };
 
@@ -28,7 +30,8 @@ namespace Any2GSX.UI.Views.Settings
             this.DataContext = ViewModel;
 
             SettingControls.Add(AppSettingControl.OfpWeights, new ControlOfpWeights(ViewModel));
-            SettingControls.Add(AppSettingControl.GsxSettings, new ControlGsxSettings(ViewModel));
+            SettingControls.Add(AppSettingControl.GsxParameter, new ControlGsxParameter(ViewModel));
+            SettingControls.Add(AppSettingControl.GsxOptions, new ControlGsxOptions(ViewModel));
             SettingControls.Add(AppSettingControl.AppServices, new ControlAppServices(ViewModel));
 
             SelectorSettingGroup.ItemsSource = SettingGroups;

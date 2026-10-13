@@ -1,15 +1,20 @@
 ﻿using Any2GSX.AppConfig;
+using Any2GSX.GSX.API;
 using Any2GSX.Notifications;
 using Any2GSX.PluginInterface.Interfaces;
+using Any2GSX.PluginInterface.Interfaces.GSX;
+using Any2GSX.PluginInterface.Interfaces.GSX.API.Messages;
+using Any2GSX.PluginInterface.Interfaces.GSX.API.Payload;
 using CFIT.AppLogger;
 using CFIT.AppTools;
 using CFIT.SimConnectLib.SimResources;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,12 +23,13 @@ namespace Any2GSX.GSX.Menu
     public class GsxMenu() : IGsxMenu
     {
         public virtual GsxController Controller => AppService.Instance.GsxController;
+        protected virtual GsxApiClient ApiClient => Controller.ApiClient;
+        protected virtual GsxApiData ApiData => ApiClient.ApiData;
         protected virtual NotificationManager NotificationManager => AppService.Instance.NotificationManager;
         public virtual NotificationTracker Tracker => AppService.Instance?.NotificationTracker;
         public virtual CancellationToken RequestToken => AppService.Instance.RequestToken;
         protected virtual Config Config => Controller.Config;
         protected virtual SettingProfile Profile => Controller.Profile;
-        public virtual string PathMenu => Path.Join(Controller.PathInstallation, GsxConstants.RelativePathMenu);
 
         public virtual bool IsInitialized { get; protected set; } = false;
         public virtual GsxMenuState MenuState { get; protected set; } = GsxMenuState.DISABLED;
@@ -42,22 +48,29 @@ namespace Any2GSX.GSX.Menu
         public virtual bool IsCommandActive { get; protected set; } = false;
         public virtual GsxMenuCommandType LastCommandType { get; protected set; } = (GsxMenuCommandType)(-1);
         public virtual bool MenuUpdatesBlocked => Tracker?.IsActive(AppNotification.UpdatesBlocked) == true;
-        public virtual bool MenuCommandsAllowed => !IsSequenceActive && !IsCommandActive && !MenuUpdatesBlocked && !ExternalSequence && !SettingMenuDetected;
+        public virtual bool MenuCommandsAllowed => !IsSequenceActive && !IsCommandActive && !MenuUpdatesBlocked && !ExternalSequence && !SettingMenuDetected && !SearchActive && ApiData?.MenuLoading == false;
         public virtual bool IsSequenceAllowed => !IsSequenceActive && !IsCommandActive && !SettingMenuDetected;
         public virtual bool IsCommandAllowed => !IsCommandActive && !SettingMenuDetected;
         public virtual bool OperatorCallbackActive { get; protected set; } = false;
         public virtual bool IsToolbarEnabled { get; protected set; } = false;
         public virtual bool NoJetwayDetected { get; protected set; } = false;
         public virtual bool SettingMenuDetected { get; protected set; } = false;
+        public virtual bool SearchActive => Controller?.ApiData?.SearchActive ?? false;
+        public virtual int SearchSession => Controller?.ApiData?.SearchSession ?? -1;
         public virtual bool WasFollowMeAnswered { get; protected set; } = false;
         public virtual bool IsFollowMeCallbackActive { get; protected set; } = false;
-        protected virtual bool WasOperatorSelected { get; set; }
         public virtual bool WasOperatorPreferred { get; protected set; } = false;
-        public virtual bool WasOperatorHandlingSelected { get; protected set; } = false;
-        public virtual bool WasOperatorFuelSelected { get; protected set; } = false;
-        public virtual bool WasOperatorCateringSelected { get; protected set; } = false;
+        public virtual ConcurrentDictionary<GsxMenuCommandOperatorType, bool> OperatorSelectionState { get; } = new()
+        {
+            { GsxMenuCommandOperatorType.Unknown, false },
+            { GsxMenuCommandOperatorType.Handling, false },
+            { GsxMenuCommandOperatorType.Refuel, false },
+            { GsxMenuCommandOperatorType.Catering, false },
+        };
+        public virtual bool WasStairRemoved { get; set; } = false;
+        protected virtual bool GateApiSelectionFaulted { get; set; } = false;
 
-        public virtual bool IsGateMenu => MatchTitle(GsxConstants.MenuGate);
+        public virtual bool IsGateMenu => ApiData?.HandlerData?.gate?.uiGateName != null;
         public virtual bool IsDeicePad => IsGateMenu && (MatchMenuLine(0, GsxConstants.MenuRequestDeice) || GetMenuLine(0).Contains("treatment", StringComparison.InvariantCultureIgnoreCase));
         public virtual bool IsSelectGateMenu => MatchTitle(GsxConstants.MenuParkingSelect);
         public virtual bool IsChangeGateMenu => MatchTitle(GsxConstants.MenuParkingChange);
@@ -65,7 +78,6 @@ namespace Any2GSX.GSX.Menu
         protected virtual ConcurrentDictionary<string, Func<GsxMenu, Task>> MenuCallbacks { get; } = [];
 
         protected virtual ISimResourceSubscription SubMenuEvent { get; set; }
-        protected virtual ISimResourceSubscription SubMenuOpen { get; set; }
         protected virtual ISimResourceSubscription SubMenuChoice { get; set; }
 
         public virtual double LastMenuSelection { get; protected set; } = -2;
@@ -83,8 +95,8 @@ namespace Any2GSX.GSX.Menu
             if (!IsInitialized)
             {
                 SubMenuEvent = Controller.SimStore.AddEvent(GsxConstants.EventMenu);
-                SubMenuEvent?.OnReceived += OnMenuEvent;
-                SubMenuOpen = Controller.SimStore.AddVariable(GsxConstants.VarMenuOpen);
+                SubMenuEvent?.OnReceived += OnMenuSimEvent;
+                ApiClient.MenuDataReceived += OnMenuApiEvent;
                 SubMenuChoice = Controller.SimStore.AddVariable(GsxConstants.VarMenuChoice);
                 SubMenuChoice?.OnReceived += OnMenuSelection;
 
@@ -102,6 +114,8 @@ namespace Any2GSX.GSX.Menu
                 MenuCallbacks.Add(GsxConstants.MenuOperatorFuel, OnOperatorSelection);
                 MenuCallbacks.Add(GsxConstants.MenuOperatorCater, OnOperatorSelection);
                 MenuCallbacks.Add(GsxConstants.MenuRefuelLevel, OnRefuelLevelQuestion);
+                MenuCallbacks.Add(GsxConstants.MenuRemoveStairs, OnRemoveStairQuestion);
+                MenuCallbacks.Add(GsxConstants.MenuPushbackDirection, OnPushDirectionSelection);
                 Controller.ServiceDeice.OnStateChanged += OnDeiceStateChanged;
 
                 IsInitialized = true;
@@ -115,8 +129,8 @@ namespace Any2GSX.GSX.Menu
                 Controller.ServiceDeice.OnStateChanged -= OnDeiceStateChanged;
                 Controller.OnCouatlStopped -= OnCouatlStopped;
 
-                Controller.SimStore.Remove(GsxConstants.EventMenu)?.OnReceived -= OnMenuEvent;
-                Controller.SimStore.Remove(GsxConstants.VarMenuOpen);
+                Controller.SimStore.Remove(GsxConstants.EventMenu)?.OnReceived -= OnMenuSimEvent;
+                ApiClient.MenuDataReceived -= OnMenuApiEvent;
                 SubMenuChoice?.OnReceived -= OnMenuSelection;
                 Controller.SimStore.Remove(GsxConstants.VarMenuChoice);
 
@@ -142,26 +156,28 @@ namespace Any2GSX.GSX.Menu
         protected virtual Task OnCouatlStopped(IGsxController gsxController)
         {
             ReadyReceived = false;
-            WasOperatorPreferred = false;
-            WasOperatorHandlingSelected = false;
-            WasOperatorFuelSelected = false;
-            WasOperatorCateringSelected = false;
-            WasFollowMeAnswered = false;
-            OperatorCallbackActive = false;
+            ResetOperatorSelections();
+            GateApiSelectionFaulted = false;
             return Task.CompletedTask;
+        }
+
+        protected virtual void ResetOperatorSelections()
+        {
+            WasOperatorPreferred = false;
+            foreach (var op in Enum.GetValues<GsxMenuCommandOperatorType>())
+                OperatorSelectionState[op] = false;
         }
 
         public virtual void ResetNotRunning()
         {
             FirstReadyReceived = false;
             LastReady = DateTime.Now;
-            WasOperatorPreferred = false;
-            WasOperatorHandlingSelected = false;
-            WasOperatorFuelSelected = false;
-            WasOperatorCateringSelected = false;
+            ResetOperatorSelections();
             DeiceGateQuestionAnswered = false;
             WasFollowMeAnswered = false;
             OperatorCallbackActive = false;
+            WasStairRemoved = false;
+            GateApiSelectionFaulted = false;
         }
 
         public virtual void Reset()
@@ -180,16 +196,17 @@ namespace Any2GSX.GSX.Menu
             IsCommandActive = false;
             LastCommandType = (GsxMenuCommandType)(-1);
             IsToolbarEnabled = false;
-            WasOperatorPreferred = false;
-            WasOperatorHandlingSelected = false;
-            WasOperatorFuelSelected = false;
-            WasOperatorCateringSelected = false;
+            ResetOperatorSelections();
             ExternalSequence = false;
             NoJetwayDetected = false;
             SettingMenuDetected = false;
             WasFollowMeAnswered = false;
             IsFollowMeCallbackActive = false;
             OperatorCallbackActive = false;
+            WasStairRemoved = false;
+            Controller.AutoSelectionPushback = "";
+            Controller.AutoSelectionArrivalGate = null;
+            GateApiSelectionFaulted = false;
         }
 
         public virtual void ResetFlight()
@@ -200,16 +217,16 @@ namespace Any2GSX.GSX.Menu
             LastCommandType = (GsxMenuCommandType)(-1);
             IsToolbarEnabled = false;
             LastReady = DateTime.Now;
-            WasOperatorPreferred = false;
-            WasOperatorHandlingSelected = false;
-            WasOperatorFuelSelected = false;
-            WasOperatorCateringSelected = false;
+            ResetOperatorSelections();
             ExternalSequence = false;
             NoJetwayDetected = false;
             SettingMenuDetected = false;
             WasFollowMeAnswered = false;
             IsFollowMeCallbackActive = false;
             OperatorCallbackActive = false;
+            WasStairRemoved = false;
+            Controller.AutoSelectionPushback = "";
+            GateApiSelectionFaulted = false;
         }
 
         public virtual void AddMenuCallback(string title, Func<IGsxMenu, Task> callback)
@@ -224,7 +241,7 @@ namespace Any2GSX.GSX.Menu
 
         public virtual bool MatchTitle(string match)
         {
-            return MenuTitle?.StartsWith(match, StringComparison.InvariantCultureIgnoreCase) == true;
+            return MenuTitle?.StartsWith(match, StringComparison.InvariantCultureIgnoreCase) == true || MenuTitle?.EndsWith(match, StringComparison.InvariantCultureIgnoreCase) == true;
         }
 
         public virtual void BlockMenuUpdates(bool active, string reason = "", [CallerMemberName] string name = "")
@@ -245,7 +262,7 @@ namespace Any2GSX.GSX.Menu
         protected virtual async Task OnRefuelLevelQuestion(GsxMenu menu)
         {
             Logger.Debug($"Refuel Level Question active");
-            if (!AppService.Instance.AircraftController.HasFuelDialog)
+            if (!Controller.HasRefuelDialog)
                 return;
 
             int i = 0;
@@ -274,7 +291,9 @@ namespace Any2GSX.GSX.Menu
             {
                 Tracker.Clear(AppNotification.UpdatesBlocked);
 
+                Logger.Information($"Automation: Answering Fuel Amount Question with '{GetMenuLine(i)}'");
                 await Select(i + 1);
+                await WaitInterval();
                 await Disable();
             }
         }
@@ -285,6 +304,17 @@ namespace Any2GSX.GSX.Menu
             return Select(1);
         }
 
+        protected virtual async Task OnRemoveStairQuestion(GsxMenu menu)
+        {
+            Logger.Debug($"Remove Stair Question active");
+            Logger.Information($"Automation: Answering Remove Stair Question with '{GetMenuLine(1 - 1)}'");
+            await Select(1);
+            await Disable();
+            WasStairRemoved = true;
+            if (Tracker.IsActive(AppNotification.UpdatesBlocked) && !Controller.HasRefuelDialog && !Controller.ServiceWater.IsRequested && !Controller.ServiceLavatory.IsRequested)
+                _ = TaskTools.RunDelayed(() => Tracker.Clear(AppNotification.UpdatesBlocked), Config.MenuOpenTimeout);
+        }
+
         protected virtual async Task OnTugQuestion(GsxMenu menu)
         {
             Logger.Debug($"Tug Question active");
@@ -292,16 +322,18 @@ namespace Any2GSX.GSX.Menu
             {
                 if (Profile.AttachTugDuringBoarding == 2)
                 {
+                    Logger.Information($"Automation: Answering Tug Question with '{GetMenuLine(0)}'");
                     await Select(1);
                     Logger.Debug($"Skip: {Profile.SkipCrewBoardQuestion}");
                     Logger.Debug($"Answer: {Profile.AnswerCrewBoardQuestion}");
-                    if (Profile.SkipCrewBoardQuestion || Profile.AnswerCrewBoardQuestion > 0)
+                    if (Profile.SkipCrewBoardQuestion || Profile.AnswerCrewBoardQuestion > 0 || ApiClient.GetSetting(GsxConstants.SettingIgnoreCrew) != 0)
                         await Disable();
                 }
                 else if (Profile.AttachTugDuringBoarding == 1)
                 {
+                    Logger.Information($"Automation: Answering Tug Question with '{GetMenuLine(1)}'");
                     await Select(2);
-                    if (Profile.SkipCrewBoardQuestion || Profile.AnswerCrewBoardQuestion > 0)
+                    if (Profile.SkipCrewBoardQuestion || Profile.AnswerCrewBoardQuestion > 0 || ApiClient.GetSetting(GsxConstants.SettingIgnoreCrew) != 0)
                         await Disable();
                 }
             }
@@ -320,9 +352,10 @@ namespace Any2GSX.GSX.Menu
                 IsFollowMeCallbackActive = true;
                 var sequence = new GsxMenuSequence();
                 sequence.Commands.Add(GsxMenuCommand.Select(2, GsxConstants.MenuFollowMe, ["No"]));
-                sequence.Commands.Add(GsxMenuCommand.Operator());
-                sequence.ResetMenuCheck = () => WasFollowMeAnswered == true;
-                sequence.EnableMenuAfterResetCheck = () => WasFollowMeAnswered == false;
+                sequence.Commands.Add(GsxMenuCommand.Operator(GsxMenuCommandOperatorType.Handling));
+                sequence.ResetMenuCheck = () => OperatorSelectionState[GsxMenuCommandOperatorType.Handling] == true;
+                sequence.EnableMenuAfterResetCheck = () => Profile.EnableMenuForSelection && (Controller.AutomationState < AutomationState.Pushback || Controller.AutomationState > AutomationState.Arrival);
+                Logger.Information($"Automation: Answering Follow-Me Question");
                 if (await RunSequence(sequence))
                     WasFollowMeAnswered = true;
                 IsFollowMeCallbackActive = false;
@@ -335,17 +368,40 @@ namespace Any2GSX.GSX.Menu
         {
             Logger.Debug($"Deice Push Question active");
             if ((Profile.RunAutomationService || Profile.PilotsDeckIntegration) && Profile.KeepDirectionMenuOpen && Profile.AnswerDeiceOnReopen && DeiceGateQuestionAnswered)
+            {
+                Logger.Information($"Automation: Answering Push Deice Question with '{GetMenuLine(1)}'");
                 return Select(2);
+            }
             else
                 return Task.CompletedTask;
         }
 
+        protected virtual async Task OnPushDirectionSelection(GsxMenu menu)
+        {
+            Logger.Debug($"Push Direction Selection active");
+            if (Profile.RunAutomationService && Controller.HasSelectionPushback)
+            {
+                int line = FindMenuLine(Controller.AutoSelectionPushback);
+                if (line >= 0)
+                {
+                    if (await Select(line + 1))
+                    {
+                        Logger.Information($"Automation: Selecting Pushback Direction '{Controller.AutoSelectionPushback}'");
+                        Controller.AutoSelectionPushback = "";
+                        await ApiClient.MenuClose();
+                    }
+                }
+            }
+            else
+                Tracker.Track(AppNotification.PushDirectionDisplayed);
+        }
+
         protected virtual Task OnDeiceStateChanged(IGsxService gsxService)
         {
-            if (!Controller.CouatlVarsValid)
+            if (!Controller.IsGsxRunning)
                 return Task.CompletedTask;
 
-            if (gsxService.State == GsxServiceState.Requested)
+            if (gsxService.IsRequested)
                 BlockMenuUpdates(true, "Deice Questions");
             else
                 BlockMenuUpdates(false);
@@ -356,10 +412,12 @@ namespace Any2GSX.GSX.Menu
         protected virtual Task OnParkingSelect(GsxMenu menu)
         {
             Logger.Debug($"Select Parking active");
+            ResetOperatorSelections();
 
             if (IsSequenceAllowed)
             {
-                Tracker.Track(AppNotification.GateSelect);
+                if (!Tracker.IsActive(AppNotification.GateSelect) && (Controller.AutomationState != AutomationState.TaxiOut || Controller.IsDeiceAvail))
+                    Tracker.Track(AppNotification.GateSelect);
                 Tracker.Clear(AppNotification.GateMove);
             }
 
@@ -369,15 +427,16 @@ namespace Any2GSX.GSX.Menu
         protected virtual Task OnParkingChange(GsxMenu menu)
         {
             Logger.Debug($"Change Parking active");
-            WasOperatorHandlingSelected = false;
-            WasOperatorFuelSelected = false;
-            WasOperatorCateringSelected = false;
-
             Tracker.Clear(AppNotification.GateSelect);
-            if (Controller.AutomationState != AutomationState.Flight)
-                Tracker.Track(AppNotification.GateMove);
 
-            return Tracker.CaptureGate(this);
+            if (GsxConstants.MenuRegexFacility.GroupMatches(GetMenuLine(0), 1, out var group) || GsxConstants.MenuRegexFacility.GroupMatches(GetMenuLine(2), 1, out group))
+            {
+                string parking = Regex.Replace(group, @"\([^\)]+\)", "").Trim();
+                parking = Regex.Replace(parking, @"\[[^\]]+\]", "").Trim();
+                Tracker.CaptureSelectedGate(parking);
+            }
+
+            return Task.CompletedTask;
         }
 
         protected virtual async Task OnCrewBoardQuestion(GsxMenu menu)
@@ -385,6 +444,7 @@ namespace Any2GSX.GSX.Menu
             Logger.Debug($"Board Crew Question active");
             if (Profile.RunAutomationService && Profile.AnswerCrewBoardQuestion > 0)
             {
+                Logger.Information($"Automation: Answering Crew Board Question with '{GetMenuLine(Profile.AnswerCrewBoardQuestion - 1)}'");
                 await Select(Profile.AnswerCrewBoardQuestion);
                 await Disable();
             }
@@ -397,6 +457,7 @@ namespace Any2GSX.GSX.Menu
             Logger.Debug($"Deboard Crew Question active");
             if (Profile.RunAutomationService && Profile.AnswerCrewDeboardQuestion > 0)
             {
+                Logger.Information($"Automation: Answering Crew Deboard Question with '{GetMenuLine(Profile.AnswerCrewDeboardQuestion - 1)}'");
                 await Select(Profile.AnswerCrewDeboardQuestion);
                 await Disable();
             }
@@ -407,11 +468,11 @@ namespace Any2GSX.GSX.Menu
         protected virtual async Task OnOperatorSelection(GsxMenu menu)
         {
             OperatorCallbackActive = true;
-            Logger.Debug($"Operator Question active");
-
             try
             {
-                SetOperatorSelected(false);
+                GsxMenuCommandOperatorType type = SetOperatorSelected(false);
+
+                Logger.Debug($"{type} Operator Question active");
                 if (!Profile.RunAutomationService)
                 {
                     OperatorCallbackActive = false;
@@ -424,30 +485,46 @@ namespace Any2GSX.GSX.Menu
                 {
                     if (gsxOperator.Preferred && (Profile.OperatorAutoSelect || Profile.OperatorPreferenceSelect))
                     {
-                        Logger.Information($"Selecting Operator '{gsxOperator.Title}' (Preferred)");
+                        Logger.Information($"Automation: Selecting {type} Operator '{gsxOperator.Title}' (Preferred)");
                         if (!WasOperatorPreferred)
                             WasOperatorPreferred = MatchTitle(GsxConstants.MenuOperatorHandling);
                         doSelection = gsxOperator.Number;
                     }
                     else if (Profile.OperatorAutoSelect)
                     {
-                        Logger.Information($"Selecting Operator '{gsxOperator.Title}' (GSX Choice)");
+                        Logger.Information($"Automation: Selecting {type} Operator '{gsxOperator.Title}' (GSX Choice)");
                         doSelection = gsxOperator.Number;
                     }
                 }
                 else if (Profile.OperatorAutoSelect)
                 {
-                    Logger.Warning($"Selecting Operator #1 - no Matches found");
+                    Logger.Warning($"Automation: Selecting {type} Operator #1 - no Matches found");
                     doSelection = 1;
                 }
 
                 if (doSelection > 0)
                 {
                     SetOperatorSelected(true);
-                    if (MenuLineCount > 1 && MenuState <= GsxMenuState.HIDE)
+                    bool apiSetting = ApiClient.GetSetting(GsxConstants.SettingAutoSingleOperator) == 0;
+                    if (MenuLineCount > 1 || apiSetting)
+                    {
                         await Select(doSelection);
+                        if (IsToolbarEnabled && !Controller.ServicePushBack.IsRunning)
+                            await Disable();
+                    }
                     else
-                        Logger.Debug($"Automatic Operation Selection skipped - Count: {MenuLineCount} | State: {MenuState}");
+                        Logger.Debug($"Automatic {type} Operator Selection skipped - Count: {MenuLineCount} | State: {MenuState} | GSX Setting: {apiSetting}");
+                }
+                else if (!IsSequenceActive)
+                {
+                    _ = TaskTools.RunDelayed(() =>
+                    {
+                        if (!OperatorSelectionState[type])
+                        {
+                            Logger.Debug($"Timeout on manual {type} Operator Selection - fix State");
+                            SetOperatorSelected(true, type);
+                        }
+                    }, Config.OperatorSelectTimeout);
                 }
             }
             catch (Exception ex)
@@ -458,15 +535,31 @@ namespace Any2GSX.GSX.Menu
             OperatorCallbackActive = false;
         }
 
-        protected virtual void SetOperatorSelected(bool value)
+        public virtual GsxMenuCommandOperatorType GetMenuOperatorType()
         {
             if (MatchTitle(GsxConstants.MenuOperatorHandling))
-                WasOperatorHandlingSelected = value;
+                return GsxMenuCommandOperatorType.Handling;
             else if (MatchTitle(GsxConstants.MenuOperatorFuel))
-                WasOperatorFuelSelected = value;
+                return GsxMenuCommandOperatorType.Refuel;
+            else if (MatchTitle(GsxConstants.MenuOperatorCater))
+                return GsxMenuCommandOperatorType.Catering;
             else
-                WasOperatorCateringSelected = value;
-            WasOperatorSelected = value;
+                return GsxMenuCommandOperatorType.Unknown;
+        }
+
+        protected virtual GsxMenuCommandOperatorType SetOperatorSelected(bool value, GsxMenuCommandOperatorType type = GsxMenuCommandOperatorType.Unknown)
+        {
+            if (type == GsxMenuCommandOperatorType.Unknown)
+                type = GetMenuOperatorType();
+
+            if (type > GsxMenuCommandOperatorType.Unknown)
+            {
+                if (OperatorSelectionState[type] != value)
+                    Logger.Debug($"Operator Selection Status for {type} set to: {value}");
+                OperatorSelectionState[type] = value;
+            }
+
+            return type;
         }
 
         protected virtual Task OnMenuSelection(ISimResourceSubscription sub, object value)
@@ -478,8 +571,8 @@ namespace Any2GSX.GSX.Menu
             }
             else if (num == -1)
             {
-                SettingMenuDetected = false;
                 Logger.Debug($"Received Menu Selection: Timeout ({num})");
+                SettingMenuDetected = false;
                 LastTimeout = DateTime.Now;
             }
             else if (num == 0 && MatchTitle(GsxConstants.MenuPushbackInterrupt) && Controller.ServicePushBack.PushStatus > 0)
@@ -490,6 +583,7 @@ namespace Any2GSX.GSX.Menu
             {
                 Logger.Debug($"Pushback Direction selected: {num + 1} - '{GetMenuLine(num)}'");
                 Tracker.Track(AppNotification.PushReleaseBrake);
+                Tracker.Track(AppNotification.PushDirectionSelected);
             }
             else if (MatchTitle(GsxConstants.MenuDeiceOnPush))
             {
@@ -501,8 +595,11 @@ namespace Any2GSX.GSX.Menu
                 Tracker.TrackTimeout(AppNotification.UpdatesBlocked, Config.MenuOpenTimeout, "Warp to Gate");
                 if (Profile.RunAutomationService)
                 {
+                    if (IsToolbarEnabled)
+                        SetMenuState(GsxMenuState.HIDE);
                     Logger.Information($"Automation: Open Menu in {(Config.MenuOpenTimeout / 1000.0):F1}s for Gate/Pad Menu ...");
                     NotificationManager.MenuOpenDelayed = DateTime.Now + TimeSpan.FromMilliseconds(Config.MenuOpenTimeout);
+                    NotificationManager.MenuOpenDelayedEnableCheck = () => !Profile.RunAutomationService;
                 }
             }
             else if (IsOperatorMenu)
@@ -513,8 +610,6 @@ namespace Any2GSX.GSX.Menu
                     SetOperatorSelected(true);
                 }
             }
-            else if (IsSelectGateMenu && Controller.AutomationState == AutomationState.TaxiOut && Controller.IsDeiceAvail && GetMenuLine(num).Contains(GsxConstants.MenuLineDeice, StringComparison.InvariantCultureIgnoreCase))
-                Tracker.Track(AppNotification.GateSelect);
             else if (MatchTitle(GsxConstants.MenuFollowMe) && (num == 0 || num == 1))
             {
                 if (!IsFollowMeCallbackActive)
@@ -538,20 +633,18 @@ namespace Any2GSX.GSX.Menu
                 Tracker.Clear(AppNotification.GsxQuestion);
             LastSelectionTime = num >= 0 || num == -2 ? DateTime.Now : DateTime.MaxValue;
 
-            TaskTools.RunPool(() => NotificationManager.ClearMenu());
+            TaskTools.RunPool(() => NotificationManager.ClearMenu(), RequestToken);
             ReadyReceived = false;
             LastMenuSelection = num;
 
-            if (num >= 0 && IsToolbarEnabled &&
-                ((!Profile.SkipCrewBoardQuestion && Profile.AnswerCrewBoardQuestion == 0 && MatchTitle(GsxConstants.MenuBoardCrew))
-                || (!Profile.SkipCrewDeboardQuestion && Profile.AnswerCrewDeboardQuestion == 0 && MatchTitle(GsxConstants.MenuDeboardCrew))))
-                return Disable();
-            else
-                return Task.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public virtual void OnToolbarEvent(string data)
         {
+            if (!ApiClient.IsConnected)
+                return;
+
             IsToolbarEnabled = data?.Equals("true", StringComparison.InvariantCultureIgnoreCase) == true;
             Logger.Debug($"Toolbar {(IsToolbarEnabled ? "enabled" : "disabled")} by User");
             if (IsInitialized && Config.GsxToolbarFixes)
@@ -559,38 +652,46 @@ namespace Any2GSX.GSX.Menu
                 if (!IsToolbarEnabled)
                 {
                     Logger.Debug("Close Menu on disabled");
-                    _ = TaskTools.RunPool(async () =>
-                    {
-                        await SubMenuEvent.WriteValue((int)GsxMenuState.TIMEOUT);
-                        await WaitInterval(0.5);
-                        await SubMenuChoice?.WriteValue(-1);
-                    });
+                    _ = TaskTools.RunPool(Close, RequestToken);
                 }
                 else if ((DateTime.Now - LastReady).TotalMilliseconds >= Config.MenuCheckInterval)
                 {
                     Logger.Debug("Open Menu on enabled-ready");
                     _ = TaskTools.RunPool(async () =>
                     {
-                        await SubMenuEvent.WriteValue((int)GsxMenuState.TIMEOUT);
+                        await SetMenuState(GsxMenuState.TIMEOUT);
                         await WaitInterval(0.5);
-                        await SubMenuOpen?.WriteValue(1);
-                    });
+                        await ApiClient.MenuOpen();
+                    }, RequestToken);
                 }
             }
         }
 
-        protected virtual Task OnMenuEvent(ISimResourceSubscription sub, object value)
+        protected virtual Task OnMenuSimEvent(ISimResourceSubscription sub, object value)
+        {
+            var state = sub.GetValue<int>();
+            if (!Controller.IsActive || state <= (int)GsxMenuState.HIDE || state > (int)GsxMenuState.DISABLED)
+                return Task.CompletedTask;
+            else
+                return OnUpdateMenu((GsxMenuState)state, "", []);
+        }
+
+        protected virtual Task OnMenuApiEvent(GsxMenuState state, string title, string[] entries)
+        {
+            if (!Controller.IsActive)
+                return Task.CompletedTask;
+            else
+                return OnUpdateMenu(state, title, entries);
+        }
+
+        protected virtual Task OnUpdateMenu(GsxMenuState state, string title, string[] entries)
         {
             try
             {
-                var state = sub.GetValue<int>();
-                if (!Controller.IsActive || state > (int)GsxMenuState.DISABLED)
-                    return Task.CompletedTask;
-
-                MenuState = (GsxMenuState)state;
+                MenuState = state;
                 Logger.Debug($"Received Menu Event: {TextMenuState}");
 
-                if (!FirstReadyReceived && MenuState == GsxMenuState.READY)
+                if (!FirstReadyReceived && MenuState == GsxMenuState.READY && !string.IsNullOrWhiteSpace(title))
                 {
                     Logger.Debug($"First Menu Ready received");
                     FirstReadyReceived = true;
@@ -600,13 +701,13 @@ namespace Any2GSX.GSX.Menu
                 LastTitle = MenuTitle;
                 if (MenuState == GsxMenuState.READY)
                 {
-                    menuChanged = UpdateMenu();
+                    menuChanged = UpdateMenu(title, entries);
                     LastReady = DateTime.Now;
 
-                    if (IsGateMenu)
+                    if (MatchTitle(GsxConstants.MenuGate))
                     {
-                        Tracker.Clear(AppNotification.GateSelect);
                         Tracker.Clear(AppNotification.GateMove);
+                        Tracker.Clear(AppNotification.GateSelect);
                     }
                 }
                 else if (MenuState >= GsxMenuState.TIMEOUT)
@@ -618,13 +719,11 @@ namespace Any2GSX.GSX.Menu
 
                     if (MenuState == GsxMenuState.DISABLED)
                         IsToolbarEnabled = false;
-
-                    SettingMenuDetected = false;
                 }
 
                 LastSelectionTime = DateTime.MaxValue;
                 LastTimeout = MenuState == GsxMenuState.TIMEOUT ? DateTime.Now : DateTime.MaxValue;
-                ReadyReceived = MenuState == GsxMenuState.READY;
+                ReadyReceived = MenuState == GsxMenuState.READY && !string.IsNullOrWhiteSpace(title);
 
                 if (ReadyReceived && menuChanged)
                 {
@@ -639,10 +738,10 @@ namespace Any2GSX.GSX.Menu
                     }
                 }
 
-                if (MenuState == GsxMenuState.READY)
-                    _ = TaskTools.RunPool(() => OnMenuReady?.Invoke(this));
+                if (MenuState == GsxMenuState.READY && !string.IsNullOrWhiteSpace(title))
+                    _ = TaskTools.RunPool(() => OnMenuReady?.Invoke(this), RequestToken);
 
-                _ = TaskTools.RunPool(() => OnMenuReceived?.Invoke(this));
+                _ = TaskTools.RunPool(() => OnMenuReceived?.Invoke(this), RequestToken);
             }
             catch (Exception ex)
             {
@@ -691,21 +790,17 @@ namespace Any2GSX.GSX.Menu
             return -1;
         }
 
-        protected virtual bool UpdateMenu()
+        protected virtual bool UpdateMenu(string title, string[] entries)
         {
-            if (File.Exists(PathMenu))
-            {
-                MenuLines.Clear();
+            MenuLines.Clear();
 
-                var fileLines = File.ReadAllLines(PathMenu).ToArray();
-                var fileIndex = 0;
-                MenuTitle = fileLines[fileIndex++];
-                while (fileIndex < fileLines.Length)
-                    MenuLines.Add(fileLines[fileIndex++]);
-                Logger.Verbose($"Read {MenuLineCount} Lines");
+            MenuTitle = title;
+            foreach (string entry in entries)
+            {
+                if (!string.IsNullOrWhiteSpace(entry))
+                    MenuLines.Add(entry);
             }
-            else
-                Logger.Warning($"GSX Menu files does not exist! ({PathMenu})");
+            Logger.Debug($"Received {MenuLineCount} Lines");
 
             if (LastTitle != MenuTitle)
             {
@@ -758,13 +853,6 @@ namespace Any2GSX.GSX.Menu
             return SubMenuEvent.WriteValue((int)state);
         }
 
-        protected virtual async Task WriteMenuOpen()
-        {
-            Logger.Debug($"Open Menu ...");
-            await SubMenuOpen.WriteValue(1);
-            Logger.Debug($"Menu Open set.");
-        }
-
         protected virtual async Task<bool> Open(bool enableToolbar, int timeout = 0) //GSX Workaround (forcing enable on fail else not ready ...)
         {
             bool result;
@@ -772,30 +860,33 @@ namespace Any2GSX.GSX.Menu
             {
                 Logger.Debug($"Open - IsToolbarEnabled {IsToolbarEnabled} | enableToolbar {enableToolbar} | PilotsDeckIntegration {Profile.PilotsDeckIntegration}");
                 ReadyReceived = false;
+                GsxMessageResult apiResult = null;
                 if ((IsToolbarEnabled && !enableToolbar) || (IsToolbarEnabled && Profile.PilotsDeckIntegration))
                 {
                     Logger.Debug("Disable GSX Toolbar ...");
+                    await ApiClient.MenuClose();
                     if (Controller.IsWalkaround)
                         await AppService.Instance.CommBus.SendGsxMenu("Close"); //GSX Workaround - Menu not reacting to disable, hide or close (-1) in Walkaround
                     else
                         await SetMenuState(GsxMenuState.DISABLED);
                     IsToolbarEnabled = false;
                     await WaitInterval();
-                    await WriteMenuOpen();
+                    apiResult = await ApiClient.MenuOpen();
                 }
                 else if (!IsToolbarEnabled && enableToolbar && Profile.EnableMenuForSelection && !Profile.PilotsDeckIntegration)
                 {
                     Logger.Information($"Enable GSX Toolbar ...");
+                    await ApiClient.MenuClose();
+                    await WaitInterval(0.5);
                     await AppService.Instance.CommBus.SendGsxMenu("Open");
                     IsToolbarEnabled = true;
-                    await WaitInterval(2);
-                    if (!ReadyReceived)
-                        await WriteMenuOpen();
+                    await WaitInterval();
+                    apiResult = await ApiClient.MenuOpen();
                 }
                 else
-                    await WriteMenuOpen();
+                    apiResult = await ApiClient.MenuOpen();
 
-                result = await WaitMenuReady(timeout == 0 ? Config.MenuOpenTimeout : timeout);
+                result = apiResult?.HasError == false && await WaitMenuReady(timeout == 0 ? Config.MenuOpenTimeout : timeout);
                 if (!result)
                     await Disable();
             }
@@ -811,9 +902,10 @@ namespace Any2GSX.GSX.Menu
 
         protected virtual async Task<bool> Select(int number)
         {
-            Logger.Debug($"Menu Select Item {number} => Value {number - 1}");
+            Logger.Debug($"Menu Select Item '{number}'");
             ReadyReceived = false;
-            if (await SubMenuChoice.WriteValue(number - 1))
+            var result = await ApiClient.MenuSelect(number - 1);
+            if (!result.HasError)
             {
                 await WaitInterval();
                 return true;
@@ -825,30 +917,23 @@ namespace Any2GSX.GSX.Menu
         protected virtual async Task<bool> Close()
         {
             ReadyReceived = false;
-            if (await SetMenuState(GsxMenuState.TIMEOUT))
-            {
-                await WaitInterval(0.5);
-                await SubMenuChoice.WriteValue(-1);
-                await WaitInterval(0.5);
-                return true;
-            }
-            else
-                return false;
+            Logger.Debug($"Close Menu");
+            var apiResult = await ApiClient.MenuClose();
+            await WaitInterval(0.5);
+            var stateResult = await SetMenuState(GsxMenuState.TIMEOUT);
+
+            return apiResult?.HasError == false && stateResult;
         }
 
         protected virtual async Task<bool> Disable()
         {
             ReadyReceived = false;
             Logger.Debug($"Disable Menu");
-            if (await SubMenuEvent.WriteValue((int)GsxMenuState.DISABLED))
-            {
-                await WaitInterval(0.5);
-                await SubMenuChoice.WriteValue(-1);
-                await WaitInterval(0.5);
-                return true;
-            }
-            else
-                return false;
+            var apiResult = await ApiClient.MenuClose();
+            await WaitInterval(0.5);
+            var stateResult = await SetMenuState(GsxMenuState.DISABLED);
+
+            return apiResult?.HasError == false && stateResult;
         }
 
         protected virtual async Task<bool> SequenceWaiter(string type, Func<bool> allowed, int interval = 1000, int timeout = 30000)
@@ -872,6 +957,85 @@ namespace Any2GSX.GSX.Menu
             return result;
         }
 
+        public virtual async Task RunGateSelection()
+        {
+            if (Controller.HasSelectionArrivalGate)
+            {
+                ExternalSequence = true;
+                bool skipSelection = false;
+                var gateName = GsxPayloadHandlerGateInfo.NormalizeName(Controller.AutoSelectionArrivalGate.ToString());
+                Logger.Information($"Automation: Attempting to select Gate '{gateName}'");
+                await Open(Profile.EnableMenuForSelection && (!Profile.OperatorAutoSelect || !Profile.SkipFollowMe));
+                await WaitInterval(2);
+
+                GsxMessageResult result = new();
+                if (Controller.AutoSelectionArrivalGate.GetValueKind() == JsonValueKind.String)
+                {
+                    Logger.Debug($"Attempting API Select Method for '{gateName}'");
+                    result = await ApiClient.GateSelect(gateName);
+                }
+                else if (Controller.AutoSelectionArrivalGate.GetValueKind() == JsonValueKind.Number)
+                {
+                    Logger.Debug($"Attempting API Select Method for #{Controller.AutoSelectionArrivalGate.GetValue<int>()}");
+                    result = await ApiClient.GateSelect(Controller.AutoSelectionArrivalGate.GetValue<int>());
+                }
+
+
+                if ((result?.ok == true && result?.HasPayload == true) || result?.MatchCode("already_selected") == true)
+                {
+                    await WaitInterval(5);
+                    await RunCommand(GsxMenuCommand.Operator(GsxMenuCommandOperatorType.Handling), Profile.EnableMenuForSelection && (!Profile.OperatorAutoSelect || !Profile.SkipFollowMe));
+                    await WaitInterval(6);
+                    Logger.Debug($"Arrival Gate Selection cleared");
+                    await Open(false);
+                    await WaitInterval(3);
+                }
+                else if (result?.HasError == true && result?.MatchCode("not_found") == true)
+                {
+                    Logger.Debug($"Attempting Menu Search Method for '{Controller.AutoSelectionArrivalGate?.ToString()}'");
+                    await RunCommandSelection(GsxMenuCommand.Select(2, GsxConstants.MenuParkingSelect, ["search"]));
+                    await WaitInterval(5);
+
+                    if (ApiData.SearchActive)
+                    {
+                        await ApiClient.MenuSearch(Controller.AutoSelectionArrivalGate?.ToString());
+                        await WaitInterval(5);
+                        if (MenuLineCount >= 2)
+                        {
+                            await RunCommand(GsxMenuCommand.Select(1), false);
+                            int delay = Config.OperatorSelectTimeout / 2;
+                            if (!Profile.OperatorAutoSelect)
+                                delay += Config.OperatorSelectTimeout;
+                            if (!Profile.SkipFollowMe)
+                                delay += Config.OperatorSelectTimeout;
+                            await Task.Delay(delay, RequestToken);
+                            await Open(false);
+                            await WaitInterval(3);
+                        }
+                        else
+                        {
+                            Logger.Information($"Gate Search failed - Manual Selection required");
+                            skipSelection = true;
+                        }
+                    }
+                    else
+                    {
+                        Logger.Information($"Gate Search failed - Manual Selection required");
+                        skipSelection = true;
+                    }
+                }
+
+                if (Tracker.HasGateSelection)
+                {
+                    Logger.Information($"Automatic Arrival Gate Selection successful for '{Tracker.LastGateSelection}'");
+                    Controller.AutoSelectionArrivalGate = null;
+                }
+                else if (skipSelection)
+                    Controller.AutoSelectionArrivalGate = null;
+                ExternalSequence = false;
+            }
+        }
+
         public virtual async Task<bool> RunSequence(GsxMenuSequence sequence)
         {
             if (!await SequenceWaiter("Sequence", () => IsSequenceAllowed))
@@ -887,13 +1051,12 @@ namespace Any2GSX.GSX.Menu
             sequence.IsExecuting = true;
             Tracker.Track(AppNotification.MenuSequence);
 
-            bool enableOperator = sequence.HasOperatorSelection && !Profile.OperatorAutoSelect && ((!sequence.IsHandlingOperator && (!WasOperatorCateringSelected || !WasOperatorFuelSelected)) || (sequence.IsHandlingOperator && !WasOperatorHandlingSelected));
             bool result = false;
             int counter = 0;
             LastCommandType = (GsxMenuCommandType)(-1);
             foreach (var command in sequence.Commands)
             {
-                result = await RunCommand(command, enableOperator || sequence.EnableMenu);
+                result = await RunCommand(command, sequence.EnableMenu);
                 LastCommandType = command.Type;
 
                 if (result)
@@ -960,6 +1123,10 @@ namespace Any2GSX.GSX.Menu
             {
                 result = await RunCommandCloseDisable(command);
             }
+            else if (command.Type == GsxMenuCommandType.Service)
+            {
+                result = await RunCommandServiceCall(command, enableMenu);
+            }
 
             IsCommandActive = false;
             Tracker.Clear(AppNotification.MenuCommand);
@@ -1012,7 +1179,7 @@ namespace Any2GSX.GSX.Menu
                 if (!await Open(enableMenu))
                 {
                     await WaitInterval();
-                    if (await Open(enableMenu, Config.MenuOpenTimeout/*, Config.GsxMenuTimeoutFix*/))
+                    if (await Open(enableMenu, Config.MenuOpenTimeout))
                     {
                         await WaitInterval();
                         return true;
@@ -1068,37 +1235,41 @@ namespace Any2GSX.GSX.Menu
 
         protected virtual async Task<bool> RunCommandOperator(GsxMenuCommand command)
         {
-            await WaitInterval(1.5);
+            var type = command.OperatorType;
             int timeWaited = 0;
+
             if (!ReadyReceived && !IsOperatorMenu)
-                Logger.Debug("Waiting for Operator Menu ...");
+                Logger.Debug($"Waiting for {type} Operator Menu ...");
             while (timeWaited <= Config.OperatorWaitTimeout && !ReadyReceived && !IsOperatorMenu && !RequestToken.IsCancellationRequested)
-                timeWaited += await WaitInterval(0.5);
+                timeWaited += await WaitInterval();
 
             if (timeWaited > Config.OperatorWaitTimeout && !IsOperatorMenu)
             {
-                Logger.Debug("No Operator Menu detected");
-                WasOperatorSelected = true;
+                Logger.Debug($"No Operator Menu for {type} detected");
+                SetOperatorSelected(true, type);
             }
             else if (IsOperatorMenu)
             {
-                timeWaited = 0;
-                if (!WasOperatorSelected)
-                    Logger.Information($"Waiting for {(Profile.OperatorAutoSelect ? "automatic" : "manual")} Operator Selection (Timeout {Config.OperatorSelectTimeout / 1000}s) ... ");
-                else
-                    Logger.Debug($"Operator was already selected");
-                while (timeWaited <= Config.OperatorSelectTimeout && IsOperatorMenu && !RequestToken.IsCancellationRequested && (OperatorCallbackActive || (MenuState < GsxMenuState.TIMEOUT && !WasOperatorSelected)))
-                    timeWaited += await WaitInterval(0.5);
-
-                if (timeWaited > Config.OperatorSelectTimeout && !WasOperatorSelected)
+                if (!OperatorSelectionState[type])
                 {
-                    Logger.Warning($"{(Profile.OperatorAutoSelect ? "Automatic" : "Manual")} Operator Selection timed out{(MenuState < GsxMenuState.TIMEOUT ? " - closing Menu" : "")}");
-                    if (MenuState < GsxMenuState.TIMEOUT)
-                        await Disable();
-                    await WaitInterval();
+                    Logger.Information($"Waiting for {(Profile.OperatorAutoSelect ? "automatic" : "manual")} {type} Operator Selection (Timeout {Config.OperatorSelectTimeout / 1000}s) ... ");
+                    while (timeWaited <= Config.OperatorSelectTimeout && IsOperatorMenu && !OperatorSelectionState[type] && !RequestToken.IsCancellationRequested)
+                        timeWaited += await WaitInterval(0.5);
+
+                    if (timeWaited > Config.OperatorSelectTimeout && !OperatorSelectionState[type])
+                    {
+                        Logger.Warning($"{(Profile.OperatorAutoSelect ? "Automatic" : "Manual")} Operator Selection timed out{(MenuState < GsxMenuState.TIMEOUT ? " - closing Menu" : "")}");
+                        await WaitInterval(1.5);
+                    }
+
+                    if (!OperatorSelectionState[type])
+                        SetOperatorSelected(true, type);
                 }
+                else
+                    Logger.Debug($"{type} Operator was already selected");
+
             }
-            return WasOperatorSelected;
+            return OperatorSelectionState[type];
         }
 
         protected virtual async Task<bool> RunCommandCloseDisable(GsxMenuCommand command)
@@ -1122,6 +1293,14 @@ namespace Any2GSX.GSX.Menu
             }
             else
                 return false;
+        }
+
+        protected virtual async Task<bool> RunCommandServiceCall(GsxMenuCommand command, bool enableMenu)
+        {
+            GsxServiceType type = (GsxServiceType)command.Parameter;
+            var result = await ApiClient.CallService(type);
+
+            return !result.HasError;
         }
     }
 }

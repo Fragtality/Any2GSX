@@ -38,7 +38,7 @@
 
                 <CheckBox Grid.Column="0" Grid.Row="0" IsChecked="{Binding OperatorAutoSelect}" Margin="6,8,6,6" Style="{StaticResource CheckBoxSettingItem}"
                           ToolTip="Automatically select an Operator in all Service Calls when GSX asks for a Selection.&#x0a;If no preferred Operator from the List could be matched, the 'GSX Choice' will be selected.">
-                    <TextBlock>Automatically select Handling &amp; Catering Operator</TextBlock>
+                    <TextBlock>Automatically select Handling, Fuel &amp; Catering Operator</TextBlock>
                 </CheckBox>
 
                 <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding OperatorPreferenceSelect}" Margin="6,8,6,6" Style="{StaticResource CheckBoxSettingItem}" IsEnabled="{Binding OperatorPreferencEnabled}"

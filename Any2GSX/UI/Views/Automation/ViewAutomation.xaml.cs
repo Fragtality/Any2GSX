@@ -7,7 +7,8 @@ namespace Any2GSX.UI.Views.Automation
 {
     public enum AutomationSettingControl
     {
-        GateDoors = 0,
+        Briefing = 0,
+        GateDoors,
         GroundEquip,
         OfpImport,
         FuelPayload,
@@ -31,6 +32,7 @@ namespace Any2GSX.UI.Views.Automation
             ViewModel = new(AppService.Instance);
             this.DataContext = ViewModel;
 
+            SettingControls.Add(AutomationSettingControl.Briefing, new ControlBriefing(ViewModel));
             SettingControls.Add(AutomationSettingControl.GateDoors, new ControlGateDoors(ViewModel));
             SettingControls.Add(AutomationSettingControl.FuelPayload, new ControlFuelPayload(ViewModel));
             SettingControls.Add(AutomationSettingControl.GroundEquip, new ControlGroundEquip(ViewModel));
@@ -67,6 +69,11 @@ namespace Any2GSX.UI.Views.Automation
                     ButtonSkipTurn.Visibility = Visibility.Visible;
                 else
                     ButtonSkipTurn.Visibility = Visibility.Collapsed;
+
+                if (state == AutomationState.TurnAround)
+                    ButtonSkipPrep.Visibility = Visibility.Visible;
+                else
+                    ButtonSkipPrep.Visibility = Visibility.Collapsed;
             }
             catch { }
         }

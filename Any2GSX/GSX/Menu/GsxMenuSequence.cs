@@ -1,4 +1,5 @@
 ﻿using Any2GSX.PluginInterface.Interfaces;
+using Any2GSX.PluginInterface.Interfaces.GSX;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +13,6 @@ namespace Any2GSX.GSX.Menu
         public virtual bool IsSuccess { get; set; } = false;
         public virtual bool IgnoreGsxState { get; set; } = false;
         public virtual bool HasOperatorSelection => Commands?.Any(c => c.Type == GsxMenuCommandType.Operator) ?? false;
-        public virtual bool IsHandlingOperator => Commands?.FirstOrDefault(c => c.Type == GsxMenuCommandType.Operator)?.IsHandlingOperator == true;
         public virtual Func<bool> EnableMenuCheck { get; set; } = () => false;
         public virtual bool EnableMenu => EnableMenuCheck?.Invoke() == true;
         public virtual Func<bool> ResetMenuCheck { get; set; } = () => true;

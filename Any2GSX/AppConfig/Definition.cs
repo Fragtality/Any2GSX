@@ -6,7 +6,7 @@ namespace Any2GSX.AppConfig
 {
     public class Definition : ProductDefinitionBase, IProductDefinition
     {
-        public override int BuildConfigVersion { get; } = 22;
+        public override int BuildConfigVersion { get; } = 24;
         public override string ProductName => "Any2GSX";
         public override string ProductExePath => Path.Join(Path.Join(ProductPath, "bin"), ProductExe);
         public virtual string RepoPlugins => $"{ProductName}-Plugins";
@@ -30,5 +30,8 @@ namespace Any2GSX.AppConfig
         public override bool WaitForSim => true;
         public override bool SingleInstance => true;
         public override bool MainWindowShowOnStartup => AppService.Instance?.Config?.OpenAppWindowOnStart == true || AppService.Instance?.Config?.ForceOpen == true;
+        public virtual string ApiPortFile => $".port";
+        public virtual string ApiPortPath => Path.Join(ProductPath, ApiPortFile);
+        public virtual string ApiPortLvar => "L:ANY2GSX_API_PORT";
     }
 }

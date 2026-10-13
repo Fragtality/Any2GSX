@@ -114,10 +114,7 @@ namespace Any2GSX.UI.Views.Automation
         protected virtual void VariableUpdateTimer_Tick(object? sender, EventArgs e)
         {
             foreach (var variable in VariableSubscriptions)
-                ModelVariables.SetTextBlock(variable.Value, VariableElements[variable.Key]);
-
-            if (ViewModel.IsMonitorActive)
-                ViewModel.Refresh();
+                VariableElements[variable.Key]?.Text = ModelVariables.GetSubscription(variable.Value);
         }
     }
 }

@@ -6,6 +6,7 @@ using Any2GSX.GSX.Menu;
 using Any2GSX.GSX.Services;
 using Any2GSX.PluginInterface;
 using Any2GSX.PluginInterface.Interfaces;
+using Any2GSX.PluginInterface.Interfaces.GSX;
 using CFIT.AppFramework.Services;
 using CFIT.AppLogger;
 using CFIT.AppTools;
@@ -15,6 +16,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Any2GSX.Notifications
@@ -26,6 +28,7 @@ namespace Any2GSX.Notifications
         public virtual bool HasEfbApp => SimConnect?.GetSimVersion() == SimVersion.MSFS2024;
         public virtual GsxController GsxController => AppService.Instance?.GsxController;
         public virtual GsxMenu GsxMenu => GsxController?.Menu;
+        protected virtual CancellationToken RequestToken => AppService.Instance.RequestToken;
         public virtual NotificationTracker Tracker => AppService.Instance?.NotificationTracker;
         public virtual AircraftController AircraftController => AppService.Instance?.AircraftController;
         public virtual AircraftBase Aircraft => AppService.Instance?.AircraftController?.Aircraft;
@@ -46,12 +49,15 @@ namespace Any2GSX.Notifications
         protected virtual bool NotifyUpdates => IsSessionRunning && GsxController?.IsGsxRunning == true;
         public virtual bool MenuOpenQueued => MenuOpenDelayed != DateTime.MaxValue;
         public virtual DateTime MenuOpenDelayed { get; set; } = DateTime.MaxValue;
+        public virtual Func<bool> MenuOpenDelayedEnableCheck { get; set; } = null;
 
         public virtual bool ReportedAircraftConnected { get; protected set; } = false;
+        public virtual bool ReportedExternalConnected { get; protected set; } = false;
         public virtual string ReportedProfile { get; protected set; } = "";
         public virtual string ReportedCouatlVars { get; protected set; } = "false";
         public virtual int ReportedServicesCompleted { get; protected set; } = 0;
         public virtual int ReportedServicesRunning { get; protected set; } = 0;
+        public virtual int ReportedServicesSkipped { get; protected set; } = 0;
         public virtual int ReportedServicesTotal { get; protected set; } = 0;
         public virtual string LastPushInfo { get; set; } = "";
 
@@ -135,13 +141,24 @@ namespace Any2GSX.Notifications
         {
             try
             {
-                if (Profile?.PilotsDeckIntegration == true && Sys.GetProcessRunning(PilotsDeckConnector.BinaryPlugin))
+                bool running = Sys.GetProcessRunning(PilotsDeckConnector.BinaryPlugin);
+                if (running && Profile?.PilotsDeckIntegration == true)
                 {
                     Logger.Debug($"Start PilotsDeck Connector");
                     var pilotsdeck = new PilotsDeckConnector();
                     await pilotsdeck.Start();
                     Connectors.Add(pilotsdeck);
                     DeckConnector = pilotsdeck;
+                }
+                else if (running && Profile?.PilotsDeckIntegration == false)
+                {
+                    Logger.Debug($"Start PilotsDeck Connector temporarily");
+                    var pilotsdeck = new PilotsDeckConnector();
+                    await pilotsdeck.Start();
+                    await Task.Delay(250, RequestToken);
+                    await pilotsdeck.SetConnected(false, "");
+                    await pilotsdeck.SetAircraftConnected(false);
+                    await pilotsdeck.Stop();
                 }
 
                 if (HasEfbApp)
@@ -152,13 +169,13 @@ namespace Any2GSX.Notifications
                     Connectors.Add(efb);
                 }
 
-                await Task.Delay(1000, Token);
+                await Task.Delay(1000, RequestToken);
                 Logger.Debug($"Notification Manager active");
                 await ResetConnectors();
 
                 Logger.Debug("Waiting for Automation Controller");
                 while (IsExecutionAllowed && AutomationController?.IsStarted == false)
-                    await Task.Delay(Config.StateMachineInterval, Token);
+                    await Task.Delay(Config.StateMachineInterval, RequestToken);
                 if (!IsExecutionAllowed)
                     return;
 
@@ -172,7 +189,7 @@ namespace Any2GSX.Notifications
                         if (GsxController?.IsGsxRunning == true)
                             await CheckMenu();
                     }
-                    await Task.Delay(Config.StateMachineInterval, Token);
+                    await Task.Delay(Config.StateMachineInterval, RequestToken);
                 }
             }
             catch (Exception ex)
@@ -186,19 +203,22 @@ namespace Any2GSX.Notifications
             }
         }
 
-        protected virtual async Task ResetConnectors(bool checkAircraft = false)
+        protected virtual async Task ResetConnectors(bool checkAircraft = false, bool setConnected = true)
         {
             Logger.Debug("Reset Connectors");
             ReportedProfile = Profile.Name;
             ReportedAircraftConnected = checkAircraft && AircraftController.IsConnected;
-            ReportedCouatlVars = GsxController.CouatlVarsValid ? "true" : "false";
+            ReportedExternalConnected = GsxController.AutomationController.ExternalServiceControl;
+            ReportedCouatlVars = GsxController.IsGsxRunning ? "true" : "false";
             ReportedServicesCompleted = 0;
             ReportedServicesRunning = 0;
+            ReportedServicesSkipped = 0;
             ReportedServicesTotal = 0;
             LastPushInfo = "";
 
-            await CallOnConnectors((connector) => connector.SetConnected(true, ReportedProfile));
-            await CallOnConnectors((connector) => connector.SetAircraftConnected(ReportedAircraftConnected));
+            await CallOnConnectors((connector) => connector.SetConnected(setConnected, ReportedProfile));
+            await CallOnConnectors((connector) => connector.SetAircraftConnected(ReportedAircraftConnected && setConnected));
+            await CallOnConnectors((connector) => connector.SetExternalConnected(ReportedExternalConnected && setConnected));
             await CallOnConnectors((connector) => connector.SetCouatlVars(ReportedCouatlVars));
             await CallOnConnectors((connector) => connector.SetMenuTitle(""));
             await CallOnConnectors((connector) => connector.SetMenuLines([]));
@@ -209,14 +229,14 @@ namespace Any2GSX.Notifications
             await CallOnConnectors((connector) => connector.SetSmartCall(SmartButtonCall.None, "", true));
             await Task.Delay(50);
             await CallOnConnectors((connector) => connector.SetState(AutomationState.SessionStart, new Notification(AppNotification.Loading)));
-            await CallOnConnectors((connector) => connector.SetDepartureServices(ReportedServicesCompleted, ReportedServicesRunning, ReportedServicesTotal));
+            await CallOnConnectors((connector) => connector.SetDepartureServices(ReportedServicesCompleted, ReportedServicesRunning, ReportedServicesTotal, ReportedServicesSkipped));
         }
 
         public override async Task Stop()
         {
             try
             {
-                await ResetConnectors();
+                await ResetConnectors(false, false);
                 await CallOnConnectors((connector) => connector.Stop());
             }
             catch (Exception ex)
@@ -259,7 +279,7 @@ namespace Any2GSX.Notifications
 
             //Couatl State
             string couatlVars;
-            if (GsxController.CouatlVarsValid)
+            if (GsxController.IsGsxRunning)
                 couatlVars = "true";
             else
                 couatlVars = "false";
@@ -270,8 +290,8 @@ namespace Any2GSX.Notifications
             //SmartButton Info
             if (Profile.RunAutomationService)
             {
-                if (Profile.RunAutomationService && Tracker.SmartButton == SmartButtonCall.NextService && AutomationController.DepartureQueue.HasNext)
-                    await CallOnConnectors((connector) => connector.SetSmartCall(Tracker.SmartButton, AutomationController.NextType));
+                if (Profile.RunAutomationService && Tracker.SmartButton == SmartButtonCall.NextService && AutomationController.DepartureQueue.HasNextQueued)
+                    await CallOnConnectors((connector) => connector.SetSmartCall(Tracker.SmartButton, AutomationController.DepartureQueue.NextQueued.Service.Type));
                 else if (Profile.RunAutomationService && Tracker.SmartButton == SmartButtonCall.ClearGate)
                     await CallOnConnectors((connector) => connector.SetSmartCall(Tracker.SmartButton, Profile.ClearGateMenuOption));
                 else if (Profile.RunAutomationService && Tracker.SmartButton == SmartButtonCall.Deice)
@@ -294,11 +314,13 @@ namespace Any2GSX.Notifications
                     await CallOnConnectors((connector) => connector.ClearDepartureServices());
                 else if ((ReportedServicesCompleted != DepartureQueue.CountCompleted)
                         || (ReportedServicesRunning != DepartureQueue.CountRunning)
-                        || (ReportedServicesTotal != DepartureQueue.CountTotal))
-                    await CallOnConnectors((connector) => connector.SetDepartureServices(DepartureQueue.CountCompleted, DepartureQueue.CountRunning, DepartureQueue.CountTotal));
+                        || (ReportedServicesTotal != DepartureQueue.CountTotal)
+                        || (ReportedServicesSkipped != DepartureQueue.CountSkipped))
+                    await CallOnConnectors((connector) => connector.SetDepartureServices(DepartureQueue.CountCompleted, DepartureQueue.CountRunning, DepartureQueue.CountTotal, DepartureQueue.CountSkipped));
             }
             ReportedServicesCompleted = DepartureQueue.CountCompleted;
             ReportedServicesRunning = DepartureQueue.CountRunning;
+            ReportedServicesSkipped = DepartureQueue.CountSkipped;
             ReportedServicesTotal = DepartureQueue.CountTotal;
 
             //Connection and Profile
@@ -310,6 +332,12 @@ namespace Any2GSX.Notifications
             if (ReportedAircraftConnected != AircraftController.IsConnected)
                 await CallOnConnectors((connector) => connector.SetAircraftConnected(AircraftController.IsConnected));
             ReportedAircraftConnected = AircraftController.IsConnected;
+
+            //External Connection
+            var state = GsxController.AutomationController.ExternalServiceControl;
+            if (ReportedExternalConnected != state)
+                await CallOnConnectors((connector) => connector.SetExternalConnected(state));
+            ReportedExternalConnected = state;
 
             await CallOnConnectors((connector) => { connector.NeedsRefresh = false; return Task.CompletedTask; });
         }
@@ -330,38 +358,42 @@ namespace Any2GSX.Notifications
                 {
                     if (MenuOpenDelayed <= now)
                     {
-                        if (!GsxMenu.ReadyReceived && GsxMenu.MenuCommandsAllowed)
+                        if (!GsxMenu.ReadyReceived && GsxMenu.MenuCommandsAllowed && !GsxController.HasSelectionArrivalGate && !Tracker.HasGateSelection)
                         {
                             Logger.Debug($"Menu Refresh: Open Menu delayed");
-                            await GsxController.Menu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection);
+                            bool enable = false;
+                            if (MenuOpenDelayedEnableCheck != null)
+                                enable = MenuOpenDelayedEnableCheck();
+                            await GsxController.Menu.RunCommand(GsxMenuCommand.Open(), enable);
                         }
                         MenuOpenDelayed = DateTime.MaxValue;
+                        MenuOpenDelayedEnableCheck = null;
                     }
                 }
                 //Keep Direction Menu open
-                else if (autoRefresh && Profile.KeepDirectionMenuOpen && ServicePushBack.IsWaitingForDirection && ServicePushBack.State == GsxServiceState.Callable && automation == AutomationState.Pushback)
+                else if (autoRefresh && Profile.KeepDirectionMenuOpen && ServicePushBack.IsWaitingForDirection && !Tracker.IsActive(AppNotification.PushDirectionSelected) && Tracker.IsActive(AppNotification.PushDirectionDisplayed) && GsxMenu.MenuState >= GsxMenuState.TIMEOUT && automation == AutomationState.Pushback)
                 {
                     Logger.Debug($"Menu Refresh: Reopen Direction Menu");
                     await ServicePushBack.Call();
                     GsxMenu.ExternalSequence = true;
                     await GsxMenu.WaitInterval(5);
 
-                    if (GsxMenu.IsReady && GsxMenu.MatchTitle(GsxConstants.MenuPushbackInterrupt) && GsxMenu.MatchMenuLine(2, GsxConstants.MenuPushbackChange))
-                        await GsxMenu.RunCommand(GsxMenuCommand.Select(3), GsxController.IsDeiceAvail || Profile.EnableMenuForSelection);
+                    if (GsxMenu.IsReady && GsxMenu.MatchTitle(GsxConstants.MenuPushbackInterrupt) && GsxMenu.MatchMenuLine(2, GsxConstants.MenuPushbackDirection))
+                        await GsxMenu.RunCommand(GsxMenuCommand.Select(3), Profile.EnableMenuForSelection);
 
                     await GsxMenu.WaitInterval(2);
                     GsxMenu.ExternalSequence = false;
                 }
                 //Deck/EFB: Open after Timeout on Gate
                 else if (deckRefresh && isTimeout &&
-                            (((GsxMenu.IsGateMenu || GsxMenu.LastTitle?.StartsWith(GsxConstants.MenuGate, StringComparison.InvariantCultureIgnoreCase) == true) && (automation <= AutomationState.Departure || automation >= AutomationState.Arrival))
+                            ((GsxMenu.IsGateMenu && (automation <= AutomationState.Departure || automation >= AutomationState.Arrival))
                             || (automation == AutomationState.Pushback && !ServicePushBack.IsTugConnected && !ServicePushBack.IsRunning && !ServiceDeice.IsRunning)))
                 {
                     Logger.Debug($"Menu Refresh: After Timeout");
                     await GsxController.Menu.RunCommand(GsxMenuCommand.Open(), false);
                 }
                 //Deck/EFB: Open after Selection
-                else if (deckRefresh && noInhibit && !ServiceDeice.IsRunning && !ServicePushBack.IsTugConnected && !ServicePushBack.IsRunning)
+                else if (deckRefresh && noInhibit && !ServiceDeice.IsRunning && !ServicePushBack.IsRunning)
                 {
                     Logger.Debug($"Menu Refresh: After Selection");
                     await GsxController.Menu.RunCommand(GsxMenuCommand.Open(), false);
@@ -408,7 +440,7 @@ namespace Any2GSX.Notifications
 
         protected virtual Task OnMenuTitle(IGsxMenu menu)
         {
-            if (ServicePushBack.IsWaitingForDirection && !Tracker.IsActive(AppNotification.PushReleaseBrake) && (menu.MatchTitle(GsxConstants.MenuPushbackDirection) || menu.MatchTitle(GsxConstants.MenuPushbackChange)))
+            if (ServicePushBack.IsWaitingForDirection && !Tracker.IsActive(AppNotification.PushReleaseBrake) && menu.MatchTitle(GsxConstants.MenuPushbackDirection))
             {
                 LastPushInfo = "Direction?";
                 Tracker.TrackMessage(AppNotification.PushPhase, LastPushInfo);
@@ -440,18 +472,14 @@ namespace Any2GSX.Notifications
             if (!IsSessionRunning)
                 return;
 
-            if (state == AutomationState.SessionStart)
-            {
-                await ResetConnectors(true);
-            }
-            else if (state == AutomationState.Pushback)
+            if (state == AutomationState.Pushback)
             {
                 await CallOnConnectors((connector) => connector.SetBoardPaxInfo(-1));
                 await CallOnConnectors((connector) => connector.SetBoardCargoInfo(-1));
             }
             else if (state == AutomationState.TaxiOut)
             {
-                Tracker.LastCapturedGate = "";
+                Tracker.ResetGate();
             }
             else if (state == AutomationState.Flight)
             {
@@ -466,7 +494,6 @@ namespace Any2GSX.Notifications
             }
             else if (state == AutomationState.TurnAround)
             {
-                Tracker.LastCapturedGate = "";
                 Tracker.Clear(AppNotification.UpdatesBlocked);
                 await CallOnConnectors((connector) => connector.SetDeboardPaxInfo(-1));
                 await CallOnConnectors((connector) => connector.SetDeboardCargoInfo(-1));
@@ -513,6 +540,8 @@ namespace Any2GSX.Notifications
 
             if (state == GsxServiceState.Active)
                 Tracker.Track(AppNotification.OperateStairs);
+            else if (state <= GsxServiceState.Bypassed)
+                Tracker.Clear(AppNotification.OperateStairs);
 
             return Task.CompletedTask;
         }
@@ -624,18 +653,20 @@ namespace Any2GSX.Notifications
             return Task.CompletedTask;
         }
 
-        protected virtual Task OnRefuelHoseConnection(bool connected)
+        protected virtual async Task OnRefuelHoseConnection(bool connected)
         {
             if (!NotifyUpdates)
-                return Task.CompletedTask;
+                return;
 
             if (ServiceRefuel.IsActive)
                 if (connected)
                     Tracker.TrackMessage(AppNotification.ServiceRefuel, "Loading Fuel ...");
                 else if (!connected && ServiceRefuel.WasHoseConnected)
+                {
                     Tracker.TrackTimeout(AppNotification.ServiceRefuel, 30000, "Removing Hose ...");
-
-            return Task.CompletedTask;
+                    if (GsxController.ApiClient.GetSetting(GsxConstants.SettingMultiTrips) != 0 && await AircraftController.Aircraft.GetFuelOnBoardKg() <= App.AppService.Flightplan.FuelRampKg - Config.FuelCompareVariance)
+                        _ = TaskTools.RunDelayed(() => Tracker.TrackTimeout(AppNotification.ServiceRefuel, 60000, "Next Truck ..."), 30500);
+                }
         }
 
         protected virtual Task OnDeiceStateChanged(IGsxService service)
@@ -657,6 +688,8 @@ namespace Any2GSX.Notifications
             if (service.State == GsxServiceState.Completed)
             {
                 Tracker.Clear(AppNotification.PushPhase);
+                Tracker.Clear(AppNotification.PushDirectionDisplayed);
+                Tracker.Clear(AppNotification.PushDirectionSelected);
                 Tracker.Clear(AppNotification.PushReleaseBrake);
                 LastPushInfo = "";
 
@@ -664,15 +697,16 @@ namespace Any2GSX.Notifications
                 {
                     GsxMenu.ExternalSequence = true;
                     Logger.Debug($"Refresh (and disable) Menu after Pushback ...");
-                    await GsxMenu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection && GsxController.IsDeiceAvail);
+                    await GsxMenu.RunCommand(GsxMenuCommand.Open(), Profile.EnableMenuForSelection && GsxController.IsDeiceAvail && !GsxController.ServiceDeice.IsCompleted);
                     await GsxMenu.WaitInterval(2);
                     GsxMenu.ExternalSequence = false;
-                    _ = TaskTools.RunDelayed(() => Tracker.Clear(AppNotification.GateSelect), 1000, Token);
                 }
             }
             else if (service.State == GsxServiceState.Active && ServicePushBack.PushStatus == 0)
             {
                 Tracker.Clear(AppNotification.PushPhase);
+                Tracker.Clear(AppNotification.PushDirectionDisplayed);
+                Tracker.Clear(AppNotification.PushDirectionSelected);
                 Tracker.Clear(AppNotification.PushReleaseBrake);
             }
         }
@@ -702,9 +736,16 @@ namespace Any2GSX.Notifications
             if (value > 0)
             {
                 LastPushInfo = status;
-                Tracker.TrackMessage(AppNotification.PushPhase, LastPushInfo);
+
+                if (value <= 10 || value >= 11 && !gsxService.IsCompleted)
+                    Tracker.TrackMessage(AppNotification.PushPhase, LastPushInfo);
+
                 if (value > 5)
+                {
                     Tracker.Clear(AppNotification.PushReleaseBrake);
+                    Tracker.Clear(AppNotification.PushDirectionDisplayed);
+                    Tracker.Clear(AppNotification.PushDirectionSelected);
+                }
             }
             else
                 Tracker.Clear(AppNotification.PushPhase);

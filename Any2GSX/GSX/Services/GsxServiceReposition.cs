@@ -1,26 +1,40 @@
 ﻿using Any2GSX.GSX.Menu;
 using Any2GSX.PluginInterface.Interfaces;
+using Any2GSX.PluginInterface.Interfaces.GSX;
 using CFIT.AppLogger;
+using CFIT.AppTools;
 using CFIT.SimConnectLib.SimResources;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Any2GSX.GSX.Services
 {
-    public class GsxServiceReposition(GsxController controller) : GsxService(controller)
+    public class GsxServiceReposition() : GsxService()
     {
         public override GsxServiceType Type => GsxServiceType.Reposition;
-        public virtual ISimResourceSubscription SubRepositioning { get; protected set; }
-        protected override ISimResourceSubscription SubStateVar => null;
-        public virtual bool IsRepositioning => SubRepositioning?.GetNumber() > 0;
+        protected override int MenuSelectionService => 1;
+        protected override string StateVarName => GsxConstants.VarServiceReposition;
+        protected override List<string> ServiceVariables => [];
+        protected virtual ISimResourceSubscription SubRepositioning { get; set; }
+        public virtual bool IsRepositioning => SubStateVar?.GetNumber() > 0;
         public virtual bool WasRepoReceived { get; protected set; } = false;
+
+        public event Func<bool, Task> OnRepositionSignal;
 
         protected override GsxMenuSequence InitCallSequence()
         {
             var sequence = new GsxMenuSequence();
             sequence.Commands.Add(GsxMenuCommand.Open());
+            sequence.Commands.Add(GsxMenuCommand.Wait());
             sequence.Commands.Add(GsxMenuCommand.Select(10, GsxConstants.MenuGate));
+            sequence.Commands.Add(GsxMenuCommand.Wait());
             sequence.Commands.Add(GsxMenuCommand.Select(1, GsxConstants.MenuParkingSelect));
             sequence.Commands.Add(GsxMenuCommand.Wait(6));
+            sequence.Commands.Add(GsxMenuCommand.Disable());
+            sequence.EnableMenuCheck = () => false;
+            sequence.EnableMenuAfterResetCheck = () => false;
+            sequence.ResetMenuCheck = () => true;
 
             return sequence;
         }
@@ -30,21 +44,9 @@ namespace Any2GSX.GSX.Services
             return new GsxMenuSequence();
         }
 
-        public override void InitSubscriptions()
+        protected override void DoInit()
         {
-            SubRepositioning = SimStore.AddVariable(GsxConstants.VarServiceReposition);
-            SubRepositioning?.OnReceived += OnRepositionState;
-        }
 
-        protected virtual Task OnRepositionState(ISimResourceSubscription sub, object data)
-        {
-            if (!WasRepoReceived && sub?.GetNumber() > 0)
-            {
-                WasRepoReceived = true;
-                Logger.Debug("Reposition Signal received");
-            }
-
-            return Task.CompletedTask;
         }
 
         protected override Task DoReset()
@@ -54,16 +56,34 @@ namespace Any2GSX.GSX.Services
             return Task.CompletedTask;
         }
 
-        public override void FreeResources()
+        protected override void DoRelease()
         {
-            SubRepositioning?.OnReceived -= OnRepositionState;
-            SimStore.Remove(GsxConstants.VarServiceReposition);
+
         }
 
-        protected override GsxServiceState GetState()
+        protected override Task OnStateChange(ISimResourceSubscription sub, object data)
         {
-            if (SequenceResult)
+            int num = (int)(sub?.GetNumber() ?? 0);
+            if (!WasRepoReceived && num > 0)
+            {
+                WasRepoReceived = true;
+                StatesReceived.TryAdd(GsxServiceState.Active, true);
+                Logger.Debug("Reposition Signal received");
+            }
+            else
+                Logger.Debug($"Reposition Signal: {num}");
+
+            _ = TaskTools.RunPool(() => OnRepositionSignal?.Invoke(sub?.GetNumber() > 0), Controller.RequestToken);
+
+            return Task.CompletedTask;
+        }
+
+        protected override GsxServiceState ReadState(bool raw = false)
+        {
+            if (EvaluateCompleted(GsxServiceState.Unknown))
                 return GsxServiceState.Completed;
+            else if (IsRepositioning)
+                return GsxServiceState.Active;
             else
                 return GsxServiceState.Callable;
         }
@@ -74,15 +94,19 @@ namespace Any2GSX.GSX.Services
             return base.DoCall();
         }
 
-        protected override bool CheckCalled()
+        protected override bool EvaluateCalled()
         {
-            IsCalled = SequenceResult && (IsRepositioning || WasRepoReceived);
-            return IsCalled;
+            return WasRepoReceived;
         }
 
-        protected override Task SetStateVariable(GsxServiceState state)
+        protected override bool EvaluateRunning(GsxServiceState state)
         {
-            return Task.CompletedTask;
+            return CallSequence.IsExecuting || IsRepositioning;
+        }
+
+        protected override bool EvaluateCompleted(GsxServiceState state)
+        {
+            return SequenceIsSuccess && WasRepoReceived && !IsRepositioning;
         }
     }
 }

@@ -62,6 +62,15 @@
         Operator = 3,
         Close = 4,
         Disable = 5,
+        Service = 6,
+    }
+
+    public enum GsxMenuCommandOperatorType
+    {
+        Unknown = 0,
+        Handling = 1,
+        Catering = 2,
+        Refuel = 3,
     }
 
     public enum GsxServiceType
@@ -86,23 +95,25 @@
     {
         Skip = 0,
         Manual = 1,
-        AfterCalled = 2,
-        AfterRequested = 3,
-        AfterActive = 4,
-        AfterPrevCompleted = 5,
-        AfterAllCompleted = 6,
+        Independent = 2,
+        DepartureTime = 3,
+        ServiceDependent = 4,
     }
 
-    public enum GsxServiceConstraint
+    public enum GsxServiceDependency
     {
-        NoneAlways = 0,
-        FirstLeg = 1,
-        TurnAround = 2,
-        CompanyHub = 3,
-        NonCompanyHub = 4,
-        TurnOnHub = 5,
-        TurnOnNonHub = 6,
-        PreferredOp = 7,
+        Unknown = 0,
+        Requested = 1,
+        Active = 2,
+        Completed = 3,
+    }
+
+    public enum GsxServiceDependencyScope
+    {
+        LastCalled = 1,
+        PreviousQueued = 2,
+        AllCalled = 3,
+        AllQueued = 4,
     }
 
     public enum GsxServiceState
@@ -137,6 +148,32 @@
         CargoDoor3Main = 9,
     }
 
+    public enum AircraftDoor
+    {
+        Default = 0,
+        L1 = 1,
+        L2 = 2,
+        L3 = 3,
+        L4 = 4,
+        L5 = 5,
+        L6 = 6,
+        L7 = 7,
+        L8 = 8,
+        R1 = 9,
+        R2 = 10,
+        R3 = 11,
+        R4 = 12,
+        R5 = 13,
+        R6 = 14,
+        R7 = 15,
+        R8 = 16,
+        CargoFront = 17,
+        CargoRear = 18,
+        CargoBulk = 19,
+        CargoMain = 20,
+        CargoNose = 21,
+    }
+
     public enum GsxChangePark
     {
         ChangeFacility = 1,
@@ -164,7 +201,7 @@
         Abort = 2,
     }
 
-    public enum GsxVehicleStair
+    public enum GsxVehicleLocation
     {
         Front = 0,
         Middle = 1,
@@ -184,14 +221,26 @@
         Retracting = 8,
     }
 
+    public enum GsxVehicleCateringState
+    {
+        Unknown = 0,
+        Idle = 1,
+        Approaching = 2,
+        Leaving = 4,
+        Extending = 5,
+        Completing = 6,
+        InPosition = 7,
+        Retracting = 8,
+    }
+
     public enum BroadcastFlag
     {
-        JS = 1,
-        WASM = 2,
-        DEFAULT = 3,
-        SELF = 4,
-        ALLWASM = 6,
-        ALL = 7,
+        JS = 1 << 0,            //1
+        WASM = 1 << 1,          //2
+        SELF = 1 << 2,          //4
+        DEFAULT = JS | WASM,    //3
+        ALLWASM = WASM | SELF,  //6
+        ALL = JS | WASM | SELF, //7
     }
 
     public enum Comparison

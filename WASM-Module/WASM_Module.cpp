@@ -15,7 +15,7 @@
 typedef long long FsNetworkRequestId;
 typedef void (*HttpRequestCallback)(FsNetworkRequestId requestId, int errorCode, void* userData);
 
-const char* VERSION = "0.4.5";
+const char* VERSION = "0.5.1";
 const char* CLIENTNAME = "Any2GSX_CommBus";
 
 const char* EventNameJs = "Any2GSX_RelayToJs";
@@ -178,21 +178,53 @@ const char* SerializeRequestJs(const char* event, RequestType type, const char* 
 
 void CommBusCallback(const char* buf, unsigned int bufSize, void* ctx)
 {
-	auto evtStruct = (RegisteredEvent*)ctx;
+	RegisteredEvent* evtStruct = static_cast<RegisteredEvent*>(ctx);
 	const char* msg = SerializeRequestJs(evtStruct->name.c_str(), RELAY, buf);
 	fsCommBusCall(EventNameJs, msg, strlen(msg) + 1, FsCommBusBroadcast_JS);
 }
 
+bool IsEventRegistered(const char* event)
+{
+	return !std::any_of(RegisteredEvents.begin(), RegisteredEvents.end(), [event](RegisteredEvent* e) { return strcmp(event, e->name.c_str()) == 0; });
+}
+
+bool IsEventRegistered(const char* event, RegisteredEvent** evtStruct)
+{
+	auto it = std::find_if(RegisteredEvents.begin(), RegisteredEvents.end(), [event](RegisteredEvent* e) { return strcmp(event, e->name.c_str()) == 0; });
+	if (it != RegisteredEvents.end())
+	{
+		*evtStruct = *it;
+		return true;
+	}
+	else
+	{
+		*evtStruct = nullptr;
+		return false;
+	}
+}
+
 void HandleEventRegisterWasm(const char* event)
 {
-	if (!std::any_of(RegisteredEvents.begin(), RegisteredEvents.end(), [event](RegisteredEvent* e){ return strcmp(event, e->name.c_str()) == 0; }))
+	RegisteredEvent* evtStruct;
+	bool registered = IsEventRegistered(event, &evtStruct);
+	if (!registered)
 	{
-		RegisteredEvent* evtStruct = new RegisteredEvent();
+		evtStruct = new RegisteredEvent();
 		evtStruct->name = std::string(event, size_t(event));
 		evtStruct->flag = FsCommBusBroadcast_Wasm;
 		RegisteredEvents.push_back(evtStruct);
-		fsCommBusRegister(evtStruct->name.c_str(), CommBusCallback, (void*)evtStruct);
-		fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "Event registered:", evtStruct->name.c_str());
+		if (fsCommBusRegister(evtStruct->name.c_str(), CommBusCallback, (void*)evtStruct))
+			fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "New Event registered for WASM=2:", evtStruct->name.c_str());
+		else
+			fprintf(stderr, "[%s] %s %s\n", CLIENTNAME, "The Event failed to register:", event);
+	}
+	else if (registered && (evtStruct->flag & FsCommBusBroadcast_Wasm) == 0)
+	{
+		evtStruct->flag = (FsCommBusBroadcastFlags)(evtStruct->flag | FsCommBusBroadcast_Wasm);
+		if (fsCommBusRegister(evtStruct->name.c_str(), CommBusCallback, (void*)evtStruct))
+			fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "Existing Event registered for WASM=2:", evtStruct->name.c_str());
+		else
+			fprintf(stderr, "[%s] %s %s\n", CLIENTNAME, "The Event failed to register:", event);
 	}
 	else
 	{
@@ -202,7 +234,9 @@ void HandleEventRegisterWasm(const char* event)
 
 void HandleEventRegisterJs(const char* event)
 {
-	if (!std::any_of(RegisteredEvents.begin(), RegisteredEvents.end(), [event](RegisteredEvent* e) { return strcmp(event, e->name.c_str()) == 0; }))
+	RegisteredEvent* evtStruct;
+	bool registered = IsEventRegistered(event, &evtStruct);
+	if (!registered)
 	{
 		RegisteredEvent* evtStruct = new RegisteredEvent();
 		evtStruct->name = std::string(event, size_t(event));
@@ -210,7 +244,14 @@ void HandleEventRegisterJs(const char* event)
 		RegisteredEvents.push_back(evtStruct);
 		const char* msg = SerializeRequestJs(evtStruct->name.c_str(), REGISTER);
 		fsCommBusCall(EventNameJs, msg, strlen(msg) + 1, FsCommBusBroadcast_JS);
-		fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "Send Registration to InGamePanel:", evtStruct->name.c_str());
+		fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "New Event registered for JS=1:", evtStruct->name.c_str());
+	}
+	else if (registered && (evtStruct->flag & FsCommBusBroadcast_JS) == 0)
+	{
+		evtStruct->flag = (FsCommBusBroadcastFlags)(evtStruct->flag | FsCommBusBroadcast_JS);
+		const char* msg = SerializeRequestJs(evtStruct->name.c_str(), REGISTER);
+		fsCommBusCall(EventNameJs, msg, strlen(msg) + 1, FsCommBusBroadcast_JS);
+		fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "Existing Event registered for JS=1:", evtStruct->name.c_str());
 	}
 	else
 	{
@@ -220,23 +261,31 @@ void HandleEventRegisterJs(const char* event)
 
 void HandleEventUnregister(const char* event)
 {
-	auto it = std::find_if(RegisteredEvents.begin(), RegisteredEvents.end(), [event](RegisteredEvent* e) { return strcmp(event, e->name.c_str()) == 0; });
-	if (it != RegisteredEvents.end())
+	RegisteredEvent* evtStruct;
+	bool registered = IsEventRegistered(event, &evtStruct);
+	if (registered)
 	{
-		RegisteredEvent* evtStruct = *it;
-		if (evtStruct->flag == FsCommBusBroadcast_Wasm)
+		bool handled = false;
+		if ((evtStruct->flag & FsCommBusBroadcast_Wasm) != 0)
 		{
-			RegisteredEvents.remove_if([event](RegisteredEvent* e) { return strcmp(event, e->name.c_str()) == 0; });
-			delete evtStruct;
-			fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "Event unregistered:", event);
+			if (fsCommBusUnregisterOneEvent(evtStruct->name.c_str(), CommBusCallback, (void*)evtStruct) > 0)
+				fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "Event unregistered from WASM=2:", event);
+			else
+				fprintf(stderr, "[%s] %s %s\n", CLIENTNAME, "The Event failed to unregister:", event);
+			handled = true;
 		}
-		else if (evtStruct->flag == FsCommBusBroadcast_JS)
+		if ((evtStruct->flag & FsCommBusBroadcast_JS) != 0)
 		{
-			RegisteredEvents.remove_if([event](RegisteredEvent* e) { return strcmp(event, e->name.c_str()) == 0; });
 			const char* msg = SerializeRequestJs(evtStruct->name.c_str(), UNREGISTER);
 			fsCommBusCall(EventNameJs, msg, strlen(msg) + 1, FsCommBusBroadcast_JS);
+			fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "Event unregistered from JS=1:", event);
+			handled = true;
+		}
+
+		if (handled)
+		{
+			RegisteredEvents.remove_if([event](RegisteredEvent* e) { return strcmp(event, e->name.c_str()) == 0; });
 			delete evtStruct;
-			fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "Send Unregistration to InGamePanel:", event);
 		}
 		else
 			fprintf(stderr, "[%s] %s %d\n", CLIENTNAME, "received unknown Register Flag:", evtStruct->flag);
@@ -292,7 +341,8 @@ void CALLBACK SimConnectDispatch(SIMCONNECT_RECV* pData, DWORD cbData, void* pCo
 			{
 				auto data = (const char*)(&recv_data->dwData);
 				auto request = ParseRequest(data);
-				fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "received Request from App:", data);
+				if (request.type != EFB)
+					fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "received Request from App:", data);
 
 				if (request.type == CALL)
 				{
@@ -300,11 +350,19 @@ void CALLBACK SimConnectDispatch(SIMCONNECT_RECV* pData, DWORD cbData, void* pCo
 				}
 				else if (request.type == REGISTER)
 				{
-					if (request.flags == FsCommBusBroadcast_Wasm)
+					bool handled = false;
+					if ((request.flags & FsCommBusBroadcast_Wasm) != 0)
+					{
 						HandleEventRegisterWasm(request.event);
-					else if (request.flags == FsCommBusBroadcast_JS)
+						handled = true;
+					}
+					if ((request.flags & FsCommBusBroadcast_JS) != 0)
+					{
 						HandleEventRegisterJs(request.event);
-					else
+						handled = true;
+					}
+					
+					if (!handled)
 						fprintf(stderr, "[%s] %s %d\n", CLIENTNAME, "received unknown Register Flag:", request.flags);
 				}
 				else if (request.type == UNREGISTER)
@@ -329,7 +387,6 @@ void CALLBACK SimConnectDispatch(SIMCONNECT_RECV* pData, DWORD cbData, void* pCo
 				{
 					const char* msg = SerializeRequestJs("EfbUpdate", EFB, request.data);
 					fsCommBusCall(EventNameJs, msg, strlen(msg) + 1, FsCommBusBroadcast_JS);
-					fprintf(stdout, "[%s] %s %s\n", CLIENTNAME, "Send Update to EFB App", request.data);
 				}
 				else if (request.type == GSXMENU)
 				{

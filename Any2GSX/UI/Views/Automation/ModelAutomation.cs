@@ -3,10 +3,13 @@ using Any2GSX.GSX.Automation;
 using Any2GSX.Notifications;
 using Any2GSX.PluginInterface;
 using Any2GSX.PluginInterface.Interfaces;
+using CFIT.AppFramework.UI.ViewModels.Commands;
+using CFIT.AppLogger;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Windows;
 
 namespace Any2GSX.UI.Views.Automation
 {
@@ -105,6 +108,13 @@ namespace Any2GSX.UI.Views.Automation
                 AppService.Instance.GsxController.AutomationController.SkipToTurnaround();
         }
 
+        [RelayCommand]
+        public virtual void SkipToPrep()
+        {
+            if (AppService.Instance.GsxController.AutomationState == AutomationState.TurnAround)
+                AppService.Instance.GsxController.AutomationController.SkipToPreparation();
+        }
+
         public virtual string DisplayUnitCurrentString => Config.DisplayUnitCurrentString;
         [ObservableProperty]
         public partial PluginCapabilities PluginCapabilities { get; set; } = new();
@@ -120,6 +130,7 @@ namespace Any2GSX.UI.Views.Automation
         public virtual bool DoorServiceHandling { get => Source.DoorServiceHandling; set => SetModelValue<bool>(value); }
         public virtual bool DoorCargoHandling { get => Source.DoorCargoHandling; set => SetModelValue<bool>(value); }
         public virtual bool DoorCargoOpenOnActive { get => Source.DoorCargoOpenOnActive; set => SetModelValue<bool>(value); }
+        public virtual bool DoorCargoOperateBulk { get => Source.DoorCargoOperateBulk; set => SetModelValue<bool>(value); }
         public virtual int DoorCargoOpenCloseDelay { get => Source.DoorCargoOpenCloseDelay; set => SetModelValue<int>(value); }
         public virtual bool DoorsCargoKeepOpenOnDetachBoard { get => Source.DoorsCargoKeepOpenOnDetachBoard; set => SetModelValue<bool>(value); }
         public virtual bool DoorsCargoKeepOpenOnDetachDeboard { get => Source.DoorsCargoKeepOpenOnDetachDeboard; set => SetModelValue<bool>(value); }
@@ -127,8 +138,6 @@ namespace Any2GSX.UI.Views.Automation
 
 
         public virtual bool CallJetwayStairsOnPrep { get => Source.CallJetwayStairsOnPrep; set => SetModelValue<bool>(value); }
-        public virtual bool AttemptConnectStairRefuel { get => Source.AttemptConnectStairRefuel; set => SetModelValue<bool>(value); }
-        public virtual int DelayCallRefuelAfterStair { get => Source.DelayCallRefuelAfterStair; set => SetModelValue<int>(value); }
         public virtual bool CallJetwayStairsDuringDeparture { get => Source.CallJetwayStairsDuringDeparture; set => SetModelValue<bool>(value); }
         public virtual bool CallJetwayStairsOnArrival { get => Source.CallJetwayStairsOnArrival; set => SetModelValue<bool>(value); }
         public virtual int RemoveStairsAfterDepature { get => Source.RemoveStairsAfterDepature; set => SetModelValue<int>(value); }
@@ -207,10 +216,26 @@ namespace Any2GSX.UI.Views.Automation
         };
         public virtual ModelDepartureServices DepartureServices { get; }
         public virtual Dictionary<GsxServiceActivation, string> TextServiceActivations => ServiceConfig.TextServiceActivations;
-        public virtual Dictionary<GsxServiceConstraint, string> TextServiceConstraints => ServiceConfig.TextServiceConstraints;
+        public virtual Dictionary<GsxServiceDependency, string> TextServiceDependencies => ServiceConfig.TextServiceDependencies;
+        public virtual Dictionary<GsxServiceDependencyScope, string> TextServiceDependencyScope => ServiceConfig.TextServiceDependencyScope;
+        public virtual Dictionary<GsxServiceActivation, string> TextServiceCancellations => ServiceConfig.TextServiceCancellations;
+        public CommandWrapper<int?> CommandButtonUp => new((index) => DepartureServices.MoveItem(index ?? -1, -1), (index) => index != null && index - 1 >= 0);
+        public CommandWrapper<int?> CommandButtonDown => new((index) => DepartureServices.MoveItem(index ?? -1, 1), (index) => index != null && index + 1 < DepartureServices.Count);
+        [RelayCommand]
+        public virtual void ResetQueue()
+        {
+            if (MessageBox.Show($"Do you want to reset the Service Queue to the default Settings?", $"Reset Queue for {Source.Name}", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            {
+                Logger.Debug($"Reset Queue to default requested by User");
+                Config.ResetServices(Source);
+                Config.SaveConfiguration();
+                DepartureServices.NotifyCollectionChanged();
+            }
+        }
 
         public virtual int CallPushbackWhenTugAttached { get => Source.CallPushbackWhenTugAttached; set => SetModelValue<int>(value); }
         public virtual bool CallPushbackOnBeacon { get => Source.CallPushbackOnBeacon; set => SetModelValue<bool>(value); }
+        public virtual bool CallPushbackOnFinal { get => Source.CallPushbackOnFinal; set => SetModelValue<bool>(value); }
         public virtual bool CancelServicesOnPushPhase { get => Source.CancelServicesOnPushPhase; set => SetModelValue<bool>(value); }
 
         //Operator Selection

@@ -1,4 +1,5 @@
 ﻿using Any2GSX.AppConfig;
+using Any2GSX.PluginInterface.Interfaces.GSX;
 using CFIT.AppLogger;
 using System;
 using System.Collections.Generic;

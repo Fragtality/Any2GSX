@@ -1,5 +1,6 @@
 ﻿using Any2GSX.GSX;
 using Any2GSX.PluginInterface.Interfaces;
+using Any2GSX.PluginInterface.Interfaces.GSX;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -44,6 +45,17 @@ namespace Any2GSX.Notifications
                 message.AircraftConnectionState = "Connected";
             else
                 message.AircraftConnectionState = "Disconnected";
+
+            return CommBus.SendEfbUpdate(message);
+        }
+
+        public override Task SetExternalConnected(bool connected)
+        {
+            var message = new EfbMessage();
+            if (connected)
+                message.ExternalControlState = $"On ({GsxController.AutomationController.DepartureQueue.ExternalServiceHandler})";
+            else
+                message.ExternalControlState = "Off";
 
             return CommBus.SendEfbUpdate(message);
         }
@@ -93,11 +105,13 @@ namespace Any2GSX.Notifications
             return CommBus.SendEfbUpdate(message);
         }
 
-        public override Task SetDepartureServices(int completed, int running, int total)
+        public override Task SetDepartureServices(int completed, int running, int total, int skipped)
         {
             string text = "";
             if (AutomationController.State == AutomationState.Departure)
                 text = $"{completed + running} / {total}";
+            if (skipped > 0)
+                text = $"{text} ({skipped} Skipped)";
 
             var message = new EfbMessage() { DepartureServices = text };
             return CommBus.SendEfbUpdate(message);
@@ -182,6 +196,10 @@ namespace Any2GSX.Notifications
                     if (notification.HasMessage)
                         status = $"Call {notification.Message} Service ...";
                     break;
+                case AppNotification.ServiceCancel:
+                    if (notification.HasMessage)
+                        status = $"Cancel Service {notification.Message} ...";
+                    break;
                 case AppNotification.MenuCommand:
                     if (notification.Message.StartsWith("Open", StringComparison.InvariantCultureIgnoreCase))
                         status = $"Open Menu ...";
@@ -196,14 +214,14 @@ namespace Any2GSX.Notifications
                         status = $"Select Gate!";
                     break;
                 case AppNotification.GateMove:
-                    if (Tracker.HasCapture)
+                    if (Tracker.HasGateSelection)
                     {
                         if (phase <= AutomationState.Departure)
                             status = "Move to Gate!";
                         else if (phase == AutomationState.TaxiOut)
-                            status = $"Deice Pad: {Tracker.LastCapturedGate}";
+                            status = $"Deice Pad: {Tracker.LastGateSelection}";
                         else if (phase == AutomationState.TaxiIn)
-                            status = $"Selected Gate: {Tracker.LastCapturedGate}";
+                            status = $"Selected Gate: {Tracker.LastGateSelection}";
                     }
                     else
                         status = "Move to Gate!";
@@ -222,6 +240,14 @@ namespace Any2GSX.Notifications
                 case AppNotification.OfpCheck:
                     if (notification.ClearTime > DateTime.Now)
                         status = $"Next Simbrief Check in {(int)((notification.ClearTime - DateTime.Now).TotalSeconds)}s ...";
+                    break;
+                case AppNotification.SheetFinal:
+                    if (notification.ClearTime > DateTime.Now)
+                        status = $"Final Loadsheet in {(int)((notification.ClearTime - DateTime.Now).TotalSeconds)}s ...";
+                    break;
+                case AppNotification.PushPhase:
+                    if (notification.HasMessage)
+                        status = $"Push: {notification.Message}";
                     break;
                 case AppNotification.OperateJetway:
                     status = "Jetway Operating ...";
@@ -248,14 +274,6 @@ namespace Any2GSX.Notifications
                 case AppNotification.ServiceRefuel:
                     if (notification.HasMessage)
                         status = notification.Message;
-                    break;
-                case AppNotification.SheetFinal:
-                    if (notification.ClearTime > DateTime.Now)
-                        status = $"Final Loadsheet in {(int)((notification.ClearTime - DateTime.Now).TotalSeconds)}s ...";
-                    break;
-                case AppNotification.PushPhase:
-                    if (notification.HasMessage)
-                        status = $"Push: {notification.Message}";
                     break;
                 default:
                     if (notification.Id != AppNotification.None)

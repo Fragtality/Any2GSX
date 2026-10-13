@@ -18,7 +18,8 @@ namespace Any2GSX.Audio
         public virtual CancellationToken RequestToken => AppService.Instance.RequestToken;
         public virtual SimConnectManager SimConnect => Any2GSX.Instance.AppService.SimConnect;
         public virtual bool IsActive { get; protected set; } = false;
-        protected virtual AircraftController AircraftController => AppService.Instance.AircraftController;
+        public virtual AircraftController AircraftController => AppService.Instance.AircraftController;
+        public virtual bool IsAircraftPowered { get; protected set; } = false;
         protected virtual SettingProfile SettingProfile => AppService.Instance?.SettingProfile;
         public virtual bool HasInitialized { get; protected set; } = false;
         public virtual DeviceManager DeviceManager { get; }
@@ -27,6 +28,7 @@ namespace Any2GSX.Audio
         public virtual bool ResetVolumes { get; set; } = false;
         public virtual bool ResetMappings { get; set; } = false;
         public virtual bool ResetChannels { get; set; } = false;
+        public virtual bool StartupVolumeSet { get; set; } = false;
         public virtual AircraftChannels AircraftChannels { get; protected set; } = null;
         public virtual ConcurrentDictionary<string, ChannelDefinition> ChannelDefinitions { get; } = [];
         public virtual ConcurrentDictionary<string, ISimResourceSubscription> VolumeVariables { get; } = [];
@@ -133,8 +135,11 @@ namespace Any2GSX.Audio
 
                         if (channel.MuteStartupCode != null)
                         {
-                            Logger.Debug($"Sending Startup Mute Code of '{channel.Name}' ({channel.UnmutedValue})");
-                            await AppService.Instance.CommBus.ExecuteCalculatorCode(channel.MuteStartupCode.Replace("{0}", Conversion.ToString(channel.UnmutedValue)));
+                            if (SimStore[channel.MuteVariable]?.SimResource?.IsReceived == true && SimStore[channel.MuteVariable]?.GetNumber() == channel.MutedValue)
+                            {
+                                Logger.Debug($"Sending Startup Mute Code of '{channel.Name}' ({channel.UnmutedValue})");
+                                await AppService.Instance.CommBus.ExecuteCalculatorCode(channel.MuteStartupCode.Replace("{0}", Conversion.ToString(channel.UnmutedValue)));
+                            }
                         }
                         else
                         {
@@ -159,18 +164,33 @@ namespace Any2GSX.Audio
         {
             try
             {
-                while ((!AircraftController.IsConnected || !await AircraftController.Aircraft.GetAvionicPowered()) && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
-                    await Task.Delay(Config.AudioServiceRunInterval, Token);
+                while ((AircraftController?.Aircraft == null || !AircraftController.IsConnected || !await AircraftController.Aircraft?.GetAvionicPowered() == false) && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
+                    await Task.Delay(Config.AudioServiceRunInterval, RequestToken);
 
                 RegisterChannels();
-                await Task.Delay(1000, Token);
+                await Task.Delay(1000, RequestToken);
                 SessionManager.RegisterMappings();
+                await Task.Delay(500, RequestToken);
                 bool rescanNeeded = false;
                 IsActive = true;
-                Logger.Debug($"Aircraft powered. AudioService active");
-                await SetStartupVolumes();
                 while (SimConnect.IsSessionRunning && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
                 {
+                    IsAircraftPowered = AircraftController.Aircraft != null && await AircraftController.Aircraft?.GetAvionicPowered() == true;
+                    if (!StartupVolumeSet)
+                    {
+                        if (!IsAircraftPowered)
+                        {
+                            await Task.Delay(Config.AudioServiceRunInterval, RequestToken);
+                            continue;
+                        }
+                        else
+                        {
+                            Logger.Debug($"Aircraft powered. AudioService active");
+                            await SetStartupVolumes();
+                            StartupVolumeSet = true;
+                        }
+                    }
+
                     rescanNeeded = SessionManager.HasInactiveSessions || SessionManager.HasEmptySearches || ResetMappings || ResetChannels;
                     if (rescanNeeded)
                         Logger.Debug($"Rescan Needed - InactiveSessions {SessionManager.HasInactiveSessions} | EmptySearches {SessionManager.HasEmptySearches} | ResetMappings {ResetMappings}");
@@ -198,7 +218,7 @@ namespace Any2GSX.Audio
                             if (!rescanNeeded)
                                 Logger.Debug($"Rescan Needed - CheckProcess had Changes");
                             rescanNeeded = true;
-                            await Task.Delay(Config.AudioProcessStartupDelay, Token);
+                            await Task.Delay(Config.AudioProcessStartupDelay, RequestToken);
                         }
                         NextProcessCheck = DateTime.Now + TimeSpan.FromMilliseconds(Config.AudioProcessCheckInterval);
                     }
@@ -210,9 +230,9 @@ namespace Any2GSX.Audio
 
                     HasInitialized = true;
 
-                    SessionManager.CheckSessions(rescanNeeded);
+                    await SessionManager.CheckSessions(rescanNeeded);
                     if (ResetVolumes)
-                        SessionManager.SyncControls();
+                        await SessionManager.SyncControls();
 
                     ResetVolumes = false;
                     rescanNeeded = false;
@@ -248,6 +268,7 @@ namespace Any2GSX.Audio
             SessionManager.Clear();
             IsActive = false;
             HasInitialized = false;
+            StartupVolumeSet = false;
             return Task.CompletedTask;
         }
     }

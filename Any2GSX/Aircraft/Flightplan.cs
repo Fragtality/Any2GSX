@@ -22,18 +22,20 @@ namespace Any2GSX.Aircraft
         public virtual GsxAutomationController AutomationController => AppService.Instance.GsxController.AutomationController;
         public virtual SettingProfile SettingProfile => AppService.Instance.SettingProfile;
         public virtual IWeightConverter WeightConverter => AppService.Instance.WeightConverter;
-        public virtual CancellationToken Token => AppService.Instance.Token;
+        public virtual CancellationToken Token => AppService.Instance.RequestToken;
         protected virtual HttpClient HttpClient { get; }
 
         public virtual long Id { get; protected set; } = 0;
+        public virtual int Edition { get; protected set; } = 0;
         public virtual long LastId { get; protected set; } = 0;
-        public virtual bool IsLoaded => Id != 0 && !string.IsNullOrWhiteSpace(Number);
+        public virtual bool IsLoaded => Id != 0 && !string.IsNullOrWhiteSpace(FlightNumber);
         public virtual bool LastOnlineCheck { get; protected set; } = false;
         public virtual string SimbriefUser => AppService.Instance.Config.SimbriefUser;
         public virtual DisplayUnit Unit { get; set; } = AppService.Instance.Config.DisplayUnitDefault;
         public virtual double WeightPerPaxKg { get; set; }
         public virtual double WeightPerBagKg { get; set; }
-        public virtual string Number { get; set; }
+        public virtual string FlightNumber { get; set; }
+        public virtual string CallSign { get; set; }
         public virtual string AircraftType { get; set; }
         public virtual string AircraftReg { get; set; }
         public virtual string Origin { get; set; }
@@ -51,7 +53,7 @@ namespace Any2GSX.Aircraft
         public virtual double WeightPaxKg => (CountPax) * WeightPerPaxKg;
         public virtual double WeightBagKg => (CountBags) * WeightPerBagKg;
         public virtual double WeightFreightKg { get; set; }
-        public virtual double WeightCargoKg => WeightBagKg + WeightFreightKg + (SettingProfile.ApplyPaxToCargo && Aircraft.GetIsCargo().RunSync() ? WeightPaxKg : 0);
+        public virtual double WeightCargoKg => WeightBagKg + WeightFreightKg + (SettingProfile.ApplyPaxToCargo && Aircraft?.GetIsCargo()?.RunSync() == true ? WeightPaxKg : 0);
         public virtual double WeightCargoPlannedKg => (CountBagsPlanned * WeightPerBagKg) + WeightFreightKg + (SettingProfile.ApplyPaxToCargo && Aircraft.GetIsCargo().RunSync() ? WeightPaxKg : 0);
         public virtual double WeightPayloadKg => WeightPaxKg + WeightCargoKg;
         public virtual double AircraftEmptyOewKg { get; set; }
@@ -60,6 +62,7 @@ namespace Any2GSX.Aircraft
         public virtual double DiffPayloadKg => (DiffPax * WeightPerPaxKg) + (DiffBags * WeightPerBagKg);
 
         public event Func<IFlightplan, Task> OnImport;
+        public event Func<Task> OnChanged;
         public event Func<Task> OnUnload;
 
         public Flightplan()
@@ -126,6 +129,11 @@ namespace Any2GSX.Aircraft
                 return false;
         }
 
+        public virtual void NotifyChange()
+        {
+            _ = TaskTools.RunPool(() => OnChanged?.Invoke());
+        }
+
         public virtual async Task<long> CheckIdOnline()
         {
             try
@@ -169,6 +177,11 @@ namespace Any2GSX.Aircraft
                     return false;
                 }
 
+                if (GetJsonInt(json["general"]!["release"], out int ed))
+                    Edition = ed;
+                else
+                    return false;
+
                 if (GetJsonString(json["params"]!["units"], out string units))
                 {
                     if (units == "kgs")
@@ -207,16 +220,36 @@ namespace Any2GSX.Aircraft
 
                 if (GetJsonInt(json["weights"]![$"pax_count{countField}"], out int pax))
                 {
-                    DiffPax = 0;
-                    CountPaxPlanned = pax;
+                    if (pax >= 0)
+                    {
+                        DiffPax = 0;
+                        CountPaxPlanned = pax;
+                    }
+                    else if (GetJsonInt(json["weights"]![$"pax_count"], out int paxCount))
+                    {
+                        DiffPax = 0;
+                        CountPaxPlanned = paxCount;
+                    }
+                    else
+                        return false;
                 }
                 else
                     return false;
 
                 if (GetJsonInt(json["weights"]![$"bag_count{countField}"], out int bag))
                 {
-                    DiffBags = 0;
-                    CountBagsPlanned = bag;
+                    if (bag >= 0)
+                    {
+                        DiffBags = 0;
+                        CountBagsPlanned = bag;
+                    }
+                    else if (GetJsonInt(json["weights"]![$"bag_count"], out int bagCount))
+                    {
+                        DiffBags = 0;
+                        CountBagsPlanned = bagCount;
+                    }
+                    else
+                        return false;
                 }
                 else
                     return false;
@@ -244,7 +277,12 @@ namespace Any2GSX.Aircraft
                     return false;
 
                 if (GetJsonString(json["general"]!["icao_airline"], out string airline) && GetJsonString(json["general"]!["flight_number"], out string number))
-                    Number = $"{airline}{number}";
+                    FlightNumber = $"{airline}{number}";
+                else
+                    return false;
+
+                if (GetJsonString(json["atc"]!["callsign"], out string callsign))
+                    CallSign = callsign;
                 else
                     return false;
 
@@ -281,11 +319,17 @@ namespace Any2GSX.Aircraft
                     DiffPax = Random.Shared.Next(SettingProfile.RandomizePaxMaxDiff * -1, SettingProfile.RandomizePaxMaxDiff);
                     if (MaxPax > 0 && CountPaxPlanned + DiffPax > MaxPax)
                         DiffPax = MaxPax - CountPaxPlanned;
-                    DiffBags = DiffPax;
 
                     if (CountPax + DiffPax > 0)
                     {
                         Logger.Debug($"Randomized Pax Count - Diff: {DiffPax}");
+                    }
+
+                    DiffBags = DiffPax;
+                    if (CountBags < 0)
+                    {
+                        CountBagsPlanned = 0;
+                        DiffBags = 0;
                     }
                 }
 
@@ -296,17 +340,20 @@ namespace Any2GSX.Aircraft
                 }
 
                 if (notify)
-                    _ = TaskTools.RunPool(() => OnImport?.Invoke(this));
+                    _ = TaskTools.RunPool(() => OnImport?.Invoke(this), AppService.Instance.RequestToken);
 
-                Logger.Information($"Flightplan imported from SimBrief:");
+                Logger.Information($"Flightplan #{Id}/{Edition} imported from SimBrief");
                 var strings = GetInfoStrings();
                 foreach (string str in strings)
-                    Logger.Information(str);
+                    Logger.Debug(str);
                 return true;
             }
             catch (Exception ex)
             {
-                Logger.LogException(ex);
+                if (ex is not TaskCanceledException)
+                    Logger.LogException(ex);
+                else
+                    Logger.Warning($"Error while fetching SimBrief OFP ID");
             }
             return false;
         }
@@ -326,7 +373,7 @@ namespace Any2GSX.Aircraft
             List<string> infoStrings = [];
 
             infoStrings.Add($"{"OFP ID",col0}{Id,colS}");
-            infoStrings.Add($"{"Flight (Leg)",col0}{$"{Number} ({Origin} => {Destination})",colS}");
+            infoStrings.Add($"{"Flight (Leg)",col0}{$"{FlightNumber} ({Origin} => {Destination})",colS}");
             infoStrings.Add($"{"STD",col0}{ScheduledOutTime,colS}");
             infoStrings.Add($"{"AC Type / Reg",col0}{$"{AircraftType} / {AircraftReg}",colS}");
             if (SettingProfile.RandomizePax && !Aircraft.GetIsCargo().RunSync())
@@ -367,10 +414,10 @@ namespace Any2GSX.Aircraft
             {
                 LastId = Id;
                 if (OnUnload != null)
-                    _ = TaskTools.RunPool(() => OnUnload?.Invoke());
+                    _ = TaskTools.RunPool(() => OnUnload?.Invoke(), AppService.Instance.RequestToken);
             }
             Id = 0;
-            Number = "";
+            FlightNumber = "";
             LastOnlineCheck = false;
             ScheduledOutTime = DateTime.MinValue;
             return Task.CompletedTask;
@@ -388,36 +435,60 @@ namespace Any2GSX.Aircraft
             return Import(false);
         }
 
+        public virtual void UpdateEmptyOperatingWeightKg(double emptyOperatingWeightKg)
+        {
+            AircraftEmptyOewKg = emptyOperatingWeightKg;
+            NotifyChange();
+        }
+
         public virtual void UpdatePlannedFuelKg(double fuelRampKg)
         {
             FuelRampKg = fuelRampKg;
+            NotifyChange();
         }
 
         public virtual void UpdatePassengerMax(int count)
         {
             MaxPax = count;
+            NotifyChange();
         }
 
         public virtual void UpdatePassengerCount(int count, int diff = 0)
         {
             CountPaxPlanned = count;
             DiffPax = diff;
+            NotifyChange();
+        }
+
+        public virtual void UpdatePassengerWeight(double weightKg)
+        {
+            WeightPerPaxKg = weightKg;
+            NotifyChange();
         }
 
         public virtual void UpdateBagCount(int count, int diff = 0)
         {
             CountBagsPlanned = count;
             DiffBags = diff;
+            NotifyChange();
+        }
+
+        public virtual void UpdateBagWeight(double weightKg)
+        {
+            WeightPerBagKg = weightKg;
+            NotifyChange();
         }
 
         public virtual void UpdateFreightKg(double freightKg)
         {
             WeightFreightKg = freightKg;
+            NotifyChange();
         }
 
         public virtual void UpdateScheduledOut(DateTime outTime)
         {
             ScheduledOutTime = outTime;
+            NotifyChange();
         }
     }
 }

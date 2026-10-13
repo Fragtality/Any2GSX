@@ -1,9 +1,11 @@
 ﻿using Any2GSX.AppConfig;
 using Any2GSX.PluginInterface;
 using Any2GSX.PluginInterface.Interfaces;
+using Any2GSX.PluginInterface.Interfaces.GSX;
 using CFIT.AppFramework.ResourceStores;
 using CFIT.AppLogger;
 using CFIT.AppTools;
+using CFIT.SimConnectLib.InputEvents;
 using CFIT.SimConnectLib.SimEvents;
 using CFIT.SimConnectLib.SimResources;
 using CFIT.SimConnectLib.SimVars;
@@ -61,11 +63,12 @@ namespace Any2GSX.Aircraft
             }
             catch (Exception ex)
             {
-                Logger.LogException(ex);
                 if (ex is LuaRuntimeException luaEx)
-                    Logger.Error($"{FileName} Line {luaEx.Line}");
-                if (ex is LuaParseException parseEx)
-                    Logger.Error($"{FileName} Line {parseEx.Line}");
+                    Logger.Error($"LuaRuntimeException in {FileName} Line {luaEx.Line}");
+                else if (ex is LuaParseException parseEx)
+                    Logger.Error($"LuaParseException in {FileName} Line {parseEx.Line}");
+                else
+                    Logger.Error($"{ex.GetType().Name} in File {FileName}: {ex.Message}");
             }
         }
 
@@ -80,11 +83,12 @@ namespace Any2GSX.Aircraft
             }
             catch (Exception ex)
             {
-                Logger.LogException(ex);
                 if (ex is LuaRuntimeException luaEx)
-                    Logger.Error($"{FileName} Line {luaEx.Line}");
-                if (ex is LuaParseException parseEx)
-                    Logger.Error($"{FileName} Line {parseEx.Line}");
+                    Logger.Error($"LuaRuntimeException in File {FileName} Line {luaEx.Line}: {code}");
+                else if (ex is LuaParseException parseEx)
+                    Logger.Error($"LuaParseException in File {FileName} Line {parseEx.Line}: {code}");
+                else
+                    Logger.Error($"{ex.GetType().Name} in File {FileName}: {ex.Message} (code: {code})");
             }
         }
 
@@ -114,6 +118,16 @@ namespace Any2GSX.Aircraft
             return luaFunc != null;
         }
 
+        protected virtual void LogError(Exception ex, LuaFunction func)
+        {
+            if (ex is LuaRuntimeException luaEx)
+                Logger.Error($"LuaRuntimeException in File {FileName} Line {luaEx.Line} Function '{func?.Name}'");
+            else if (ex is LuaParseException parseEx)
+                Logger.Error($"LuaParseException in File {FileName} Line {parseEx.Line} Function '{func?.Name}'");
+            else
+                Logger.Error($"{ex.GetType().Name} in File {FileName} Function '{func?.Name}': {ex.Message}");
+        }
+
         protected virtual Task CallLua(LuaFunction func)
         {
             try
@@ -122,12 +136,7 @@ namespace Any2GSX.Aircraft
             }
             catch (Exception ex)
             {
-                Logger.Error($"Exception in Lua Function '{func?.Name}':");
-                Logger.LogException(ex);
-                if (ex is LuaRuntimeException luaEx)
-                    Logger.Error($"{FileName} Line {luaEx.Line}");
-                if (ex is LuaParseException parseEx)
-                    Logger.Error($"{FileName} Line {parseEx.Line}");
+                LogError(ex, func);
             }
 
             return Task.CompletedTask;
@@ -141,12 +150,7 @@ namespace Any2GSX.Aircraft
             }
             catch (Exception ex)
             {
-                Logger.Error($"Exception in Lua Function '{func?.Name}':");
-                Logger.LogException(ex);
-                if (ex is LuaRuntimeException luaEx)
-                    Logger.Error($"{FileName} Line {luaEx.Line}");
-                if (ex is LuaParseException parseEx)
-                    Logger.Error($"{FileName} Line {parseEx.Line}");
+                LogError(ex, func);
             }
 
             return Task.FromResult(default(T));
@@ -160,12 +164,7 @@ namespace Any2GSX.Aircraft
             }
             catch (Exception ex)
             {
-                Logger.Error($"Exception in Lua Function '{func?.Name}':");
-                Logger.LogException(ex);
-                if (ex is LuaRuntimeException luaEx)
-                    Logger.Error($"{FileName} Line {luaEx.Line}");
-                if (ex is LuaParseException parseEx)
-                    Logger.Error($"{FileName} Line {parseEx.Line}");
+                LogError(ex, func);
             }
 
             return Task.FromResult(default(T));
@@ -179,12 +178,7 @@ namespace Any2GSX.Aircraft
             }
             catch (Exception ex)
             {
-                Logger.Error($"Exception in Lua Function '{func?.Name}':");
-                Logger.LogException(ex);
-                if (ex is LuaRuntimeException luaEx)
-                    Logger.Error($"{FileName} Line {luaEx.Line}");
-                if (ex is LuaParseException parseEx)
-                    Logger.Error($"{FileName} Line {parseEx.Line}");
+                LogError(ex, func);
             }
 
             return Task.FromResult(default(T));
@@ -198,12 +192,7 @@ namespace Any2GSX.Aircraft
             }
             catch (Exception ex)
             {
-                Logger.Error($"Exception in Lua Function '{func?.Name}':");
-                Logger.LogException(ex);
-                if (ex is LuaRuntimeException luaEx)
-                    Logger.Error($"{FileName} Line {luaEx.Line}");
-                if (ex is LuaParseException parseEx)
-                    Logger.Error($"{FileName} Line {parseEx.Line}");
+                LogError(ex, func);
             }
 
             return Task.FromResult(default(T));
@@ -217,12 +206,7 @@ namespace Any2GSX.Aircraft
             }
             catch (Exception ex)
             {
-                Logger.Error($"Exception in Lua Function '{func?.Name}':");
-                Logger.LogException(ex);
-                if (ex is LuaRuntimeException luaEx)
-                    Logger.Error($"{FileName} Line {luaEx.Line}");
-                if (ex is LuaParseException parseEx)
-                    Logger.Error($"{FileName} Line {parseEx.Line}");
+                LogError(ex, func);
             }
 
             return Task.FromResult(default(T));
@@ -234,27 +218,40 @@ namespace Any2GSX.Aircraft
             dynamic _env = LuaEnv;
             _env.GetSetting = new Func<string, dynamic>(GetSetting);
             _env.GetGenericSetting = new Func<string, dynamic>(GetGenericSetting);
+            _env.SetGenericSetting = new Action<string, dynamic>(SetGenericSetting);
             _env.GetPluginSetting = new Func<string, dynamic>(GetPluginSetting);
+            _env.SetPluginSetting = new Action<string, dynamic>(SetPluginSetting);
             _env.GetSettingProfile = new Func<ISettingProfile>(() => AppService.Instance?.ISettingProfile);
             _env.GetAircraftPlugin = new Func<AircraftBase>(() => AppService.Instance?.AircraftController?.Aircraft);
             _env.GetGsxController = new Func<IGsxController>(() => AppService.Instance?.GsxController);
-            _env.FuelWeightKgPerGallon = new Func<double>(() => AppService.Instance?.AircraftController?.FuelWeightKgPerGallon ?? 3.03907);
-            _env.UseVar = new Action<string, string>(RegisterVariable);
-            _env.UseEvent = new Action<string>(RegisterEvent);
+            _env.FuelWeightKgPerGallon = new Func<double>(() => AppService.Instance?.AircraftController?.Aircraft?.FuelWeightKgPerGallon ?? 3.03907);
+
+            _env.UseVar = new Action<string, string>(RegisterVariable); //Variable => Sim and Local Variables (A: and L:)
             _env.SubVar = new Action<string, string, string>(CallbackVariable);
-            _env.SubEvent = new Action<string, string>(CallbackEvent);
             _env.ReadVar = new Func<string, dynamic>(ReadVariable);
             _env.ReadVarString = new Func<string, string>(ReadVariableString);
             _env.WriteVar = new Func<string, dynamic, Task>(WriteVariable);
+
+            _env.UseEvent = new Action<string>(RegisterEvent); //Event => Sim Event (K:)
+            _env.SubEvent = new Action<string, string>(CallbackEvent);
+            _env.ReadEvent = new Func<string, dynamic>(ReadEvent);
             _env.WriteEvent = new Func<string, dynamic[], Task>(WriteEvent);
-            _env.SendInput = new Func<string, double, Task>(SendInput);
+
+            _env.UseInput = new Action<string>(RegisterInput); //Input => Input Event (B:)
+            _env.SubInput = new Action<string, string>(CallbackInput);
+            _env.ReadInput = new Func<string, dynamic>(ReadInput);
+            _env.WriteInput = new Func<string, double, Task>(WriteInput);
+
             _env.SendBus = new Func<string, string, int, Task>(SendCommBus);
             _env.SubBus = new Func<string, int, string, Task>(RegisterCommBus);
+            _env.UnsubBus = new Func<string, Task>(UnregisterCommBus);
             _env.CalculatorCode = new Func<string, Task>(CalculatorCode);
-            _env.Sleep = new Action<int>((delay) => Task.Delay(delay, Token).RunSync());
+
+            _env.Sleep = new Action<int>((delay) => Task.Delay(delay, GsxController.RequestToken).RunSync());
             _env.RunAfter = new Action<int, string>(RunAfter);
             _env.Log = new Action<string>(WriteDebug);
             _env.Info = new Action<string>(WriteInfo);
+
             _env.ToggleWalkaround = new Func<Task>(() => GsxController.ToggleWalkaround());
             _env.AutomationState = new Func<int>(() => (int)GsxController.IAutomationController.State);
             _env.MatchAircraftString = new Func<string, bool>(MatchAircraftString);
@@ -295,9 +292,19 @@ namespace Any2GSX.Aircraft
             return GetSetting($"{SettingProfile.GenericIdUpper}.Option.{key}");
         }
 
+        protected virtual void SetGenericSetting(string key, dynamic value)
+        {
+            ISettingProfile.SetGenericSetting(key, value);
+        }
+
         protected virtual dynamic GetPluginSetting(string key)
         {
             return GetSetting(AppService.Instance.SettingProfile.GetPluginKey(key));
+        }
+
+        protected virtual void SetPluginSetting(string key, dynamic value)
+        {
+            ISettingProfile.SetPluginSetting(key, value);
         }
 
         protected virtual string GetScriptPath()
@@ -334,7 +341,27 @@ namespace Any2GSX.Aircraft
                     var sub = SimStore.AddEvent(name);
                     if (sub != null)
                     {
-                        Logger.Debug($"Added Event Subscription for '{name}'");
+                        Logger.Debug($"Added Sim Event Subscription for '{name}'");
+                        ResourceSubscriptions.Add(name, sub);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+        }
+
+        protected virtual void RegisterInput(string name)
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(name) && !ResourceSubscriptions.ContainsKey(name))
+                {
+                    var sub = SimStore.AddInput(name);
+                    if (sub != null)
+                    {
+                        Logger.Debug($"Added Input Event Subscription for '{name}'");
                         ResourceSubscriptions.Add(name, sub);
                     }
                 }
@@ -355,7 +382,7 @@ namespace Any2GSX.Aircraft
                 {
                     var handler = new EventCallback(name, SimUnitType.Number, func, DoEvent, sub);
                     EventCallbacks.Add(name, handler);
-                    Logger.Debug($"Added Callback for '{name}' => {func}()");
+                    Logger.Debug($"Added Callback for Variable '{name}' => {func}()");
                 }
             }
             catch (Exception ex)
@@ -374,7 +401,26 @@ namespace Any2GSX.Aircraft
                 {
                     var handler = new EventCallback(name, SimUnitType.Number, func, DoEvent, sub);
                     EventCallbacks.Add(name, handler);
-                    Logger.Debug($"Added Callback for '{name}' => {func}()");
+                    Logger.Debug($"Added Callback for Sim Event '{name}' => {func}()");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+        }
+
+        protected virtual void CallbackInput(string name, string func)
+        {
+            try
+            {
+                RegisterInput(name);
+
+                if (ResourceSubscriptions.TryGetValue(name, out var sub))
+                {
+                    var handler = new EventCallback(name, SimUnitType.Number, func, DoEvent, sub);
+                    EventCallbacks.Add(name, handler);
+                    Logger.Debug($"Added Callback for Input Event '{name}' => {func}()");
                 }
             }
             catch (Exception ex)
@@ -395,7 +441,7 @@ namespace Any2GSX.Aircraft
 
         protected virtual void RunAfter(int delayMs, string code)
         {
-            _ = TaskTools.RunDelayed(() => ExecuteCode(code), delayMs, Token);
+            _ = TaskTools.RunDelayed(() => ExecuteCode(code), delayMs, GsxController.RequestToken);
         }
 
         protected virtual dynamic ReadVariable(string name)
@@ -419,6 +465,36 @@ namespace Any2GSX.Aircraft
             {
                 if (ResourceSubscriptions.TryGetValue(name, out var sub) && sub is SimVarSubscription subVar && subVar.Resource.IsString)
                     return subVar.GetString();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+
+            return null;
+        }
+
+        protected virtual dynamic ReadEvent(string name)
+        {
+            try
+            {
+                if (ResourceSubscriptions.TryGetValue(name, out var sub) && sub is SimEventSubscription subEvt)
+                    return subEvt.GetNumber();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+
+            return null;
+        }
+
+        protected virtual dynamic ReadInput(string name)
+        {
+            try
+            {
+                if (ResourceSubscriptions.TryGetValue(name, out var sub) && sub is InputEventSubscription subEvt)
+                    return subEvt.GetNumber();
             }
             catch (Exception ex)
             {
@@ -458,18 +534,19 @@ namespace Any2GSX.Aircraft
             return Task.CompletedTask;
         }
 
-        protected virtual async Task SendInput(string name, double value)
+        protected virtual Task WriteInput(string name, double value)
         {
             try
             {
-                Logger.Debug($"Sending Input Event '{name}' with Value: {value}");
-                if (!await AppResources.InputEventManager.SendEvent(name, value))
-                    Logger.Warning($"Input Event '{name}' failed to execute");
+                if (ResourceSubscriptions.TryGetValue(name, out var sub) && sub is InputEventSubscription subEvt)
+                    return subEvt.WriteValue(value);
             }
             catch (Exception ex)
             {
                 Logger.LogException(ex);
             }
+
+            return Task.CompletedTask;
         }
 
         protected virtual Task SendCommBus(string @event, string data, int flag = (int)BroadcastFlag.DEFAULT)
@@ -496,6 +573,26 @@ namespace Any2GSX.Aircraft
                     var callback = new Action<string, string>((evt, data) => ExecuteCode($"{func}('{evt}', '{data}')"));
                     await CommBus.RegisterCommBus(@event, (BroadcastFlag)eventSource, callback);
                     CommBusSubscriptions.Add(new(@event, (BroadcastFlag)eventSource, callback));
+                    Logger.Debug($"Added CommBus Subscribtion for Event {@event}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+        }
+
+        protected virtual async Task UnregisterCommBus(string @event)
+        {
+            try
+            {
+                var query = CommBusSubscriptions.Where(s => s.Name == @event);
+                if (query.Any())
+                {
+                    var bus = query.First();
+                    await CommBus.UnregisterCommBus(@event, bus.Flag, bus.Callback);
+                    CommBusSubscriptions.Remove(bus);
+                    Logger.Debug($"Removed CommBus Subscribtion for Event {@event}");
                 }
             }
             catch (Exception ex)
@@ -795,14 +892,6 @@ namespace Any2GSX.Aircraft
                 return base.GetCanSetPayload();
         }
 
-        public override Task<bool> GetIsFuelOnStairSide()
-        {
-            if (HasLuaFunction(out LuaFunction func))
-                return CallLua<bool>(func);
-            else
-                return base.GetIsFuelOnStairSide();
-        }
-
         public override Task<bool> GetHasGpuInternal()
         {
             if (HasLuaFunction(out LuaFunction func))
@@ -1020,20 +1109,68 @@ namespace Any2GSX.Aircraft
                 return base.SetEquipmentPca(state, force);
         }
 
-        public override Task<bool> GetHasOpenDoors()
+        public override Task<AircraftDoor> GetAircraftDefaultDoor(GsxDoor gsxDoor)
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<AircraftDoor>(func, gsxDoor);
+            else
+                return base.GetAircraftDefaultDoor(gsxDoor);
+        }
+
+        public override Task<bool> IsDoorCustom(GsxDoor gsxDoor)
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<bool>(func, gsxDoor);
+            else
+                return base.IsDoorCustom(gsxDoor);
+        }
+
+        public override Task SetDoorCustom(AircraftDoor aircraftDoor, bool target)
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<object>(func, aircraftDoor, target);
+            else
+                return base.SetDoorCustom(aircraftDoor, target);
+        }
+
+        public override Task<bool> GetDoorCustom(AircraftDoor aircraftDoor)
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<bool>(func, aircraftDoor);
+            else
+                return base.GetDoorCustom(aircraftDoor);
+        }
+
+        public override Task<bool> CheckOpenDoors()
         {
             if (HasLuaFunction(out LuaFunction func))
                 return CallLua<bool>(func);
             else
-                return base.GetHasOpenDoors();
+                return base.CheckOpenDoors();
         }
 
-        public override Task SetCargoDoors(bool state, bool force = false)
+        public override Task SetCargoDoorBulk(bool target)
         {
             if (HasLuaFunction(out LuaFunction func))
-                return CallLua<object>(func, state, force);
+                return CallLua<object>(func, target);
             else
-                return base.SetCargoDoors(state, force);
+                return base.SetCargoDoorBulk(target);
+        }
+
+        public override Task<bool> GetCargoDoorBulk()
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<bool>(func);
+            else
+                return base.GetCargoDoorBulk();
+        }
+
+        public override Task SetCargoDoors(bool target)
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<object>(func, target);
+            else
+                return base.SetCargoDoors(target);
         }
 
         public override Task DoorsAllClose()
@@ -1060,12 +1197,20 @@ namespace Any2GSX.Aircraft
                 return base.GetHasAirStairAft();
         }
 
-        public override Task OnDoorTrigger(GsxDoor door, bool trigger)
+        public override Task<bool> OnDoorTrigger(AircraftDoor aircraftDoor, bool trigger, bool isAllowed)
         {
             if (HasLuaFunction(out LuaFunction func))
-                return CallLua<object>(func, door, trigger);
+                return CallLua<bool>(func, aircraftDoor, trigger, isAllowed);
             else
-                return base.OnDoorTrigger(door, trigger);
+                return base.OnDoorTrigger(aircraftDoor, trigger, isAllowed);
+        }
+
+        public override Task<bool> GetPanelLavatory()
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<bool>(func);
+            else
+                return base.GetPanelLavatory();
         }
 
         public override Task SetPanelLavatory(bool target)
@@ -1076,6 +1221,14 @@ namespace Any2GSX.Aircraft
                 return base.SetPanelLavatory(target);
         }
 
+        public override Task<bool> GetPanelWater()
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<bool>(func);
+            else
+                return base.GetPanelWater();
+        }
+
         public override Task SetPanelWater(bool target)
         {
             if (HasLuaFunction(out LuaFunction func))
@@ -1084,52 +1237,68 @@ namespace Any2GSX.Aircraft
                 return base.SetPanelWater(target);
         }
 
-        public override Task OnLoaderAttached(GsxDoor door, bool attached)
+        public override Task<bool> OnLoaderAttached(AircraftDoor aircraftDoor, bool attached, bool isAllowed)
         {
             if (HasLuaFunction(out LuaFunction func))
-                return CallLua<object>(func, door, attached);
+                return CallLua<bool>(func, aircraftDoor, attached, isAllowed);
             else
-                return base.OnLoaderAttached(door, attached);
+                return base.OnLoaderAttached(aircraftDoor, attached, isAllowed);
         }
 
-        public override Task OnJetwayStateChange(GsxServiceState state, bool paxDoorAllowed)
+        public override Task<bool> OnJetwayStateChange(AircraftDoor aircraftDoor, GsxServiceState state, bool paxDoorAllowed)
         {
             if (HasLuaFunction(out LuaFunction func))
-                return CallLua<object>(func, state, paxDoorAllowed);
+                return CallLua<bool>(func, aircraftDoor, state, paxDoorAllowed);
             else
-                return base.OnJetwayStateChange(state, paxDoorAllowed);
+                return base.OnJetwayStateChange(aircraftDoor, state, paxDoorAllowed);
         }
 
-        public override Task OnJetwayOperationChange(GsxServiceState state, bool paxDoorAllowed)
+        public override Task<bool> OnJetwayOperationChange(AircraftDoor aircraftDoor, GsxServiceState state, bool paxDoorAllowed)
         {
             if (HasLuaFunction(out LuaFunction func))
-                return CallLua<object>(func, state, paxDoorAllowed);
+                return CallLua<bool>(func, aircraftDoor, state, paxDoorAllowed);
             else
-                return base.OnJetwayOperationChange(state, paxDoorAllowed);
+                return base.OnJetwayOperationChange(aircraftDoor, state, paxDoorAllowed);
         }
 
-        public override Task OnStairStateChange(GsxServiceState state, bool paxDoorAllowed)
+        public override Task<bool> OnStairStateChange(GsxServiceState state, bool paxDoorAllowed)
         {
             if (HasLuaFunction(out LuaFunction func))
-                return CallLua<object>(func, state, paxDoorAllowed);
+                return CallLua<bool>(func, state, paxDoorAllowed);
             else
                 return base.OnStairStateChange(state, paxDoorAllowed);
         }
 
-        public override Task OnStairOperationChange(GsxServiceState state, bool paxDoorAllowed)
+        public override Task<bool> OnStairOperationChange(GsxServiceState state, bool paxDoorAllowed)
         {
             if (HasLuaFunction(out LuaFunction func))
-                return CallLua<object>(func, state, paxDoorAllowed);
+                return CallLua<bool>(func, state, paxDoorAllowed);
             else
                 return base.OnStairOperationChange(state, paxDoorAllowed);
         }
 
-        public override Task OnStairVehicleChange(GsxVehicleStair stair, GsxVehicleStairState state, bool paxDoorAllowed)
+        public override Task<bool> OnStairVehicleChange(AircraftDoor aircraftDoor, GsxVehicleLocation stair, GsxVehicleStairState state, bool paxDoorAllowed)
         {
             if (HasLuaFunction(out LuaFunction func))
-                return CallLua<object>(func, stair, state, paxDoorAllowed);
+                return CallLua<bool>(func, aircraftDoor, stair, state, paxDoorAllowed);
             else
-                return base.OnStairVehicleChange(stair, state, paxDoorAllowed);
+                return base.OnStairVehicleChange(aircraftDoor, stair, state, paxDoorAllowed);
+        }
+
+        public override Task<bool> OnCateringVehicleChange(AircraftDoor aircraftDoor, GsxVehicleLocation truck, GsxVehicleCateringState state, bool serviceDoorAllowed)
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<bool>(func, aircraftDoor, truck, state, serviceDoorAllowed);
+            else
+                return base.OnCateringVehicleChange(aircraftDoor, truck, state, serviceDoorAllowed);
+        }
+
+        public override Task<bool> GetPanelRefuel()
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<bool>(func);
+            else
+                return base.GetPanelRefuel();
         }
 
         public override Task SetPanelRefuel(bool target)
@@ -1140,12 +1309,20 @@ namespace Any2GSX.Aircraft
                 return base.SetPanelRefuel(target);
         }
 
-        public override Task SetFuelOnBoardKg(double fuelOnBoardKg, double targetKg)
+        public override Task<bool> GetPanelRefuelOperator()
         {
             if (HasLuaFunction(out LuaFunction func))
-                return CallLua<object>(func, fuelOnBoardKg, targetKg);
+                return CallLua<bool>(func);
             else
-                return base.SetFuelOnBoardKg(fuelOnBoardKg, targetKg);
+                return base.GetPanelRefuelOperator();
+        }
+
+        public override Task SetPanelRefuelOperator(bool target)
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<object>(func, target);
+            else
+                return base.SetPanelRefuelOperator(target);
         }
 
         public override Task RefuelActive()
@@ -1154,6 +1331,22 @@ namespace Any2GSX.Aircraft
                 return CallLua(func);
             else
                 return base.RefuelActive();
+        }
+
+        public override Task SetFuelOnBoardKg(double fuelOnBoardKg, double targetKg)
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<object>(func, fuelOnBoardKg, targetKg);
+            else
+                return base.SetFuelOnBoardKg(fuelOnBoardKg, targetKg);
+        }
+
+        public override Task OnRefuelHoseConnection(bool connected)
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<object>(func, connected);
+            else
+                return base.OnRefuelHoseConnection(connected);
         }
 
         public override Task RefuelStart(double fuelTargetKg)

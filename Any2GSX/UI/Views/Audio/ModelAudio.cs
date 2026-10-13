@@ -32,9 +32,12 @@ namespace Any2GSX.UI.Views.Audio
             AppMappingCollection = new(this);
             AppMappingCollection.CollectionChanged += (_, e) =>
             {
-                SaveConfig();
-                SwapEnabled = SettingProfile.AudioMappings.Count > 0;
-                AudioController.ResetMappings = true;
+                if (Any2GSX.Instance.AppWindow is AppWindow { IsFirstOpen: false })
+                {
+                    SaveConfig();
+                    SwapEnabled = SettingProfile.AudioMappings.Count > 0;
+                    AudioController.ResetMappings = true;
+                }
             };
 
             BlacklistCollection = new(this);

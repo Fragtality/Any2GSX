@@ -168,6 +168,7 @@
     <Compile Include="Config.cs" />
     <Compile Include="ConfigPage.cs" />
     <Compile Include="Definition.cs" />
+    <Compile Include="PageWelcomeCustom.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>

@@ -3,160 +3,202 @@ using Any2GSX.AppConfig;
 using Any2GSX.GSX.Menu;
 using Any2GSX.Notifications;
 using Any2GSX.PluginInterface.Interfaces;
+using Any2GSX.PluginInterface.Interfaces.GSX;
 using CFIT.AppFramework.ResourceStores;
 using CFIT.AppLogger;
 using CFIT.AppTools;
 using CFIT.SimConnectLib.SimResources;
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+
 
 namespace Any2GSX.GSX.Services
 {
-    public abstract class GsxService : IGsxService
+    public abstract class GsxService() : IGsxService
     {
-        public abstract GsxServiceType Type { get; }
-        public virtual GsxController Controller { get; }
-        protected virtual SimStore SimStore => Controller.SimStore;
+        protected virtual GsxController Controller => AppService.Instance.GsxController;
+        protected virtual SimStore SimStore => AppService.Instance.SimStore;
+        protected virtual Config Config => AppService.Instance.Config;
         protected virtual SettingProfile Profile => AppService.Instance.SettingProfile;
         protected virtual Flightplan Flightplan => AppService.Instance.Flightplan;
 
-        public virtual bool IsCalled { get; protected set; } = false;
-        protected virtual bool SequenceResult => CallSequence?.IsSuccess ?? false;
-        protected virtual GsxMenuSequence CallSequence { get; }
-        protected virtual GsxMenuSequence CancelSequence { get; set; }
-        protected abstract ISimResourceSubscription SubStateVar { get; }
-        public virtual GsxServiceState State => StateOverride != GsxServiceState.Unknown ? StateOverride : GetState();
-        public virtual string TextState => GetStateString();
-        public virtual GsxServiceState StateOverride { get; set; } = GsxServiceState.Unknown;
-        public virtual bool IsStateOverridden => StateOverride != GsxServiceState.Unknown;
-        public virtual bool IsRunning => State == GsxServiceState.Requested || State == GsxServiceState.Active;
-        public virtual bool IsActive => State == GsxServiceState.Active;
-        public virtual bool IsCompleted => State == GsxServiceState.Completed || WasCompleted;
-        public virtual bool IsCompleting => State == GsxServiceState.Completing;
-        protected virtual double NumStateCompleted { get; } = 6;
-        public virtual bool IsSkipped { get; set; } = false;
-        public virtual bool WasActive { get; protected set; } = false;
-        public virtual DateTime ActivationTime { get; protected set; } = DateTime.MaxValue;
-        public virtual bool WasCompleted { get; protected set; } = false;
-        protected virtual bool CompleteNotified { get; set; } = false;
+        public abstract GsxServiceType Type { get; }
+        public virtual GsxMenuCommandOperatorType OperatorType => GsxMenuCommandOperatorType.Handling;
+        public virtual bool RequiresStair => false;
+        public virtual bool HasStairConflict => false;
+        public virtual bool HasSubmenu => Type == GsxServiceType.GPU || Type == GsxServiceType.Water || Type == GsxServiceType.Lavatory || Type == GsxServiceType.Cleaning || Type == GsxServiceType.Deice;
 
-        public event Func<IGsxService, Task> OnActive;
-        public event Func<IGsxService, Task> OnCompleted;
+        protected virtual GsxMenuSequence CallSequence { get; set; } = new();
+        protected virtual GsxMenuSequence CancelSequence { get; set; } = new();
+        protected abstract int MenuSelectionService { get; }
+        public virtual bool IsCalled => EvaluateCalled();
+        public virtual bool SequenceIsSuccess => CallSequence.IsSuccess;
+
+        protected abstract string StateVarName { get; }
+        protected virtual ISimResourceSubscription SubStateVar { get; set; }
+        protected abstract List<string> ServiceVariables { get; }
+        public virtual GsxServiceState State => ReadState();
+        public virtual GsxServiceState RawState => ReadState(true);
+        public virtual string TextState => GetStateString();
+        public virtual GsxServiceState StateOverride { get; protected set; } = GsxServiceState.Unknown;
+        protected virtual ConcurrentDictionary<GsxServiceState, bool> StatesReceived { get; } = [];
+        public virtual DateTime ActivationTime { get; protected set; } = DateTime.MaxValue;
+
+        public virtual bool InhibitStateUpdates { get; protected set; } = false;
+        public virtual bool IsStateOverridden => StateOverride != GsxServiceState.Unknown;
+        public virtual bool IsCallable => State == GsxServiceState.Callable && CallSequence?.IsExecuting == false;
+        public virtual bool IsAvailable => State != GsxServiceState.NotAvailable && State != GsxServiceState.Unknown;
+        public virtual bool IsBypassed => State == GsxServiceState.NotAvailable || State == GsxServiceState.Bypassed;
+        public virtual bool IsRequested => State == GsxServiceState.Requested;
+        public virtual bool IsRunning => EvaluateRunning(State);
+        public virtual bool IsActive => State == GsxServiceState.Active;
+        public virtual bool IsCompleted => EvaluateCompleted(State);
+        public virtual bool IsCompleting => State == GsxServiceState.Completing;
+        public virtual bool WasRunning => StatesReceived.Any(state => EvaluateRunning(state.Key));
+        public virtual bool WasCanceled { get; protected set; } = false;
+
         public event Func<IGsxService, Task> OnStateChanged;
 
-        public GsxService(GsxController controller)
+        protected virtual GsxMenuSequence InitCallSequence()
         {
-            Controller = controller;
+            var sequence = new GsxMenuSequence();
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            if (!HasSubmenu)
+                sequence.Commands.Add(GsxMenuCommand.Select(MenuSelectionService, GsxConstants.MenuGate));
+            else
+            {
+                sequence.Commands.Add(GsxMenuCommand.Select(8, GsxConstants.MenuGate));
+                sequence.Commands.Add(GsxMenuCommand.Select(MenuSelectionService, GsxConstants.MenuAdditionalServices));
+            }
+            sequence.Commands.Add(GsxMenuCommand.Wait());
+            sequence.Commands.Add(GsxMenuCommand.Operator(OperatorType));
+
+            sequence.EnableMenuCheck = () => Profile.EnableMenuForSelection && !Profile.OperatorAutoSelect && !Controller.Menu.OperatorSelectionState[OperatorType];
+            sequence.EnableMenuAfterResetCheck = () => false;
+            sequence.ResetMenuCheck = () => IsCalled;
+
+            return sequence;
+        }
+
+        protected virtual GsxMenuSequence InitCancelSequence()
+        {
+            var sequence = new GsxMenuSequence();
+            sequence.Commands.Add(GsxMenuCommand.Open());
+            if (!HasSubmenu)
+                sequence.Commands.Add(GsxMenuCommand.Select(MenuSelectionService, GsxConstants.MenuGate));
+            else
+            {
+                sequence.Commands.Add(GsxMenuCommand.Select(8, GsxConstants.MenuGate));
+                sequence.Commands.Add(GsxMenuCommand.Select(MenuSelectionService, GsxConstants.MenuAdditionalServices));
+            }
+            sequence.Commands.Add(GsxMenuCommand.Wait());
+            sequence.EnableMenuCheck = () => false;
+            sequence.EnableMenuAfterResetCheck = () => false;
+            sequence.ResetMenuCheck = () => true;
+
+            return sequence;
+        }
+
+        public virtual void InitSubscriptions()
+        {
+            SubStateVar = SimStore.AddVariable(StateVarName);
+            SubStateVar?.OnReceived += OnStateChange;
+
+            foreach (var name in ServiceVariables)
+                SimStore.AddVariable(name);
+
+            Controller.OnCouatlStarted += OnCouatlStarted;
+            Controller.OnCouatlStopped += OnCouatlStopped;
+
             CallSequence = InitCallSequence();
             CancelSequence = InitCancelSequence();
-            InitSubscriptions();
-            Controller.GsxServices.Add(Type, this);
+
+            DoInit();
         }
 
-        protected abstract GsxMenuSequence InitCallSequence();
+        protected abstract void DoInit();
 
-        protected abstract GsxMenuSequence InitCancelSequence();
-
-        public abstract void InitSubscriptions();
-
-        protected virtual bool EvaluateOverride(ISimResourceSubscription sub)
+        protected virtual Task OnCouatlStarted(IGsxController gsxController)
         {
-            if (sub?.GetNumber() == NumStateCompleted && IsStateOverridden)
-            {
-                Logger.Debug($"Reset State Override for {Type}");
-                StateOverride = GsxServiceState.Unknown;
-            }
-
-            return !IsStateOverridden;
-        }
-
-        protected virtual bool EvaluateComplete(ISimResourceSubscription sub)
-        {
-            return (sub?.GetNumber() == NumStateCompleted && WasActive) || WasCompleted;
-        }
-
-        protected virtual void RunStateRequested()
-        {
-            WasActive = true;
-        }
-
-        protected virtual void RunStateActive()
-        {
-            WasActive = true;
-            CompleteNotified = false;
-            ActivationTime = DateTime.Now;
-            NotifyActive();
-        }
-
-        protected virtual void RunStateCompleted()
-        {
-
-        }
-
-        protected virtual Task OnStateChange(ISimResourceSubscription sub, object data)
-        {
-            if (!EvaluateOverride(sub))
-            {
-                Logger.Debug($"State Change ignored for {Type} (Override {IsStateOverridden})");
-                return Task.CompletedTask;
-            }
-
-            if (sub.GetNumber() == 2)
-            {
-                WasActive = false;
-            }
-            else if (sub.GetNumber() == 3)
-            {
-                WasActive = false;
-            }
-            else if (sub.GetNumber() == 4)
-            {
-                Logger.Information($"{Type} Service requested");
-                RunStateRequested();
-            }
-            else if (sub.GetNumber() == 5)
-            {
-                Logger.Information($"{Type} Service active");
-                RunStateActive();
-            }
-            else if (EvaluateComplete(sub))
-            {
-                Logger.Information($"{Type} Service completed");
-                WasCompleted = true;
-                RunStateCompleted();
-                NotifyCompleted();
-            }
-            NotifyStateChange();
             return Task.CompletedTask;
         }
 
+        protected virtual Task OnCouatlStopped(IGsxController gsxController)
+        {
+            return ResetVehicleState(true);
+        }
+
+        public virtual void ReleaseSubscriptions()
+        {
+            DoRelease();
+
+            Controller.OnCouatlStopped -= OnCouatlStopped;
+            Controller.OnCouatlStarted -= OnCouatlStarted;
+
+            foreach (var name in ServiceVariables)
+                SimStore.Remove(name);
+
+            SubStateVar?.OnReceived -= OnStateChange;
+            SubStateVar = SimStore.Remove(StateVarName);
+        }
+
+        protected abstract void DoRelease();
+
         public virtual async Task ResetState(bool resetVariable = false)
         {
-            IsCalled = false;
-            IsSkipped = false;
-            WasActive = false;
+            StatesReceived.Clear();
             ActivationTime = DateTime.MaxValue;
-            WasCompleted = false;
-            CompleteNotified = false;
-            StateOverride = GsxServiceState.Unknown;
             CallSequence.Reset();
+            CancelSequence.Reset();
+            WasCanceled = false;
             if (resetVariable)
-                await SetStateVariable(GsxServiceState.Callable);
+            {
+                StateOverride = GsxServiceState.Callable;
+                await ResetStateVariable(GsxServiceState.Callable);
+            }
+            StateOverride = GsxServiceState.Unknown;
+            InhibitStateUpdates = false;
             await DoReset();
+            if (resetVariable)
+                await ResetVehicleState();
         }
 
         protected abstract Task DoReset();
 
-        public abstract void FreeResources();
+        public virtual Task ResetVehicleState(bool force = false)
+        {
+            return Task.CompletedTask;
+        }
 
-        protected virtual GsxServiceState ReadState()
+        protected virtual bool EvaluateCalled()
+        {
+            return EvaluateRunning(State);
+        }
+
+        protected virtual bool EvaluateRunning(GsxServiceState state)
+        {
+            return state == GsxServiceState.Requested || state == GsxServiceState.Active || state == GsxServiceState.Completing;
+        }
+
+        protected virtual bool EvaluateCompleted(GsxServiceState state)
+        {
+            return state == GsxServiceState.Completed || StatesReceived.Any(s => s.Key == GsxServiceState.Completed) || (!IsStateOverridden && WasRunning && state <= GsxServiceState.Bypassed && state != GsxServiceState.Unknown);
+        }
+
+        protected virtual GsxServiceState ReadState(bool raw = false)
         {
             try
             {
-                if (StateOverride != GsxServiceState.Unknown)
+                var value = (GsxServiceState)(SubStateVar?.GetNumber() ?? 0);
+                if (IsStateOverridden && !raw)
                     return StateOverride;
-
-                return (GsxServiceState)(SubStateVar?.GetNumber() ?? 0);
+                else if (EvaluateCompleted(value) && !raw)
+                    return GsxServiceState.Completed;
+                else
+                    return value;
             }
             catch (Exception ex)
             {
@@ -165,52 +207,111 @@ namespace Any2GSX.GSX.Services
             }
         }
 
-        protected virtual GsxServiceState GetState()
-        {
-            var state = ReadState();
-
-            if (((state == GsxServiceState.NotAvailable || state == GsxServiceState.Bypassed || EvaluateComplete(SubStateVar)) && WasActive) || WasCompleted)
-                return GsxServiceState.Completed;
-            else
-                return state;
-        }
-
         protected virtual string GetStateString()
         {
-            try
-            {
-                return State.ToString();
-            }
-            catch
-            {
-                return GsxServiceState.Unknown.ToString();
-            }
+            try { return State.ToString(); } catch { return GsxServiceState.Unknown.ToString(); }
         }
 
-        protected virtual Task SetStateVariable(GsxServiceState state)
+        protected virtual Task ResetStateVariable(GsxServiceState state)
         {
             Logger.Debug($"Resetting State L-Var for Service {Type} to '{state}'");
             return SubStateVar.WriteValue((int)state);
         }
 
-        protected virtual bool CheckCalled()
+        public virtual void SetStateOverride(GsxServiceState overrideState)
         {
-            IsCalled = IsRunning;
-            return IsCalled;
+            Logger.Debug($"Overriding State for Service {Type} to '{overrideState}' (Raw: {RawState})");
+            StateOverride = overrideState;
         }
 
-        public virtual async Task Call()
+        public virtual void ClearStateOverride()
         {
-            if (CheckCalled() || CallSequence.IsExecuting)
+            if (IsStateOverridden)
+            {
+                StateOverride = GsxServiceState.Unknown;
+                Logger.Debug($"Cleared State override for Service {Type} (Raw: {RawState})");
+            }
+        }
+
+        public virtual void ForceComplete()
+        {
+            if (!IsCompleted)
+            {
+                Logger.Debug($"Force Complete for {Type}");
+                ClearStateOverride();
+                StatesReceived.TryAdd(GsxServiceState.Completed, true);
+                NotifyStateChange(GsxServiceState.Completed);
+            }
+        }
+
+        protected virtual bool CheckOverride()
+        {
+            if (IsStateOverridden && (RawState >= GsxServiceState.Completed || RawState <= GsxServiceState.Callable))
+                ClearStateOverride();
+
+            return !IsStateOverridden;
+        }
+
+        protected virtual async Task OnStateChange(ISimResourceSubscription sub, object data)
+        {
+            if (!CheckOverride() || InhibitStateUpdates)
+            {
+                Logger.Debug($"State {RawState} ignored for {Type} (Override {IsStateOverridden} | InhibitUpdates {InhibitStateUpdates})");
                 return;
+            }
+
+            var state = ReadState();
+            if (state <= GsxServiceState.Bypassed)
+            {
+                ActivationTime = DateTime.MaxValue;
+                CallSequence.Reset();
+                CancelSequence.Reset();
+                if (state == GsxServiceState.Callable)
+                    await ResetVehicleState();
+                WasCanceled = false;
+            }
+            else if (state == GsxServiceState.Requested || state == GsxServiceState.Active)
+            {
+                ActivationTime = DateTime.Now;
+            }
+
+            await DoStateChange(state);
+            NotifyStateChange(state);
+        }
+
+        protected virtual Task DoStateChange(GsxServiceState state)
+        {
+            return Task.CompletedTask;
+        }
+
+        protected virtual void NotifyStateChange(GsxServiceState state)
+        {
+            if (state == GsxServiceState.Unknown)
+            {
+                Logger.Debug($"Ignoring State Change - State for {Type} is unknown");
+                return;
+            }
+
+            if (!StatesReceived.ContainsKey(state))
+            {
+                Logger.Debug($"Notify State Change for {Type}: {TextState} (Raw: {ReadState(true)})");
+                _ = TaskTools.RunPool(() => OnStateChanged?.Invoke(this), Controller.RequestToken);
+                StatesReceived.TryAdd(state, true);
+            }
+        }
+
+        public virtual async Task<bool> Call()
+        {
+            if (EvaluateCalled() || CallSequence.IsExecuting)
+                return false;
 
             if (await DoCall() == false)
-                return;
+                return false;
             else
-                await Task.Delay(Controller.Config.DelayServiceStateChange, Controller.Token);
+                await Task.Delay(Controller.Config.DelayServiceStateChange, Controller.RequestToken);
 
-            CheckCalled();
             Logger.Debug($"{Type} Sequence completed: {(IsCalled ? "Success" : "Failed")}");
+            return IsCalled;
         }
 
         protected virtual async Task<bool> DoCall()
@@ -223,64 +324,38 @@ namespace Any2GSX.GSX.Services
             return result;
         }
 
-        public virtual Task Cancel(GsxCancelService option = GsxCancelService.Complete)
+        protected virtual string GetCancelSelection(GsxCancelService option)
         {
-            if (Controller.AutomationController.HasSmartButtonRequest && Profile.SmartButtonAbortService > GsxCancelService.Never)
-                option = Profile.SmartButtonAbortService;
+            return option == GsxCancelService.Complete ? GsxConstants.MenuLineCompleteService : GsxConstants.MenuLineAbortService;
+        }
 
+        public virtual Task<bool> Cancel(GsxCancelService option = GsxCancelService.Complete)
+        {
             if (option == GsxCancelService.Never)
-                return Task.CompletedTask;
+                return Task.FromResult(false);
 
-            string line = option == GsxCancelService.Complete ? GsxConstants.MenuLineCompleteService : GsxConstants.MenuLineAbortService;
+            if (IsCompleted || IsCompleting)
+            {
+                WasCanceled = true;
+                return Task.FromResult(true);
+            }
+
             var sequence = new GsxMenuSequence(CancelSequence.Commands);
+            sequence.Commands.Add(GsxMenuCommand.Select(1, GsxConstants.MenuCancelService, [GetCancelSelection(option)]));
             sequence.Commands.Add(GsxMenuCommand.Wait());
-            sequence.Commands.Add(GsxMenuCommand.Select(1, GsxConstants.MenuCancelService, [line]));
-            sequence.Commands.Add(GsxMenuCommand.Wait());
-            sequence.Commands.Add(GsxMenuCommand.Disable());
-            sequence.EnableMenuCheck = () => false;
-            sequence.EnableMenuAfterResetCheck = () => false;
 
-            Logger.Debug($"Executing Cancel Sequence for Service {Type}");
-            return Controller.Menu.RunSequence(sequence);
+            WasCanceled = true;
+            return DoCancel(sequence, option);
         }
 
-        protected virtual void NotifyStateChange()
+        protected virtual async Task<bool> DoCancel(GsxMenuSequence sequence, GsxCancelService option)
         {
-            if (State == GsxServiceState.Unknown)
-            {
-                Logger.Debug($"Ignoring State Change - State for {Type} is unknown");
-                return;
-            }
+            Controller.Tracker.TrackMessage(AppNotification.ServiceCancel, Type.ToString());
+            Logger.Debug($"Executing Cancel ({option}) Sequence for Service {Type}");
+            bool result = await Controller.Menu.RunSequence(sequence);
+            Controller.Tracker.Clear(AppNotification.ServiceCancel);
 
-            Logger.Debug($"Notify State Change for {Type}: {TextState} (Var: {(int)ReadState()})");
-            _ = TaskTools.RunPool(() => OnStateChanged?.Invoke(this), Controller.Token);
-        }
-
-        protected virtual void NotifyActive()
-        {
-            Logger.Debug($"Notify Active for {Type}: {TextState}");
-            _ = TaskTools.RunPool(() => OnActive?.Invoke(this), Controller.Token);
-            Controller.Tracker.TrackTimeout(AppNotification.ServiceActive, 0, Type.ToString());
-        }
-
-        protected virtual void NotifyCompleted()
-        {
-            if (CompleteNotified)
-                return;
-            CompleteNotified = true;
-
-            Logger.Debug($"Notify Completed for {Type}: {TextState}");
-            _ = TaskTools.RunPool(() => OnCompleted?.Invoke(this), Controller.Token);
-            Controller.Tracker.TrackTimeout(AppNotification.ServiceComplete, 0, Type.ToString());
-        }
-
-        public virtual void ForceComplete()
-        {
-            if (!WasCompleted)
-            {
-                Logger.Debug($"Force Complete for {Type}");
-                WasCompleted = true;
-            }
+            return result;
         }
     }
 }

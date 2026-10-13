@@ -107,7 +107,9 @@
 			let AppCallback = (data) => {
 				if (isJsonString(data)) {
 					var request = JSON.parse(data);
-					console.log(`Received Wasm Request - Type: ${request.type} | Event: ${request.event}`)
+					if (request.type != RequestTypeEfb) {
+						console.log(`Received Wasm Request - Type: ${request.type} | Event: ${request.event}`);
+					}
 					if (request.type == RequestTypeRegister && !isMsfs2024) {
 						var evtStruct = {
 							"name": request.event,
@@ -121,7 +123,7 @@
 						var evtStruct = RegisteredEvents[request.event];
 						if (evtStruct != null) {
 							wasmListener.off(evtStruct.name, evtStruct.callback);
-							RegisteredEvents[request.event] = null;
+							delete RegisteredEvents[request.event];
 							console.log("Event removed");
 						}
 					}

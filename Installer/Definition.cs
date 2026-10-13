@@ -30,6 +30,11 @@ namespace Installer
             BaseBehavior.WelcomeLogoResource = "Payload/icon";
         }
 
+        protected override void CreatePageWelcome()
+        {
+            PageBehaviors.Add(InstallerPages.WELCOME, new PageWelcomeCustom());
+        }
+
         protected override void CreatePageConfig()
         {
             PageBehaviors.Add(InstallerPages.CONFIG, new ConfigPage());

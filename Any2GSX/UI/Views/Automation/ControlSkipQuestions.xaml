@@ -42,7 +42,7 @@
                 </Grid.RowDefinitions>
 
                 <CheckBox Grid.Column="0" Grid.Row="0" IsChecked="{Binding SkipWalkAround}" Style="{StaticResource CheckBoxSettingItem}"
-                      ToolTip="Automatically skip to the Cockpit in MSFS 2024 on Session Start.&#x0a;This can only work if you use the default Binding of 'Shift+C' for 'Take Control of Character'!&#x0a;You can use Walkaround Mode while the Departure Services run, except when any Door is about to be opened or closed.">
+                      ToolTip="Automatically skip to the Cockpit in MSFS 2024 on Session Start.&#x0a;This can only work if you use the default Binding of 'Shift+C' for 'Take Control of Character'!&#x0a;You can use Walkaround Mode while the Departure Services run, except when any Door is about to be opened or closed.&#x0a;Can be disabled with the new MSFS Option to start directly in the Cockpit - if left enabled, the App still tries to skip Walkaround and changes Focus.">
                     <TextBlock>Skip <Underline>Walkaround</Underline> on Session Start (MSFS 2024 - requires default Binding)</TextBlock>
                 </CheckBox>
 

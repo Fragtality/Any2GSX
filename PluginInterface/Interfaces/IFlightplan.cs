@@ -6,6 +6,7 @@ namespace Any2GSX.PluginInterface.Interfaces
     public interface IFlightplan
     {
         public long Id { get; }
+        public int Edition { get; }
         public long LastId { get; }
         public bool IsLoaded { get; }
         public bool LastOnlineCheck { get; }
@@ -13,7 +14,8 @@ namespace Any2GSX.PluginInterface.Interfaces
         public DisplayUnit Unit { get; }
         public double WeightPerPaxKg { get; }
         public double WeightPerBagKg { get; }
-        public string Number { get; }
+        public string FlightNumber { get; }
+        public string CallSign { get; }
         public string AircraftType { get; }
         public string AircraftReg { get; }
         public string Origin { get; }
@@ -40,14 +42,18 @@ namespace Any2GSX.PluginInterface.Interfaces
         public double DiffPayloadKg { get; }
 
         public event Func<IFlightplan, Task> OnImport;
+        public event Func<Task> OnChanged;
         public event Func<Task> OnUnload;
 
         public Task<bool> ImportOfp();
         public double RoundUp100(double value);
+        public void UpdateEmptyOperatingWeightKg(double emptyOperatingWeightKg);
         public void UpdatePlannedFuelKg(double fuelRampKg);
         public void UpdatePassengerMax(int count);
         public void UpdatePassengerCount(int count, int diff = 0);
+        public void UpdatePassengerWeight(double weightKg);
         public void UpdateBagCount(int count, int diff = 0);
+        public void UpdateBagWeight(double weightKg);
         public void UpdateFreightKg(double freightKg);
         public void UpdateScheduledOut(DateTime outTime);
     }

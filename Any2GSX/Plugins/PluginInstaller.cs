@@ -1,8 +1,8 @@
 ﻿using Any2GSX.AppConfig;
 using Any2GSX.Audio;
-using Any2GSX.GSX;
 using Any2GSX.GSX.Automation;
 using Any2GSX.PluginInterface;
+using Any2GSX.PluginInterface.Interfaces.GSX;
 using CFIT.AppLogger;
 using CFIT.AppTools;
 using System;

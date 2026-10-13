@@ -183,26 +183,26 @@ namespace Any2GSX.Audio
             ChannelDefinition = null;
         }
 
-        public virtual void SyncControls()
+        public virtual async Task SyncControls()
         {
             if (SubVolume != null)
-                OnVolumeChange(SubVolume, null);
+                await OnVolumeChange(SubVolume, null);
             if (SubMute != null)
-                OnMuteChange(SubMute, null);
+                await OnMuteChange(SubMute, null);
         }
 
-        protected virtual Task OnVolumeChange(ISimResourceSubscription sub, object data)
+        protected virtual async Task OnVolumeChange(ISimResourceSubscription sub, object data)
         {
-            if (!IsActive || SessionControls.Count == 0 || SubVolume == null)
-                return Task.CompletedTask;
+            if (!IsActive || SessionControls.Count == 0 || SubVolume == null || !Controller.IsAircraftPowered || !await Controller.AircraftController.Aircraft.GetAvionicPowered())
+                return;
             if (sub.Name != SubVolume.Name)
-                return Task.CompletedTask;
+                return;
 
             double value = sub.GetValue<double>();
             if (value < ChannelDefinition.MinValue || value > ChannelDefinition.MaxValue)
             {
                 Logger.Debug($"Invalid Value Range for '{sub.Name}': {value}");
-                return Task.CompletedTask;
+                return;
             }
             float fValue = (float)AudioTools.NormalizedRatio(value, ChannelDefinition.MinValue, ChannelDefinition.MaxValue);
 
@@ -226,16 +226,14 @@ namespace Any2GSX.Audio
             {
                 Logger.LogException(ex);
             }
-
-            return Task.CompletedTask;
         }
 
-        protected virtual Task OnMuteChange(ISimResourceSubscription sub, object data)
+        protected virtual async Task OnMuteChange(ISimResourceSubscription sub, object data)
         {
-            if (!IsActive || SessionControls.Count == 0 || !UseLatch || SubMute == null)
-                return Task.CompletedTask;
+            if (!IsActive || SessionControls.Count == 0 || !UseLatch || SubMute == null || !Controller.IsAircraftPowered || !await Controller.AircraftController.Aircraft.GetAvionicPowered())
+                return;
             if (sub.Name != SubMute.Name)
-                return Task.CompletedTask;
+                return;
 
             double value = sub.GetValue<double>();
             bool? mute = null;
@@ -246,7 +244,7 @@ namespace Any2GSX.Audio
             else
             {
                 Logger.Debug($"Invalid Value for '{sub.Name}': {value}");
-                return Task.CompletedTask;
+                return;
             }
 
             try
@@ -270,7 +268,7 @@ namespace Any2GSX.Audio
                 Logger.LogException(ex);
             }
 
-            return Task.CompletedTask;
+            return;
         }
     }
 }

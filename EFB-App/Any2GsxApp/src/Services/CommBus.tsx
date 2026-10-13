@@ -68,6 +68,12 @@ export const PublishEfbUpdate = (json: any): void => {
         json.AircraftConnectionState,
       );
     }
+    if (json.ExternalControlState !== null) {
+      CommBusService.efbPublisher.pub(
+        "ExternalControlState",
+        json.ExternalControlState,
+      );
+    }
     if (json.ProfileName !== null) {
       CommBusService.efbPublisher.pub("ProfileName", json.ProfileName);
     }
@@ -140,9 +146,11 @@ export class CommBusService {
   public AppCallback(data: string): void {
     if (IsJsonString(data) == true) {
       var request = JSON.parse(data);
-      console.log(
-        `Received Wasm Request - Type: ${request.type} | Event: ${request.event}`,
-      );
+      if (request.type != RequestTypeEfb) {
+        console.log(
+          `Received Wasm Request - Type: ${request.type} | Event: ${request.event}`,
+        );
+      }
       if (request.type == RequestTypeRegister) {
         let evtStruct = new EventStruct(request.event, (data: object) =>
           CommBusCallback(request.event, data),
@@ -174,7 +182,6 @@ export class CommBusService {
         IsJsonString(request.data) == true
       ) {
         PublishEfbUpdate(JSON.parse(request.data));
-        console.log("Received EFB Update");
       } else if (request.type == RequestTypeGsxMenu) {
       } else console.error("Received type from Wasm Module is unknown!");
     } else {

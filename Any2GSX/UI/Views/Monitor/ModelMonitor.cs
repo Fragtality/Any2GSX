@@ -1,5 +1,4 @@
 ﻿using Any2GSX.AppConfig;
-using Any2GSX.Audio;
 using Any2GSX.GSX;
 using Any2GSX.GSX.Services;
 using Any2GSX.Notifications;
@@ -55,16 +54,6 @@ namespace Any2GSX.UI.Views.Monitor
         public virtual void LogDir()
         {
             try { Process.Start(new ProcessStartInfo(Path.Join(Config.Definition.ProductPath, Config.Definition.ProductLogPath)) { UseShellExecute = true }); } catch { }
-        }
-
-        [RelayCommand]
-        public virtual void ShowFlightplanInfo()
-        {
-            if (AppService.Instance?.Flightplan?.Id > 0)
-            {
-                var window = new ShowInfoDialog(string.Join("\r\n", AppService.Instance.Flightplan.GetInfoStrings()), true);
-                window.Show();
-            }
         }
 
         protected virtual void UpdateBoolState(string propertyValue, string propertyColor, bool value, bool reverseColor = false)
@@ -169,13 +158,12 @@ namespace Any2GSX.UI.Views.Monitor
 
         protected virtual void UpdateGsx()
         {
-            UpdateBoolState(nameof(GsxRunning), nameof(GsxRunningColor), GsxController.CheckBinaries());
-            UpdateState<string>(nameof(GsxStarted), $"{GsxController?.CouatlLastStarted ?? 0} | {GsxController?.CouatlLastProgress ?? 100}");
-            UpdateColor(nameof(GsxStartedColor), GsxController.CouatlVarsValid);
+            UpdateBoolState(nameof(GsxRunning), nameof(GsxRunningColor), GsxController?.IsProcessRunning ?? false);
+            UpdateBoolState(nameof(GsxStarted), nameof(GsxStartedColor), GsxController?.ApiClient?.IsReady ?? false);
             UpdateState<GsxMenuState>(nameof(GsxMenu), GsxController.Menu.MenuState);
-            UpdateState<string>(nameof(GsxPaxTarget), $"{GsxServiceBoard?.SubPaxTarget?.GetValue<int>() ?? 0}  ({GsxController?.SubPilotTarget?.GetValue<int>() ?? 0} | {GsxController?.SubCrewTarget?.GetValue<int>() ?? 0})");
-            UpdateState<string>(nameof(GsxPaxTotal), $"{GsxServiceBoard?.SubPaxTotal?.GetValue<int>() ?? 0} | {GsxServiceDeboard?.SubPaxTotal?.GetValue<int>() ?? 0}");
-            UpdateState<string>(nameof(GsxCargoProgress), $"{GsxServiceBoard?.SubCargoPercent?.GetValue<int>() ?? 0} | {GsxServiceDeboard?.SubCargoPercent?.GetValue<int>() ?? 0}");
+            UpdateState<string>(nameof(GsxPaxTarget), $"{GsxServiceBoard?.PaxTarget ?? 0}  ({GsxController?.SubPilotTarget?.GetValue<int>() ?? 0} | {GsxController?.SubCrewTarget?.GetValue<int>() ?? 0})");
+            UpdateState<string>(nameof(GsxPaxTotal), $"{GsxServiceBoard?.PaxTotal ?? 0} | {GsxServiceDeboard?.PaxTotal ?? 0}");
+            UpdateState<string>(nameof(GsxCargoProgress), $"{GsxServiceBoard?.CargoPercent ?? 0} | {GsxServiceDeboard?.CargoPercent ?? 0}");
 
             UpdateState<GsxServiceState>(nameof(ServiceReposition), GsxServices[GsxServiceType.Reposition].State);
             UpdateState<GsxServiceState>(nameof(ServiceRefuel), GsxServices[GsxServiceType.Refuel].State);
@@ -188,8 +176,8 @@ namespace Any2GSX.UI.Views.Monitor
             UpdateState<GsxServiceState>(nameof(ServiceBoarding), GsxServices[GsxServiceType.Boarding].State);
             UpdateState<GsxServiceState>(nameof(ServiceDeboarding), GsxServices[GsxServiceType.Deboarding].State);
             UpdateState<string>(nameof(ServicePushback), $"{GsxServicePushBack.TextState} ({GsxServicePushBack.PushStatus})");
-            UpdateState<string>(nameof(ServiceJetway), $"{GsxController.ServiceJetway.TextState} ({(int)GsxController.ServiceJetway.OperatingState})");
-            UpdateState<string>(nameof(ServiceStairs), $"{GsxController.ServiceStairs.TextState} ({(int)GsxController.ServiceStairs.OperatingState})");
+            UpdateState<string>(nameof(ServiceJetway), $"{GsxController?.ServiceJetway?.TextState ?? ""} ({(int)(GsxController?.ServiceJetway?.OperatingState ?? 0)})");
+            UpdateState<string>(nameof(ServiceStairs), $"{GsxController?.ServiceStairs?.TextState ?? ""} ({(int)(GsxController?.ServiceStairs?.OperatingState ?? 0)})");
         }
 
         [ObservableProperty]
@@ -199,7 +187,7 @@ namespace Any2GSX.UI.Views.Monitor
         public partial SolidColorBrush GsxRunningColor { get; set; } = ColorInvalid;
 
         [ObservableProperty]
-        public partial string GsxStarted { get; set; } = "";
+        public partial bool GsxStarted { get; set; } = false;
 
         [ObservableProperty]
         public partial SolidColorBrush GsxStartedColor { get; set; } = ColorInvalid;
@@ -253,24 +241,25 @@ namespace Any2GSX.UI.Views.Monitor
 
         protected virtual void UpdateApp()
         {
-            UpdateBoolState(nameof(AppGsxController), nameof(AppGsxControllerColor), GsxController.IsActive);
+            UpdateBoolState(nameof(AppGsxController), nameof(AppGsxControllerColor), GsxController?.IsActive ?? false);
             UpdateBoolState(nameof(AppAircraftInterface), nameof(AppAircraftInterfaceColor), AircraftController?.IsConnected == true);
-            UpdateBoolState(nameof(AppAutomationController), nameof(AppAutomationControllerColor), AutomationController.IsStarted);
-            UpdateBoolState(nameof(AppAudioController), nameof(AppAudioControllerColor), AudioController.IsActive);
-            UpdateBoolState(nameof(AppDeckController), nameof(AppDeckControllerColor), Source.NotificationManager.IsRunning);
+            UpdateBoolState(nameof(AppAutomationController), nameof(AppAutomationControllerColor), AutomationController?.IsStarted ?? false);
+            UpdateBoolState(nameof(AppAudioController), nameof(AppAudioControllerColor), AudioController?.IsActive ?? false);
+            UpdateBoolState(nameof(AppDeckController), nameof(AppDeckControllerColor), Source.NotificationManager?.IsRunning ?? false);
 
             UpdateState<AutomationState>(nameof(AppAutomationState), AutomationController?.State ?? AutomationState.SessionStart);
             UpdateState<string>(nameof(AppSmartCall), $"{Source?.NotificationTracker?.SmartButton ?? SmartButtonCall.None}");
             var queue = Source?.GsxController?.AutomationController?.DepartureQueue;
-            UpdateState<string>(nameof(AppAutomationDepartureServices), $"{queue?.CountCompleted ?? 0} / {queue?.CountRunning ?? 0} / {queue?.CountTotal ?? 0}" ?? "0 / 0 / 0");
-            if (queue?.HasNext == true)
-                UpdateState<string>(nameof(AppAutomationNextService), $"{queue?.NextType ?? GsxServiceType.Unknown}");
+            UpdateState<string>(nameof(AppAutomationDepartureServices), $"{queue?.CountCompleted ?? 0} / {queue?.CountRunning ?? 0} / {queue?.CountSkipped ?? 0} / {queue?.CountTotal ?? 0}" ?? "0 / 0 / 0 / 0");
+            if (queue?.HasNext == true || queue?.HasNextQueued == true)
+                UpdateState<string>(nameof(AppAutomationNextService), $"{queue?.NextType ?? queue?.NextQueued?.Service?.Type ?? GsxServiceType.Unknown}");
             else
                 UpdateState<string>(nameof(AppAutomationNextService), "");
-            UpdateState<string>(nameof(AppFlightPlan), $"{AppService.Instance?.Flightplan?.Id ?? 0}");
 
             UpdateState<string>(nameof(AppProfile), SettingProfile?.Name ?? "");
-            UpdateState<string>(nameof(AppPlugin), $"{AircraftController?.PluginId ?? ""} {(!string.IsNullOrWhiteSpace(AircraftController?.Aircraft?.GetType()?.Name) ? $"[ {AircraftController?.Aircraft?.GetType()?.Name} ]" : "")}");
+            UpdateState<string>(nameof(AppPlugin), $"{AircraftController?.PluginId ?? ""}");
+            UpdateState<string>(nameof(AppGsxProfile), $"{GsxController?.ApiClient?.ApiData?.HandlerData?.aircraft?.dataSourceUsed ?? ""}");
+            UpdateState(nameof(AppExternalControl), AppService.Instance?.GsxController?.AutomationController?.ExternalServiceControl ?? false);
         }
 
         [ObservableProperty]
@@ -310,7 +299,7 @@ namespace Any2GSX.UI.Views.Monitor
         public partial string AppSmartCall { get; set; } = "";
 
         [ObservableProperty]
-        public partial string AppAutomationDepartureServices { get; set; } = "0 / 0 / 0";
+        public partial string AppAutomationDepartureServices { get; set; } = "0 / 0 / 0 / 0";
 
         [ObservableProperty]
         public partial string AppAutomationNextService { get; set; } = GsxServiceType.Unknown.ToString();
@@ -323,6 +312,13 @@ namespace Any2GSX.UI.Views.Monitor
 
         [ObservableProperty]
         public partial string AppPlugin { get; set; } = "";
+        [ObservableProperty]
+        public partial string AppGsxProfile { get; set; } = "";
+        [ObservableProperty]
+        public partial bool AppExternalControl { get; set; } = false;
+
+        [ObservableProperty]
+        public partial SolidColorBrush AppExternalControlColor { get; set; } = ColorInvalid;
 
         protected virtual void UpdateAircraftPlugin()
         {
@@ -341,7 +337,7 @@ namespace Any2GSX.UI.Views.Monitor
                 UpdateState<bool>(nameof(PluginBeacon), AutomationController?.LightBeacon ?? false);
                 UpdateState<bool>(nameof(PluginNav), AutomationController?.LightNav ?? false);
                 UpdateState<bool>(nameof(PluginEngineRunning), AutomationController?.EnginesRunning ?? false);
-                UpdateState<bool>(nameof(PluginSmartButton), AutomationController?.HasSmartButtonRequest ?? false);
+                UpdateState<bool>(nameof(PluginSmartButton), (AutomationController?.HasSmartButtonRequest ?? false) || (AutomationController?.HasExternalSmartButtonRequest ?? false));
                 UpdateState<int>(nameof(PluginSpeed), (int)(AutomationController?.Speed ?? 0));
                 UpdateState<bool>(nameof(PluginCargo), AutomationController?.IsCargo ?? false);
                 UpdateState<bool>(nameof(PluginReadyDeparture), AutomationController?.ReadyDepartureServices ?? false);

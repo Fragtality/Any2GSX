@@ -2,6 +2,7 @@
 using Any2GSX.GSX;
 using Any2GSX.GSX.Menu;
 using Any2GSX.PluginInterface.Interfaces;
+using Any2GSX.PluginInterface.Interfaces.GSX;
 using CFIT.AppLogger;
 using CFIT.AppTools;
 using System;
@@ -29,7 +30,7 @@ namespace Any2GSX.Notifications
         public virtual string VarDeckCall => Config.DeckVarCall;
         public virtual string VarDeckInfoPax => Config.DeckVarInfoPax;
         public virtual string VarDeckInfoCargo => Config.DeckVarInfoCargo;
-        public virtual CancellationToken Token => AppService.Instance.Token;
+        public virtual CancellationToken Token => AppService.Instance.RequestToken;
         protected virtual DateTime NextAliveCheck { get; set; } = DateTime.MaxValue;
         protected virtual HttpClient HttpClient { get; }
         public virtual Dictionary<GsxServiceState, string> StateColors { get; } = new()
@@ -172,12 +173,23 @@ namespace Any2GSX.Notifications
             }
         }
 
+        public override async Task Stop()
+        {
+            await WriteVariable($"{VarDeckConnected}", "0");
+            await base.Stop();
+        }
+
         public override Task SetAircraftConnected(bool connected)
         {
             if (connected)
                 return WriteVariable($"{VarDeckAircraftConnected}", "1");
             else
                 return WriteVariable($"{VarDeckAircraftConnected}", "0");
+        }
+
+        public override Task SetExternalConnected(bool connected)
+        {
+            return Task.CompletedTask;
         }
 
         public override Task SetCouatlVars(string state)
@@ -285,7 +297,7 @@ namespace Any2GSX.Notifications
             return SetSmartCall(call, ClearGateOptions[Profile.ClearGateMenuOption], force);
         }
 
-        public override Task SetDepartureServices(int completed, int running, int total)
+        public override Task SetDepartureServices(int completed, int running, int total, int skipped)
         {
             return Task.CompletedTask;
         }
@@ -318,6 +330,10 @@ namespace Any2GSX.Notifications
                     if (notification.HasMessage)
                         status = $"Call {notification.Message}[[n...";
                     break;
+                case AppNotification.ServiceCancel:
+                    if (notification.HasMessage)
+                        status = $"Cancel {notification.Message}[[n...";
+                    break;
                 case AppNotification.MenuCommand:
                     if (notification.Message.StartsWith("Open", StringComparison.InvariantCultureIgnoreCase))
                         status = $"Open Menu[[n...";
@@ -332,14 +348,14 @@ namespace Any2GSX.Notifications
                         status = $"Select Gate!";
                     break;
                 case AppNotification.GateMove:
-                    if (Tracker.HasCapture)
+                    if (Tracker.HasGateSelection)
                     {
                         if (phase <= AutomationState.Departure)
                             status = "Move to Gate!";
                         else if (phase == AutomationState.TaxiOut)
-                            status = $"Pad: {Tracker.LastCapturedGate}";
+                            status = $"Pad: {Tracker.LastGateSelection}";
                         else if (phase == AutomationState.TaxiIn)
-                            status = $"Gate: {Tracker.LastCapturedGate}";
+                            status = $"Gate: {Tracker.LastGateSelection}";
                     }
                     else
                         status = "Move to Gate!";

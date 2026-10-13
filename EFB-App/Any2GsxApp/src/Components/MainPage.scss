@@ -13,114 +13,366 @@
     padding: 5vh 5vw;
     box-sizing: border-box;
 
+    overflow: hidden;
+
     > .content {
       display: flex;
-      color: white;
-      font-weight: normal;
       flex-direction: column;
       justify-content: flex-start;
+
+      color: white;
+      font-weight: normal;
 
       width: 100%;
       height: 100%;
 
-      > .top-header {
+      min-width: 0;
+      min-height: 0;
+
+      /*
+       * ================================================================
+       * APP STATE
+       * ================================================================
+       */
+
+      > .appState {
+        display: flex;
+        flex-direction: column;
+
+        width: 100%;
+        min-width: 0;
+      }
+
+      /*
+       * ================================================================
+       * GSX STATE
+       * ================================================================
+       */
+
+      > .gsxState {
+        display: flex;
+        flex-direction: column;
+
+        width: 100%;
+        min-width: 0;
+      }
+
+      /*
+       * ================================================================
+       * HEADERS
+       * ================================================================
+       */
+
+      > .appState > .top-header {
         color: #ffffff;
         font-size: 1.6em;
         font-weight: bolder;
+
         margin: 0 0 1.25em 0;
       }
 
-      > .header {
+      > .gsxState > .header {
         color: #ffffff;
         font-size: 1.6em;
         font-weight: bolder;
-        margin: 1.25em 0 1.25em 0;
+
+        margin: 1em 0 0.5em 0;
       }
 
-      > .row {
+      /*
+       * ================================================================
+       * APP STATE ROWS
+       * ================================================================
+       */
+
+      > .appState > .row {
         display: flex;
-        font-size: 1.1em;
         flex-direction: row;
         justify-content: flex-start;
-        margin: 0 0 1em 0;
+        align-items: center;
+
+        width: 100%;
+
+        font-size: 1.1em;
+
+        margin: 0 0 0.5em 0;
+
+        min-width: 0;
 
         > .label {
           color: white;
           font-weight: bolder;
+
           min-width: 25vw;
+
+          flex-shrink: 0;
         }
 
         > .property {
           color: #d8d8d8;
           font-weight: normal;
+
+          min-width: 0;
+          overflow-wrap: anywhere;
         }
 
         > .property-green {
           color: green;
           font-weight: normal;
+
+          min-width: 0;
+          overflow-wrap: anywhere;
         }
 
         > .property-red {
           color: red;
           font-weight: normal;
+
+          min-width: 0;
+          overflow-wrap: anywhere;
         }
 
         > .button {
           font-weight: bold;
+
           background-color: #144994;
-          //border: 0px transparent;
+
           padding: 2px;
+
+          flex-shrink: 0;
         }
-        // > .button:hover {
-        //   border: 2px white;
-        // }
       }
-      > .menuContent {
+
+      /*
+       * ================================================================
+       * GSX MENU
+       * ================================================================
+       */
+
+      > .gsxState > .menuContent {
         display: flex;
+        flex-direction: column;
+
         color: white;
         font-weight: normal;
-        flex-direction: column;
+
+        width: 100%;
+
+        height: auto;
+
+        min-width: 0;
+      }
+
+      /*
+       * GSX MENU TITLE
+       */
+
+      > .gsxState > .menuContent > .menuTitle {
+        font-weight: bold;
+        font-size: 1.2em;
+
+        background-color: #144994;
+
+        padding: 2px;
+
+        margin-bottom: 12px;
+
+        width: 100%;
+
+        height: auto;
+
+        min-height: 2em;
+
+        box-sizing: border-box;
+
+        flex: 0 0 auto;
+      }
+
+      > .gsxState > .menuContent > .buttonContent {
+        height: fit-content;
+      }
+
+      /*
+       * GSX MENU LINES
+       */
+
+      > .gsxState > .menuContent > .menuLine {
+        font-weight: normal;
+        font-size: 1.15em;
+
+        background-color: #28476d;
+
+        padding: 2px;
+
+        margin-bottom: 6px;
+
+        width: 100%;
+
+        height: auto;
+
+        min-height: 2em;
+
+        box-sizing: border-box;
+
+        flex: 0 0 auto;
+      }
+    }
+  }
+
+  /*
+   * ======================================================================
+   * HORIZONTAL / LANDSCAPE EFB
+   * ======================================================================
+   *
+   * Portrait remains the default layout above.
+   *
+   * In landscape:
+   *
+   *   ┌──────────────────────┬──────────────────────┐
+   *   │ App State            │ GSX Menu             │
+   *   │                      │                      │
+   *   │ App Connection       │ Open Menu            │
+   *   │ Aircraft Connection  │ Menu item            │
+   *   │ External Control     │ Menu item            │
+   *   │ Profile              │ Menu item            │
+   *   │ Flight Phase         │ ...                  │
+   *   │ Status               │                      │
+   *   └──────────────────────┴──────────────────────┘
+   *
+   * ======================================================================
+   */
+
+  @media (orientation: landscape) {
+    .main-page {
+      padding: 4vh 3vw;
+
+      > .content {
+        flex-direction: row;
+        align-items: flex-start;
+
+        gap: 3vw;
 
         width: 100%;
         height: 100%;
 
-        > .menuTitle {
-          //display: flex;
-          font-weight: bold;
-          font-size: 1.4em;
-          background-color: #144994;
-          //border: 2px #1e2937;
-          // padding: 0px 4px 4px 4px;
-          padding: 2px;
-          //margin: 0 0 1.25em 0;
-          //margin-bottom: 1.25em;
-          margin-bottom: 12px;
-          width: 100%;
-          height: 100%;
-        }
-        > .buttonContent {
-          height: fit-content;
-        }
-        // > .menuTitle:hover {
-        //   border: 2px white;
-        // }
+        min-width: 0;
+        min-height: 0;
 
-        > .menuLine {
-          //display: flex;
-          font-weight: normal;
-          font-size: 1.2em;
-          background-color: #28476d;
-          //border: 2px #1e2937;
-          padding: 2px;
-          //margin: 0 0 1em 0;
-          // padding: 0px 4px 4px 4px;
-          margin-bottom: 6px;
-          width: 100%;
-          height: 100%;
+        /*
+         * ================================================================
+         * LEFT SIDE - APP STATE
+         * ================================================================
+         */
+
+        > .appState {
+          flex: 1 1 0;
+
+          width: auto;
+          min-width: 0;
+
+          /*
+           * Prevent App State from becoming excessively wide.
+           */
+          max-width: 50%;
         }
-        // > .menuLine:hover {
-        //   border: 2px white;
-        // }
+
+        /*
+         * ================================================================
+         * RIGHT SIDE - GSX MENU
+         * ================================================================
+         */
+
+        > .gsxState {
+          flex: 1 1 0;
+
+          width: auto;
+          min-width: 0;
+
+          max-width: 50%;
+        }
+
+        /*
+         * ================================================================
+         * APP STATE HEADER
+         * ================================================================
+         */
+
+        > .appState > .top-header {
+          margin: 0 0 1em 0;
+        }
+
+        /*
+         * ================================================================
+         * APP STATE ROWS
+         * ================================================================
+         */
+
+        > .appState > .row {
+          margin-bottom: 0.75em;
+
+          /*
+           * 25vw is too large for landscape.
+           *
+           * Use a percentage of the left panel instead.
+           */
+          > .label {
+            min-width: 35%;
+            max-width: 45%;
+
+            margin-right: 0.5em;
+          }
+
+          > .property,
+          > .property-green,
+          > .property-red {
+            min-width: 0;
+            overflow-wrap: anywhere;
+          }
+        }
+
+        /*
+         * ================================================================
+         * GSX HEADER
+         * ================================================================
+         */
+
+        > .gsxState > .header {
+          margin: 0 0 1em 0;
+        }
+
+        /*
+         * ================================================================
+         * GSX MENU
+         * ================================================================
+         */
+
+        > .gsxState > .menuContent {
+          width: 100%;
+          height: auto;
+
+          min-width: 0;
+
+          /*
+           * Keep all menu controls at their natural height.
+           */
+          > .menuTitle,
+          > .menuLine {
+            flex: 0 0 auto;
+
+            width: 100%;
+            height: auto;
+
+            box-sizing: border-box;
+          }
+
+          > .menuTitle {
+            min-height: 2em;
+          }
+
+          > .menuLine {
+            min-height: 2em;
+          }
+        }
       }
     }
   }

@@ -1,44 +1,21 @@
-﻿using Any2GSX.GSX.Menu;
-using Any2GSX.PluginInterface.Interfaces;
-using CFIT.SimConnectLib.SimResources;
+﻿using Any2GSX.PluginInterface.Interfaces;
+using Any2GSX.PluginInterface.Interfaces.GSX;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Any2GSX.GSX.Services
 {
-    public class GsxServiceWater(GsxController controller) : GsxService(controller)
+    public class GsxServiceWater() : GsxService()
     {
         public override GsxServiceType Type => GsxServiceType.Water;
-        protected override double NumStateCompleted { get; } = 1;
-        public virtual ISimResourceSubscription SubWaterService { get; protected set; }
-        protected override ISimResourceSubscription SubStateVar => SubWaterService;
+        protected override int MenuSelectionService => 4;
+        protected override string StateVarName => GsxConstants.VarServiceWater;
+        protected override List<string> ServiceVariables => [];
+        public override bool HasStairConflict => Controller.HasGateStair && Controller.Aircraft.HasRearStair() && Controller.IsWaterOnStairSide && Controller.ApiData?.HandlerData?.aircraft?.HasWaterConflict() == true;
 
-        protected override GsxMenuSequence InitCallSequence()
+        protected override void DoInit()
         {
-            var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(GsxMenuCommand.Open());
-            sequence.Commands.Add(GsxMenuCommand.Select(8, GsxConstants.MenuGate));
-            sequence.Commands.Add(GsxMenuCommand.Select(4, GsxConstants.MenuAdditionalServices));
-            sequence.Commands.Add(GsxMenuCommand.Operator());
 
-            return sequence;
-        }
-
-        protected override GsxMenuSequence InitCancelSequence()
-        {
-            var sequence = new GsxMenuSequence();
-            sequence.Commands.Add(GsxMenuCommand.Open());
-            sequence.Commands.Add(GsxMenuCommand.Select(8, GsxConstants.MenuGate));
-            sequence.Commands.Add(GsxMenuCommand.Select(4, GsxConstants.MenuAdditionalServices));
-            sequence.Commands.Add(GsxMenuCommand.Wait());
-            sequence.Commands.Add(GsxMenuCommand.Open());
-
-            return sequence;
-        }
-
-        public override void InitSubscriptions()
-        {
-            SubWaterService = SimStore.AddVariable(GsxConstants.VarServiceWater);
-            SubWaterService?.OnReceived += OnStateChange;
         }
 
         protected override Task DoReset()
@@ -46,11 +23,9 @@ namespace Any2GSX.GSX.Services
             return Task.CompletedTask;
         }
 
-        public override void FreeResources()
+        protected override void DoRelease()
         {
-            SubWaterService?.OnReceived -= OnStateChange;
 
-            SimStore.Remove(GsxConstants.VarServiceWater);
         }
     }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@efb/any2gsxapp",
-  "version": "0.4.5",
+  "version": "0.5.1",
   "license": "MIT",
   "author": "Fragtality",
   "scripts": {
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@efb/efb-api": "file:../efb_api/dist/",
-    "@microsoft/msfs-sdk": "file:../vendor/microsoft-msfs-sdk-2.0.4.tgz",
+    "@microsoft/msfs-sdk": "file:../vendor/microsoft-msfs-sdk-2.1.1.tgz",
     "@microsoft/msfs-types": "^1.14.6"
   },
   "devDependencies": {

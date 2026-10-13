@@ -23,7 +23,7 @@ namespace Any2GSX.PluginInterface
 
     public enum DoorTypeSynced
     {
-        None = 1,
+        Standard = 1,
         PaxJetway = 2,
         PaxStairs = 4,
         Service = 8,
@@ -42,8 +42,7 @@ namespace Any2GSX.PluginInterface
         [JsonIgnore]
         public virtual bool HasPayloadSync => PayloadSync.HasFlag(SyncType.Plugin);
         public virtual SyncType DoorHandling { get; set; } = SyncType.ManualNone;
-        public virtual DoorTypeSynced DoorsSynced { get; set; } = DoorTypeSynced.None;
-        public virtual bool DoorsCloseAll { get; set; } = false;
+        public virtual DoorTypeSynced DoorsSynced { get; set; } = DoorTypeSynced.Standard;
         [JsonIgnore]
         public virtual bool HasDoorSync => DoorHandling.HasFlag(SyncType.Plugin);
         [JsonIgnore]

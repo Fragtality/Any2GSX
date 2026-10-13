@@ -140,6 +140,13 @@ namespace Any2GSX.GSX.Automation
             ApuBleed = await Aircraft.GetApuBleedOn();
         }
 
+        protected virtual async Task SetAircraftPower(bool target)
+        {
+            await Aircraft.SetEquipmentPower(target);
+            if (AppService.Instance.Config.GsxSetGpuOnInternal)
+                await GsxController.ServiceGpu.SetGpuConnection(target);
+        }
+
         protected virtual async Task SetPca(string phase)
         {
             if (GroundEquipmentTimes[GroundEquipment.PCA] > DateTime.MinValue && DateTime.Now < GroundEquipmentTimes[GroundEquipment.PCA])
@@ -179,7 +186,7 @@ namespace Any2GSX.GSX.Automation
             if (HasGpuInternal && ((GpuRequireChocks && EquipmentChocks) || !GpuRequireChocks) && !EquipmentGpu && GetPowerWithApuAllowed())
             {
                 Logger.Information($"Automation: Placing GPU on {phase}");
-                await Aircraft.SetEquipmentPower(true);
+                await SetAircraftPower(true);
                 await Task.Delay(500, RequestToken);
             }
         }
@@ -224,7 +231,7 @@ namespace Any2GSX.GSX.Automation
             if (HasGpuInternal && ((EquipmentGpu && AvionicsPowered && !PowerConnected) || (EquipmentGpu && force)))
             {
                 Logger.Information($"Automation: Removing Internal GPU");
-                return Aircraft.SetEquipmentPower(false);
+                return SetAircraftPower(false);
             }
 
             if ((UseGpuGsx != GsxGpuUsage.Never && GsxController.ServiceGpu.IsConnected && !GsxController.ServiceGpu.WasCanceled && AvionicsPowered && !PowerConnected)
@@ -258,7 +265,7 @@ namespace Any2GSX.GSX.Automation
                 else if (GpuRequireChocks && !PowerConnected && (!PcaRequirePower || (PcaRequirePower && !EquipmentPca)))
                 {
                     Logger.Information($"Automation: Removing GPU on Tug attached");
-                    await Aircraft.SetEquipmentPower(false);
+                    await SetAircraftPower(false);
                 }
             }
         }
@@ -305,6 +312,8 @@ namespace Any2GSX.GSX.Automation
 
         protected virtual bool GetPowerPlaced()
         {
+            if (HasGpuInternal && EquipmentGpu && AppService.Instance.Config.GsxSetGpuOnInternal)
+                GsxController.ServiceGpu.SetGpuConnection(true);
             return (!HasGpuInternal && UseGpuGsx == GsxGpuUsage.Never) || (HasGpuInternal && (EquipmentGpu || (!EquipmentGpu && !GetPowerWithApuAllowed()))) || (ServiceGpu.IsConnected && UseGpuGsx != GsxGpuUsage.Never) || (GsxController.ServiceJetway.IsConnected && UseGpuGsx == GsxGpuUsage.NoJetway);
         }
 

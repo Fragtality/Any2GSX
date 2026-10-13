@@ -1,3 +1,5 @@
+@charset "UTF-8";
+
 /* src/Any2GsxApp.scss */
 .efb-view.Any2GsxApp .any2gsx-app {
   position: relative;
@@ -17,83 +19,204 @@
   height: 100%;
   padding: 5vh 5vw;
   box-sizing: border-box;
+  overflow: hidden;
 }
 .efb-view.Any2GsxApp .ui-view.page .main-page > .content {
   display: flex;
-  color: white;
-  font-weight: normal;
   flex-direction: column;
   justify-content: flex-start;
+  color: white;
+  font-weight: normal;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
 }
-.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .top-header {
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .appState {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content {
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .gsxState {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content {
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .appState > .top-header {
   color: #ffffff;
   font-size: 1.6em;
   font-weight: bolder;
   margin: 0 0 1.25em 0;
 }
-.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .header {
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .gsxState > .header {
   color: #ffffff;
   font-size: 1.6em;
   font-weight: bolder;
-  margin: 1.25em 0 1.25em 0;
+  margin: 1em 0 0.5em 0;
 }
-.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .row {
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content {
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .appState > .row {
   display: flex;
-  font-size: 1.1em;
   flex-direction: row;
   justify-content: flex-start;
-  margin: 0 0 1em 0;
+  align-items: center;
+  width: 100%;
+  font-size: 1.1em;
+  margin: 0 0 0.5em 0;
+  min-width: 0;
 }
-.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .row > .label {
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .appState > .row > .label {
   color: white;
   font-weight: bolder;
   min-width: 25vw;
+  flex-shrink: 0;
 }
-.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .row > .property {
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .appState > .row > .property {
   color: #d8d8d8;
   font-weight: normal;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
-.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .row > .property-green {
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .appState > .row > .property-green {
   color: green;
   font-weight: normal;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
-.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .row > .property-red {
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .appState > .row > .property-red {
   color: red;
   font-weight: normal;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
-.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .row > .button {
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .appState > .row > .button {
   font-weight: bold;
   background-color: #144994;
   padding: 2px;
+  flex-shrink: 0;
 }
-.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .menuContent {
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content {
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .gsxState > .menuContent {
   display: flex;
+  flex-direction: column;
   color: white;
   font-weight: normal;
-  flex-direction: column;
   width: 100%;
-  height: 100%;
+  height: auto;
+  min-width: 0;
 }
-.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .menuContent > .menuTitle {
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content {
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .gsxState > .menuContent > .menuTitle {
   font-weight: bold;
-  font-size: 1.4em;
+  font-size: 1.2em;
   background-color: #144994;
   padding: 2px;
   margin-bottom: 12px;
   width: 100%;
-  height: 100%;
+  height: auto;
+  min-height: 2em;
+  box-sizing: border-box;
+  flex: 0 0 auto;
 }
-.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .menuContent > .buttonContent {
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .gsxState > .menuContent > .buttonContent {
   height: fit-content;
 }
-.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .menuContent > .menuLine {
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content {
+}
+.efb-view.Any2GsxApp .ui-view.page .main-page > .content > .gsxState > .menuContent > .menuLine {
   font-weight: normal;
-  font-size: 1.2em;
+  font-size: 1.15em;
   background-color: #28476d;
   padding: 2px;
   margin-bottom: 6px;
   width: 100%;
-  height: 100%;
+  height: auto;
+  min-height: 2em;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+}
+.efb-view.Any2GsxApp .ui-view.page {
+}
+@media (orientation: landscape) {
+  .efb-view.Any2GsxApp .ui-view.page .main-page {
+    padding: 4vh 3vw;
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 3vw;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content > .appState {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    max-width: 50%;
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content {
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content > .gsxState {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    max-width: 50%;
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content {
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content > .appState > .top-header {
+    margin: 0 0 1em 0;
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content {
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content > .appState > .row {
+    margin-bottom: 0.75em;
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content > .appState > .row > .label {
+    min-width: 35%;
+    max-width: 45%;
+    margin-right: 0.5em;
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content > .appState > .row > .property,
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content > .appState > .row > .property-green,
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content > .appState > .row > .property-red {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content {
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content > .gsxState > .header {
+    margin: 0 0 1em 0;
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content {
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content > .gsxState > .menuContent {
+    width: 100%;
+    height: auto;
+    min-width: 0;
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content > .gsxState > .menuContent > .menuTitle,
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content > .gsxState > .menuContent > .menuLine {
+    flex: 0 0 auto;
+    width: 100%;
+    height: auto;
+    box-sizing: border-box;
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content > .gsxState > .menuContent > .menuTitle {
+    min-height: 2em;
+  }
+  .efb-view.Any2GsxApp .ui-view.page .main-page > .content > .gsxState > .menuContent > .menuLine {
+    min-height: 2em;
+  }
 }

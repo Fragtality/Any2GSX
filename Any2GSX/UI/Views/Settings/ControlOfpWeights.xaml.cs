@@ -18,7 +18,7 @@ namespace Any2GSX.UI.Views.Settings
 
             ViewModel.BindElement(nameof(ViewModel.SimbriefUser), InputSimBriefUser, null, new ValidationRuleString());
             ViewModel.BindStringNumber(nameof(ViewModel.FuelResetPercent), InputFuelPercent, "2", new ValidationRuleRange<double>(0, 50));
-            ViewModel.BindStringNumber(nameof(ViewModel.FuelCompareVariance), InputFuelVariance, "50", new ValidationRuleRange<double>(10, 100));
+            ViewModel.BindStringNumber(nameof(ViewModel.FuelCompareVariance), InputFuelVariance, "50", new ValidationRuleRange<double>(10, 1000));
 
             InputSimBriefUser.KeyUp += OnSimbriefKeyUp;
 

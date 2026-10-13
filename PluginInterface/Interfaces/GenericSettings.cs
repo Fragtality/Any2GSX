@@ -30,6 +30,7 @@ namespace Any2GSX.PluginInterface.Interfaces
 
         public const string VarParkBrakeName = "Generic.Var.ParkBrake.Name";
         public const string VarParkBrakeUnit = "Generic.Var.ParkBrake.Unit";
+        public const string VarParkBrakeToggleStart = "Generic.Var.ParkBrake.ToggleStart";
 
         public const string VarSmartButtonName = "Generic.Var.SmartButton.Name";
         public const string VarSmartButtonDefault = "L:ANY2GSX_SMARTBUTTON_REQ";
@@ -44,11 +45,20 @@ namespace Any2GSX.PluginInterface.Interfaces
         public const string VarDepartTriggerValue = "Generic.Var.DepartTrigger.Value";
 
         public const string OptionAircraftIsCargo = "Generic.Option.Aircraft.IsCargo";
-        public const string OptionAircraftRefuelStair = "Generic.Option.Aircraft.RefuelStair";
-        public const string OptionAircraftFuelDialog = "Generic.Option.Aircraft.FuelDialog";
+        public const string OptionGateForceUnderground = "Generic.Option.Aircraft.ForceUnderground";
         public const string OptionAircraftInitDelay = "Generic.Option.Aircraft.InitDelay";
         public const string OptionAircraftGsxGpu = "Generic.Option.Aircraft.GsxGpu";
         public const string OptionAircraftGsxProgFuel = "Generic.Option.Aircraft.GsxProgFuel";
+        public const string OptionAircraftDoorPreferred = "Generic.Option.Aircraft.DoorPreferred";
+        public const string OptionAircraftDoorMapPax1 = "Generic.Option.Aircraft.DoorMapPax1";
+        public const string OptionAircraftDoorMapPax2 = "Generic.Option.Aircraft.DoorMapPax2";
+        public const string OptionAircraftDoorMapPax3 = "Generic.Option.Aircraft.DoorMapPax3";
+        public const string OptionAircraftDoorMapPax4 = "Generic.Option.Aircraft.DoorMapPax4";
+        public const string OptionAircraftDoorMapService1 = "Generic.Option.Aircraft.DoorMapService1";
+        public const string OptionAircraftDoorMapService2 = "Generic.Option.Aircraft.DoorMapService2";
+        public const string OptionAircraftDoorMapCargo1 = "Generic.Option.Aircraft.DoorMapCargo1";
+        public const string OptionAircraftDoorMapCargo2 = "Generic.Option.Aircraft.DoorMapCargo2";
+        public const string OptionAircraftDoorMapCargo3 = "Generic.Option.Aircraft.DoorMapCargo3";
 
         public static List<PluginSetting> GetGenericSettings()
         {
@@ -155,25 +165,14 @@ namespace Any2GSX.PluginInterface.Interfaces
             };
             list.Add(setting);
 
-            //RefuelStair
+            //ForceUnderground
             setting = new PluginSetting()
             {
-                Key = OptionAircraftRefuelStair,
+                Key = OptionGateForceUnderground,
                 Type = PluginSettingType.Bool,
                 DefaultValue = false,
-                Description = "Aircraft: Refuel on Left/Port Side",
-                Tooltip = "Report the Refuel Side for the Aircraft on the Left Side to the App.\nSome Services (i.e. Stairs) need different Handling when Refuel is on the same Side."
-            };
-            list.Add(setting);
-
-            //FuelDialog
-            setting = new PluginSetting()
-            {
-                Key = OptionAircraftFuelDialog,
-                Type = PluginSettingType.Bool,
-                DefaultValue = false,
-                Description = "Aircraft: Uses Refuel Dialog",
-                Tooltip = "When enabled, the App will automatically wait for and the Refuel Level Dialog and automatically select the Simbrief Fuel.\nThis Option is needed for (GSX) Aircraft Profiles with the Option 'Default Fuel System' checked (i.e. some iniBuilds Aircrafts)"
+                Description = "Gate: Force Refuel Hydrant",
+                Tooltip = "Force the Gate to have underground Refuel regardless of what is configured in the Airport Profile (setting HandlerData via API).\nThis can be useful if the Tanker-Truck has Issues like conflicting Stairs or is clipping in the Engine."
             };
             list.Add(setting);
 
@@ -406,6 +405,110 @@ namespace Any2GSX.PluginInterface.Interfaces
                 Description = "Parking Brake: Variable Unit",
                 Tooltip = "Simulation Variable Unit as known to SimConnect. When in doubt: use 'number'."
             };
+            list.Add(setting);
+            setting = new PluginSetting()
+            {
+                Key = VarParkBrakeToggleStart,
+                Type = PluginSettingType.Bool,
+                DefaultValue = true,
+                Description = "Parking Brake: Set on Session Start",
+                Tooltip = "Set Parking Brakes via 'PARKING_BRAKE_SET' Event on Session Start (on Ground) if the Aircraft has no Chocks and the GSX Menu is not opening and s (i.e. the Aircraft isn't secured)."
+            };
+            list.Add(setting);
+
+            //Door Mappings
+            setting = new PluginSetting()
+            {
+                Key = OptionAircraftDoorPreferred,
+                Type = PluginSettingType.Enum,
+                DefaultValue = (int)AircraftDoor.Default,
+                Description = "Preferred Door Jetway:",
+                EnumValues = [],
+                Tooltip = "Overwrite the preferred Exit in the GSX Aircraft Profile.\nDefault uses the Profile as-is with no Changes."
+            };
+            foreach (var value in Enum.GetValues<AircraftDoor>())
+                if (value <= AircraftDoor.L8)
+                    setting.EnumValues.Add((int)value, value.ToString());
+            list.Add(setting);
+            setting = new PluginSetting()
+            {
+                Key = OptionAircraftDoorMapPax1,
+                Type = PluginSettingType.Enum,
+                DefaultValue = (int)AircraftDoor.Default,
+                Description = "Door Mapping GSX: Pax1",
+                EnumValues = [],
+                Tooltip = "Mapping which Aircraft Exit is used in GSX."
+            };
+            foreach (var value in Enum.GetValues<AircraftDoor>())
+                if (value <= AircraftDoor.L8)
+                    setting.EnumValues.Add((int)value, value.ToString());
+            list.Add(setting);
+            setting = new PluginSetting()
+            {
+                Key = OptionAircraftDoorMapPax2,
+                Type = PluginSettingType.Enum,
+                DefaultValue = (int)AircraftDoor.Default,
+                Description = "Door Mapping GSX: Pax2",
+                EnumValues = [],
+                Tooltip = "Mapping which Aircraft Exit is used in GSX."
+            };
+            foreach (var value in Enum.GetValues<AircraftDoor>())
+                if (value <= AircraftDoor.L8)
+                    setting.EnumValues.Add((int)value, value.ToString());
+            list.Add(setting);
+            setting = new PluginSetting()
+            {
+                Key = OptionAircraftDoorMapPax3,
+                Type = PluginSettingType.Enum,
+                DefaultValue = (int)AircraftDoor.Default,
+                Description = "Door Mapping GSX: Pax3",
+                EnumValues = [],
+                Tooltip = "Mapping which Aircraft Exit is used in GSX."
+            };
+            foreach (var value in Enum.GetValues<AircraftDoor>())
+                if (value <= AircraftDoor.L8)
+                    setting.EnumValues.Add((int)value, value.ToString());
+            list.Add(setting);
+            setting = new PluginSetting()
+            {
+                Key = OptionAircraftDoorMapPax4,
+                Type = PluginSettingType.Enum,
+                DefaultValue = (int)AircraftDoor.Default,
+                Description = "Door Mapping GSX: Pax4",
+                EnumValues = [],
+                Tooltip = "Mapping which Aircraft Exit is used in GSX."
+            };
+            foreach (var value in Enum.GetValues<AircraftDoor>())
+                if (value <= AircraftDoor.L8)
+                    setting.EnumValues.Add((int)value, value.ToString());
+            list.Add(setting);
+            setting = new PluginSetting()
+            {
+                Key = OptionAircraftDoorMapService1,
+                Type = PluginSettingType.Enum,
+                DefaultValue = (int)AircraftDoor.Default,
+                Description = "Door Mapping GSX: Service1",
+                EnumValues = [],
+                Tooltip = "Mapping which Aircraft Exit is used in GSX."
+            };
+            foreach (var value in Enum.GetValues<AircraftDoor>())
+                if (value > AircraftDoor.L8)
+                    setting.EnumValues.Add((int)value, value.ToString());
+            setting.EnumValues.Add((int)AircraftDoor.Default, AircraftDoor.Default.ToString());
+            list.Add(setting);
+            setting = new PluginSetting()
+            {
+                Key = OptionAircraftDoorMapService2,
+                Type = PluginSettingType.Enum,
+                DefaultValue = (int)AircraftDoor.Default,
+                Description = "Door Mapping GSX: Service2",
+                EnumValues = [],
+                Tooltip = "Mapping which Aircraft Exit is used in GSX."
+            };
+            foreach (var value in Enum.GetValues<AircraftDoor>())
+                if (value > AircraftDoor.L8)
+                    setting.EnumValues.Add((int)value, value.ToString());
+            setting.EnumValues.Add((int)AircraftDoor.Default, AircraftDoor.Default.ToString());
             list.Add(setting);
 
             return list;

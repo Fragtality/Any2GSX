@@ -21,6 +21,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <GroupBox Grid.Column="0" Grid.Row="0" Margin="8,0,8,8" Style="{StaticResource GroupBoxDefault}" ToolTip="Configure which GSX Services are called by Any2GSX and when they are called.">
@@ -30,8 +31,6 @@
                     <ColumnDefinition/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -65,165 +64,411 @@
                     </TextBlock>
                     <ComboBox SelectedValue="{Binding SmartButtonAbortService}" DisplayMemberPath="Value" ItemsSource="{Binding AbortOptions}" SelectedValuePath="Key" Margin="8,0,0,0" Style="{StaticResource ComboBoxDefault}"/>
                 </StackPanel>
+            </Grid>
+        </GroupBox>
 
-                <TextBlock Grid.Column="0" Grid.Row="5" Name="LabelQueueInUse" Style="{StaticResource TextBlockDefault}" Margin="6,8,0,0" Visibility="Collapsed">
+        <GroupBox Grid.Column="0" Grid.Row="1" Style="{StaticResource GroupBoxDefault}" ToolTip="Configure which GSX Services are called by Any2GSX and when they are called.">
+            <GroupBox.Header>Service Queue</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Column="0" Grid.Row="0" Name="LabelQueueInUse" Style="{StaticResource TextBlockDefault}" Margin="6,8,0,0" Visibility="Collapsed">
                     <Italic>
                         <Bold>Note:</Bold> The Service Queue is currently in use. Some Changes (i.e. Order) may not apply until the next Departure Phase.
                     </Italic>
                 </TextBlock>
-
-                <TextBlock Grid.Column="0" Grid.Row="5" Name="LabelExternalControl" Style="{StaticResource TextBlockDefault}" Margin="6,8,0,0" Visibility="Collapsed">
+                <TextBlock Grid.Column="0" Grid.Row="0" Name="LabelExternalControl" Style="{StaticResource TextBlockDefault}" Margin="6,8,0,0" Visibility="Collapsed">
                     <Italic>
                         <Bold>Note:</Bold> External Service Control is activated - Service Calls &amp; Order are handled through an external Application.
                     </Italic>
                 </TextBlock>
+                
+                <ListBox Grid.Column="0" Grid.Row="1" Name="ListDepartureServices" Margin="0" ItemsSource="{Binding DepartureServices}" BorderThickness="0" HorizontalContentAlignment="Stretch"
+                    ToolTip="Departure Service Queue: GSX Services and the Rules if and when they are called in the Departure Phase.&#x0a;Click on a Service to configure!" MaxHeight="384">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="MinWidth" Value="808"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Bd" Background="Transparent" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="3"
+                                                Padding="2" Margin="0,2,0,2" SnapsToDevicePixels="true"> 
+                                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.AccentColorLight1BrushKey}}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsMouseOver" Value="False">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#BBBBBB"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border ToolTip="{Binding ServiceType}">
+                                <Grid ToolTip="{Binding ServiceType}">
+                                    <Grid x:Name="CollapsedView" HorizontalAlignment="Stretch" Visibility="Visible" ToolTip="{Binding ServiceType}">
+                                        <Grid.Resources>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Orientation" Value="Horizontal"/>
+                                                <Setter Property="Margin" Value="0,0,0,0"/>
+                                            </Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource TextBlockDefault}">
+                                                <Setter Property="Margin" Value="4,2,4,2"/>
+                                            </Style>
+                                        </Grid.Resources>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" MinHeight="28"/>
+                                        </Grid.RowDefinitions>
 
-                <Grid Grid.Column="0" Grid.Row="6">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <DataGrid Grid.Column="0" Grid.Row="0" Name="GridDepartureServices" Margin="6,10,6,6"
-                              ToolTip="Departure Services: GSX Services and their Order to be called, monitored or skipped in the Departure Phase.">
-                        <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="Service" MinWidth="64">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding ServiceType}" Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}" FontWeight="DemiBold"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
 
-                            <DataGridTemplateColumn Header="Activation" MinWidth="136">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding ServiceActivationName}" Margin="5,0,16,0" Style="{StaticResource TextBlockDefault}"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-
-                            <DataGridTemplateColumn Header="Activate at" MinWidth="72">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="10,0,10,0" HorizontalAlignment="Center">
-                                            <Label Content="{Binding MaxTimeBeforeDeparture, Converter={StaticResource TimeSpanConverterMinutes}}" HorizontalAlignment="Left" HorizontalContentAlignment="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Width="36"/>
-                                            <TextBlock Style="{StaticResource TextBlockDefault}" Margin="3,0,0,0">min</TextBlock>
+                                        <!-- ServiceType -->
+                                        <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2,4,2" HorizontalAlignment="Left">
+                                            <Image Source="../../Icons/caret-right.png" Width="14" Height="14" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding ServiceType}" VerticalAlignment="Center" FontSize="12" FontWeight="DemiBold" MinWidth="64" ToolTip="{Binding ServiceType}"/>
                                         </StackPanel>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="Flight Time" MinWidth="72">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="10,0,20,0" HorizontalAlignment="Center">
-                                            <Label Content="{Binding MinimumFlightDuration, Converter={StaticResource TimeSpanConverterMinutes}}" HorizontalAlignment="Left" HorizontalContentAlignment="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Width="36"/>
-                                            <TextBlock Style="{StaticResource TextBlockDefault}" Margin="3,0,0,0">min</TextBlock>
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ServiceActivationName}" TextDecorations="Underline" MinWidth="160"/>
+
+                                        <StackPanel Grid.Row="0" Grid.Column="2" Visibility="{Binding HasActivation, Converter={StaticResource BoolVisibilityConverter}}">
+                                            <TextBlock Text="{Binding ActivationText}"/>
                                         </StackPanel>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="Constraint" MinWidth="124">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding ServiceConstraintName}" MinWidth="96" Margin="5,0,8,0" Style="{StaticResource TextBlockDefault}"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-
-                            <DataGridTemplateColumn Header="Cargo" Width="48">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <CheckBox IsChecked="{Binding CallOnCargo}" IsHitTestVisible="False" HorizontalAlignment="Center" Style="{StaticResource CheckBoxDefault}"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-
-                            <DataGridTemplateColumn Header="Run Time" MinWidth="64">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="5,0,5,0" HorizontalAlignment="Center">
-                                            <Label Content="{Binding MaxRunTime, Converter={StaticResource TimeSpanConverterMinutes}}" HorizontalAlignment="Left" HorizontalContentAlignment="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Width="36"/>
-                                            <TextBlock Style="{StaticResource TextBlockDefault}" HorizontalAlignment="Left" Margin="3,0,0,0">min</TextBlock>
+                                        <StackPanel Grid.Row="0" Grid.Column="3" Visibility="{Binding HasAnyConstraint, Converter={StaticResource BoolVisibilityConverter}}">
+                                            <TextBlock Text="{Binding ConstraintText}" FontWeight="Light"/>
                                         </StackPanel>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                                    </Grid>
 
-                            <DataGridTemplateColumn Header="Delay" MinWidth="64">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="5,0,5,0" HorizontalAlignment="Center">
-                                            <Label Content="{Binding CallDelay, Converter={StaticResource TimeSpanConverterSeconds}}" HorizontalAlignment="Left" HorizontalContentAlignment="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Width="36"/>
-                                            <TextBlock Style="{StaticResource TextBlockDefault}" HorizontalAlignment="Left" Margin="3,0,0,0">sec</TextBlock>
+
+                                    <Grid x:Name="ExpandedView" HorizontalAlignment="Stretch" Visibility="Collapsed" ToolTip="{Binding ServiceType}">
+                                        <Grid.Resources>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Orientation" Value="Horizontal"/>
+                                                <Setter Property="Margin" Value="0,0,0,0"/>
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                            </Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource TextBlockDefault}">
+                                                <Setter Property="Margin" Value="4,2,4,2"/>
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                            </Style>
+                                            <Style TargetType="ComboBox" BasedOn="{StaticResource ComboBoxDefault}">
+                                                <Setter Property="Margin" Value="2,2,2,2"/>
+                                                <Setter Property="Padding" Value="6,3,24,4"/>
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                            </Style>
+                                            <Style TargetType="CheckBox" BasedOn="{StaticResource CheckBoxSettingItem}">
+                                                <Setter Property="Margin" Value="2,2,2,2"/>
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                            </Style>
+                                            <Style TargetType="TextBox" BasedOn="{StaticResource TextBoxLeft}">
+                                                <Setter Property="Margin" Value="2,2,2,2"/>
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                            </Style>
+                                        </Grid.Resources>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" MinHeight="28"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- ServiceType -->
+                                        <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="0,4,4,2" MouseDown="OnServiceMouseDown">
+                                            <Image Source="../../Icons/caret-down.png" Width="14" Height="14"/>
+                                            <TextBlock Text="{Binding ServiceType}" FontSize="12" FontWeight="DemiBold" MinWidth="64" ToolTip="{Binding ServiceType}"/>
                                         </StackPanel>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                    <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Vertical" Margin="0,34,0,0" VerticalAlignment="Top">
-                        <Button Name="ButtonUp" Style="{StaticResource BtnSquareSmall}" ToolTip="Move Up Service in the Call Order.">
-                            <Image Source="../../Icons/chevron-up.png" Style="{StaticResource ImgSquareSmall}"/>
-                        </Button>
-                        <Button Name="ButtonDown" Margin="0,6,0,0" Style="{StaticResource BtnSquareSmall}" ToolTip="Move Down Service in the Call Order.">
-                            <Image Source="../../Icons/chevron-down.png" Style="{StaticResource ImgSquareSmall}"/>
-                        </Button>
-                    </StackPanel>
+                                        
+                                        <StackPanel Grid.Row="1" Grid.RowSpan="2" Grid.Column="0" Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,0,0">
+                                            <Button Name="ButtonUp" Style="{StaticResource BtnSquareSmall}"
+                                                    Command="{Binding CommandButtonUp}" CommandParameter="{Binding SelectedIndex, ElementName=ListDepartureServices}"
+                                                    ToolTip="Move Service Up in the Queue.">
+                                                <Image Source="../../Icons/chevron-up.png" Style="{StaticResource ImgSquareSmall}"/>
+                                            </Button>
+                                            <Button Name="ButtonDown" Margin="0,6,0,6" Style="{StaticResource BtnSquareSmall}"
+                                                    Command="{Binding CommandButtonDown}" CommandParameter="{Binding SelectedIndex, ElementName=ListDepartureServices}"
+                                                    ToolTip="Move Service Down in the Queue.">
+                                                <Image Source="../../Icons/chevron-down.png" Style="{StaticResource ImgSquareSmall}"/>
+                                            </Button>
+                                        </StackPanel>
 
-                    <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Horizontal" Margin="6,6,0,0" Visibility="{Binding HasSelection, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type UserControl}}, Converter={StaticResource BoolVisibilityConverter}}">
-                        <TextBlock Name="LabelServiceName" Margin="5,0,0,0" Style="{StaticResource TextBlockDefault}" FontWeight="DemiBold"/>
-                        <ComboBox Name="SelectorActivation" Margin="-4,0,0,0" ItemsSource="{Binding TextServiceActivations}" SelectedIndex="0" SelectedValuePath="Key" DisplayMemberPath="Value" Style="{StaticResource ComboBoxDefault}"
-                                  ToolTip="Select if and how to activate the Service:&#x0a;
-                                  Skip / Ignore: Service will neither be called nor monitored by Any2GSX&#x0a;
-                                  Manual by User: Service will be called externally by the User or another App (but must be completed to end the Departure Phase)&#x0a;
-                                  Previous called: Service will directly be called after the previous Service was called&#x0a;
-                                  Previous requested: Service will be called as soon as the previous Service is reported as 'requested' by GSX&#x0a;
-                                  Previous active: Service will be called as soon as the previous Service is reported as 'active' by GSX&#x0a;
-                                  Previous completed: Service will be called as soon as the previous Service is reported as 'completed' by GSX&#x0a;
-                                  All completed: Service will only be called after all previous Service are reported as 'completed' by GSX&#x0a;
-                                  Note: The first Service will always be called directly (if not set to skipped or manual), as it has no previous Service!"/>
-                        <TextBox Name="InputActivateAt" Margin="16,0,0,0" Style="{StaticResource TextBoxCentered}" MinWidth="28" HorizontalContentAlignment="Right" ToolTip="Call the Service X Minutes before Departure Time. A Value of 0 calls the Service without Delay.&#x0a;The current (Sim or System) UTC Time is compared to the SimBrief Departure Time. Note that this is full Comparison including the complete Date and Time."/>
-                        <TextBlock Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}" ToolTip="Call the Service X Minutes before Departure Time. A Value of 0 calls the Service without Delay.&#x0a;The current (Sim or System) UTC Time is compared to the SimBrief Departure Time. Note that this is full Comparison including the complete Date and Time.">min</TextBlock>
-                        <TextBox Name="InputDuration" Margin="26.5,0,0,0" Style="{StaticResource TextBoxCentered}" MinWidth="28" HorizontalContentAlignment="Right" ToolTip="Only call/monitor the Service if the scheduled Flight Time is greater than the specified Value."/>
-                        <TextBlock Margin="5,0,0,0" Style="{StaticResource TextBlockDefault}" ToolTip="Only call/monitor the Service if the scheduled Flight Time is greater than the specified Value.">min</TextBlock>
-                        <ComboBox Margin="19,0,0,0" Name="SelectorConstraint" ItemsSource="{Binding TextServiceConstraints}" HorizontalAlignment="Left" SelectedIndex="0" SelectedValuePath="Key" DisplayMemberPath="Value" Style="{StaticResource ComboBoxDefault}"
-                                  ToolTip="Select a Constraint for calling the Service:&#x0a;
-                                  None: No Constraint applied, the Service is called normally (according to the other Options)&#x0a;
-                                  Only Departure: The Service is only called on the first Departure (resetted by App Restart or new Session)&#x0a;
-                                  Only Turn: The Service is only called on Turn Arounds (resetted by App Restart or new Session)&#x0a;
-                                  Only on Hub: The Service is only called when the Departure ICAO (as of SimBrief) has a Match in the Company Hub List&#x0a;
-                                  Only on Non-Hub: The Service is only called when the Departure ICAO (as of SimBrief) has NO Match in the Company Hub List&#x0a;
-                                  Turn on Hub: The Service is only called on Turn Arounds when the Arrival ICAO (as of SimBrief) has a Match in the Company Hub List&#x0a;
-                                  Turn on Non-Hub: The Service is only called on Turn Arounds when the Arrival ICAO (as of SimBrief) has NO Match in the Company Hub List&#x0a;
-                                  Preferred Operator: The Service is only called if the already selected Handling Operator was on the preferred List"/>
-                        <CheckBox Margin="17.5,0,0,0" Name="CheckboxCallCargo" Style="{StaticResource CheckBoxDefault}" HorizontalContentAlignment="Center" MinWidth="24" MaxWidth="24" Padding="0" ToolTip="The Service can be called when the Aircraft is reported as Cargo."/>
-                        <TextBox Name="InputRunTime" Margin="20,0,0,0" Style="{StaticResource TextBoxCentered}" MinWidth="28" HorizontalContentAlignment="Right" ToolTip="The maximum Time the Service is allowed to run before it is canceled (gracefully). A Value of 0 means no Limitation."/>
-                        <TextBlock Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}" ToolTip="The maximum Time the Service is allowed to run before it is canceled (gracefully). A Value of 0 means no Limitation.">min</TextBlock>
-                        <TextBox Name="InputCallDelay" Margin="17,0,0,0" Style="{StaticResource TextBoxCentered}" MinWidth="28" HorizontalContentAlignment="Right" ToolTip="The Time to delay this Service's Call after the previous Service was called."/>
-                        <TextBlock Margin="4,0,0,0" Style="{StaticResource TextBlockDefault}" ToolTip="The Time to delay this Service's Call after the previous Service was called.">sec</TextBlock>
-                    </StackPanel>
+                                        <!-- ACTIVATION -->
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Margin="4,4,4,4">
+                                            <Underline>Activate Service</Underline>:
+                                        </TextBlock>
+                                        <ComboBox Grid.Row="0" Grid.Column="2" ItemsSource="{Binding DataContext.TextServiceActivations, RelativeSource={RelativeSource AncestorType=UserControl}}" DisplayMemberPath="Value" SelectedValuePath="Key"
+                                                    SelectedValue="{Binding ServiceActivation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                    MinWidth="184" >
+                                            <ComboBox.ToolTip>
+                                                <TextBlock>
+                                                    Select if and how the Service is activated:<LineBreak />
+                                                    - Never: The Service is neither called by the App nor is it monitored.<LineBreak />
+                                                    - Manual: The Service is called externally by the User or another Addon but is monitored to be completed!<LineBreak />
+                                                    - Independent: The Service is called by the App directly without any prerequisites (if the Constraints allow).<LineBreak />
+                                                    - Time to Departure: The Service is called by the App based on the Departure Time (from Simbrief, compared to either Sim Time or System Time).<LineBreak />
+                                                    - Dependent on Services: The Service is called by the App based on the State of other Services.
+                                                </TextBlock>
+                                            </ComboBox.ToolTip>
+                                        </ComboBox>
 
-                    <Button Grid.Column="1" Grid.Row="1" Name="ButtonEdit" Margin="0,6,0,0" Style="{StaticResource BtnSquareSmall}" Visibility="{Binding HasSelection, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type UserControl}}, Converter={StaticResource BoolVisibilityConverter}}"
-                            ToolTip="Edit Service Activation">
-                        <Image Name="ImageEdit" Style="{StaticResource ImgSquareSmall}"/>
-                    </Button>
-                </Grid>
+
+                                        <!-- Service Dependency -->
+                                        <StackPanel Grid.Row="0" Grid.Column="3" Visibility="{Binding HasDependency, Converter={StaticResource BoolVisibilityConverter}}">
+                                            <TextBlock>
+                                                Based on
+                                            </TextBlock>
+                                            <ComboBox ItemsSource="{Binding DataContext.TextServiceDependencyScope, RelativeSource={RelativeSource AncestorType=UserControl}}" DisplayMemberPath="Value" SelectedValuePath="Key"                                                  
+                                                      SelectedValue="{Binding ServiceDependencyScope, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      MinWidth="124">
+                                                <ComboBox.ToolTip>
+                                                    <TextBlock>
+                                                        Select which other Services' State(s) are checked:<LineBreak />
+                                                        - Last called: The last Service that was called by the App (so not bound to the Order in the Queue).<LineBreak />
+                                                        - All called: All Services that were called by the App so far.<LineBreak />
+                                                        - Previous queued: The previous Service in the Queue (so bound to the Order in the Queue)<LineBreak />
+                                                        - All queued: All previous Services in the Queue.<LineBreak /><LineBreak />
+                                                        Note: The first Service is always called regardless. Skipped Services are not checked.
+                                                    </TextBlock>
+                                                </ComboBox.ToolTip>
+                                            </ComboBox>
+                                            <TextBlock>
+                                                Service(s) at least in State
+                                            </TextBlock>
+                                            <ComboBox ItemsSource="{Binding DataContext.TextServiceDependencies, RelativeSource={RelativeSource AncestorType=UserControl}}" DisplayMemberPath="Value" SelectedValuePath="Key"                                                  
+                                                      SelectedValue="{Binding ServiceDependency, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      MinWidth="96">
+                                                <ComboBox.ToolTip>
+                                                    <TextBlock>
+                                                        The minimum State of the Service(s):<LineBreak />
+                                                        - Requested: the Service Vehicle is on the Way or the Service is waiting to become active.<LineBreak />
+                                                        - Active: the Service is actively being performed.<LineBreak />
+                                                        - Completed: the Service was completed (or cancelled gracefully).
+                                                    </TextBlock>
+                                                </ComboBox.ToolTip>
+                                            </ComboBox>
+                                        </StackPanel>
+
+                                        <!-- Depart Time -->
+                                        <StackPanel Grid.Row="0" Grid.Column="3" Visibility="{Binding HasDepartureTime, Converter={StaticResource BoolVisibilityConverter}}"
+                                                    ToolTip="The Time in Minutes to check against the SimBrief Departure Time.&#x0a;Per default checked agains the Simulator Time, but the App can be configured to use the System Time.">
+                                            <TextBlock>
+                                                is lower than
+                                            </TextBlock>
+                                            <TextBox Text="{Binding MaxTimeBeforeDeparture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Visibility="{Binding HasDepartureTime, Converter={StaticResource BoolVisibilityConverter}}"
+                                                     HorizontalContentAlignment="Center" MinWidth="64"/>
+                                            <TextBlock>
+                                                <Italic>minutes</Italic>
+                                            </TextBlock>
+                                        </StackPanel>
+
+
+                                        <!-- CANCELLATION -->
+                                        <TextBlock Grid.Row="1" Grid.Column="1" 
+                                                   Visibility="{Binding HasActivation, Converter={StaticResource BoolVisibilityConverter}}">
+                                            <Underline>Cancellation</Underline>:
+                                        </TextBlock>
+                                        <ComboBox Grid.Row="1" Grid.Column="2" ItemsSource="{Binding DataContext.TextServiceCancellations, RelativeSource={RelativeSource AncestorType=UserControl}}" DisplayMemberPath="Value" SelectedValuePath="Key"
+                                                  Visibility="{Binding HasActivation, Converter={StaticResource BoolVisibilityConverter}}"
+                                                  SelectedValue="{Binding ServiceCancellation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinWidth="184">
+                                            <ComboBox.ToolTip>
+                                                <TextBlock>
+                                                    Select if and how the Service is cancelled:<LineBreak />
+                                                    - Never: The Service is not cancelled by the App.<LineBreak />
+                                                    - Max Run Time: The Service is cancelled by the App if it runs longer than the configured Time.<LineBreak />
+                                                    - Dependent on Services: The Service is cancelled by the App based on the State of other Services.
+                                                </TextBlock>
+                                            </ComboBox.ToolTip>
+                                        </ComboBox>
+
+
+                                        <!-- Service Dependency -->
+                                        <StackPanel Grid.Row="1" Grid.Column="3" Visibility="{Binding HasCancelDependency, Converter={StaticResource BoolVisibilityConverter}}">
+                                            <TextBlock>
+                                                Based on
+                                            </TextBlock>
+                                            <ComboBox ItemsSource="{Binding DataContext.TextServiceDependencyScope, RelativeSource={RelativeSource AncestorType=UserControl}}" DisplayMemberPath="Value" SelectedValuePath="Key"                                                  
+                                                      SelectedValue="{Binding ServiceCancelDependencyScope, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinWidth="124">
+                                                <ComboBox.ToolTip>
+                                                    <TextBlock>
+                                                        Select which other Services' State(s) are checked:<LineBreak />
+                                                        - Last called: The last Service that was called by the App (so not bound to the Order in the Queue).<LineBreak />
+                                                        - All called: All Services that were called by the App so far.<LineBreak />
+                                                        - Previous queued: The previous Service in the Queue (so bound to the Order in the Queue)<LineBreak />
+                                                        - All queued: All previous Services in the Queue.
+                                                    </TextBlock>
+                                                </ComboBox.ToolTip>
+                                            </ComboBox>
+                                            <TextBlock>
+                                                Service(s) at least in State
+                                            </TextBlock>
+                                            <ComboBox ItemsSource="{Binding DataContext.TextServiceDependencies, RelativeSource={RelativeSource AncestorType=UserControl}}" DisplayMemberPath="Value" SelectedValuePath="Key"  
+                                                      Visibility="{Binding HasCancelDependency, Converter={StaticResource BoolVisibilityConverter}}"
+                                                      SelectedValue="{Binding ServiceCancelDependency, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinWidth="96">
+                                                <ComboBox.ToolTip>
+                                                    <TextBlock>
+                                                        The minimum State of the Service(s):<LineBreak />
+                                                        - Requested: the Service Vehicle is on the Way or the Service is waiting to become active.<LineBreak />
+                                                        - Active: the Service is actively being performed.<LineBreak />
+                                                        - Completed: the Service was completed (or cancelled gracefully).
+                                                    </TextBlock>
+                                                </ComboBox.ToolTip>
+                                            </ComboBox>
+                                        </StackPanel>
+
+                                        <!-- Max Run Time -->
+                                        <StackPanel Grid.Row="1" Grid.Column="3" Visibility="{Binding HasMaxRunTime, Converter={StaticResource BoolVisibilityConverter}}"
+                                                    ToolTip="The Maximum Amount of Time in Minutes the Service allowed to run (after it became Active).">
+                                            <TextBlock>
+                                                is not more than
+                                            </TextBlock>
+                                            <TextBox Text="{Binding MaxRunTime, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     HorizontalContentAlignment="Center" MinWidth="64"/>
+                                            <TextBlock>
+                                                <Italic>minutes</Italic>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        
+                                        
+
+                                        <!-- CONSTRAINTS -->
+                                        <TextBlock Grid.Row="2" Grid.Column="1" 
+                                                   Visibility="{Binding HasActivation, Converter={StaticResource BoolVisibilityConverter}}">
+                                            <Underline>Constraints</Underline>:
+                                        </TextBlock>
+                                        <Grid Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="3" Margin="0,6,0,0"
+                                              Visibility="{Binding HasActivation, Converter={StaticResource BoolVisibilityConverter}}">
+                                            <Grid.Resources>
+                                                <Style TargetType="StackPanel">
+                                                    <Setter Property="Orientation" Value="Horizontal"/>
+                                                    <Setter Property="Margin" Value="0,0,8,0"/>
+                                                </Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource TextBlockDefault}">
+                                                    <Setter Property="Margin" Value="4,2,4,2"/>
+                                                </Style>
+                                                <Style TargetType="CheckBox" BasedOn="{StaticResource CheckBoxSettingItem}">
+                                                    <Setter Property="Margin" Value="2,2,8,2"/>
+                                                </Style>
+                                                <Style TargetType="TextBox" BasedOn="{StaticResource TextBoxLeft}">
+                                                    <Setter Property="Margin" Value="2,2,2,2"/>
+                                                </Style>
+                                            </Grid.Resources>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <CheckBox Grid.Row="0" Grid.Column="0" IsChecked="{Binding OnlyDeparture, Mode=TwoWay}"
+                                                      ToolTip="Only call the Service on the first Leg.">
+                                                Leg: Only on Departure
+                                            </CheckBox>
+                                            <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding OnlyHub, Mode=TwoWay}"
+                                                      ToolTip="Only call the Service on Airports matching the configured Company Hubs.">
+                                                Company: Only on Hub Airport
+                                            </CheckBox>
+                                            <CheckBox Grid.Row="0" Grid.Column="2" IsChecked="{Binding OnlyOnPax, Mode=TwoWay}"
+                                                      ToolTip="Only call the Service on Passenger Flights (so not on Cargo Aircrafts).">
+                                                Aircraft: Only for Pax
+                                            </CheckBox>
+
+                                            
+                                            <CheckBox Grid.Row="1" Grid.Column="0" IsChecked="{Binding OnlyTurn, Mode=TwoWay}"
+                                                      ToolTip="Only call the Service in a Turnaround.">
+                                                Leg: Only on Turnaround
+                                            </CheckBox>
+                                            <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding OnlyNonHub, Mode=TwoWay}"
+                                                      ToolTip="Only call the Service on Airports not matching the configured Company Hubs.">
+                                                Company: Only on Non-Hub Airport
+                                            </CheckBox>
+                                            <CheckBox Grid.Row="1" Grid.Column="2" IsChecked="{Binding OnlyPreferredOp, Mode=TwoWay}"
+                                                      ToolTip="Only call the Service when one the preferred Handling Operators was selected.">
+                                                Operator: Preferred selected
+                                            </CheckBox>
+
+
+                                            <StackPanel Grid.Row="2" Grid.Column="0" ToolTip="Only call the Service when the Flight Time is greater or equal to the configured Duration.">
+                                                <TextBlock>
+                                                    Min. Flight Time
+                                                </TextBlock>
+                                                <TextBox Text="{Binding MinimumFlightDuration, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                         HorizontalContentAlignment="Center" MinWidth="64"/>
+                                                <TextBlock FontWeight="Light">
+                                                    <Italic>hh:mm</Italic>
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <StackPanel Grid.Row="2" Grid.Column="2" ToolTip="Delay the Service Call x Seconds after the last called Service.">
+                                                <TextBlock>
+                                                    Call Delay
+                                                </TextBlock>
+                                                <TextBox Text="{Binding CallDelay, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         HorizontalContentAlignment="Center" MinWidth="64"/>
+                                                <TextBlock FontWeight="Light">
+                                                    <Italic>seconds</Italic>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                    <Setter TargetName="CollapsedView" Property="Visibility" Value="Collapsed"/>
+                                    <Setter TargetName="ExpandedView" Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <Button Grid.Column="0" Grid.Row="2" Name="ButtonResetQueue" Command="{Binding ResetQueueCommand}"
+                        Style="{StaticResource BtnDefault}" Foreground="OrangeRed" FontWeight="DemiBold" Padding="6,2,6,2" MinHeight="24" Margin="2,6,0,1" HorizontalAlignment="Left" Visibility="Visible"
+                        ToolTip="Reset Service Queue to default Settings">
+                    Reset Queue
+                </Button>
             </Grid>
         </GroupBox>
 
-        <GroupBox Grid.Column="0" Grid.Row="1" Style="{StaticResource GroupBoxDefault}">
+        <GroupBox Grid.Column="0" Grid.Row="2" Style="{StaticResource GroupBoxDefault}">
             <GroupBox.Header>Pushback &amp; Tug</GroupBox.Header>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -245,7 +490,12 @@
                     <TextBlock>Call for Pushback when <Underline>Beacon</Underline> is turned on</TextBlock>
                 </CheckBox>
 
-                <CheckBox Grid.Column="0" Grid.Row="2" IsChecked="{Binding CancelServicesOnPushPhase}" Style="{StaticResource CheckBoxSettingItem}"
+                <CheckBox Grid.Column="0" Grid.Row="2" IsChecked="{Binding CallPushbackOnBeacon}" Style="{StaticResource CheckBoxSettingItem}"
+                          ToolTip="Automatically call Pushback when the Final LS is received (time is expired).&#x0a;This Option is independent from the above - so Pushback is called regardless if the Tug was attached during Boarding.">
+                    <TextBlock>Call for Pushback when <Underline>Final LS</Underline> is received</TextBlock>
+                </CheckBox>
+
+                <CheckBox Grid.Column="0" Grid.Row="3" IsChecked="{Binding CancelServicesOnPushPhase}" Style="{StaticResource CheckBoxSettingItem}"
                           ToolTip="When Any2GSX is in the Pushback Phase, all running Departure Services will be canceled.&#x0a;The Option is meant to handle non-normal Situations where Services still run in this Phase (normally they are all completed).">
                     <TextBlock><Underline>Cancel all</Underline> Departure Services in the Pushback Phase</TextBlock>
                 </CheckBox>

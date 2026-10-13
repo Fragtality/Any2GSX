@@ -26,6 +26,7 @@ Check the Addon Repository which Aircrafts are supported directly out-of-the-box
 - Windows 10/11
 - MSFS 2020/2024
 - A properly working and updated GSX Installation (not needed when only Volume Control is used)
+  - The Remote Control Server needs to be enabled in the GSX Settings (the Installer will check and set that)
 - Capability to actually read the Readme up until and beyond this Point :stuck_out_tongue_winking_eye:
 - The Installer will install the following Software automatically:
   - .NET 10 Desktop Runtime (x64) - Reboot your System if it was installed for the first Time
@@ -73,7 +74,8 @@ The Rest can be left at Default.<br/>
 
 Unless otherwise stated in the App or Readme, the Term 'Aircraft Profile' refers to the Profiles configurable within the App. So that has nothing to do with the Aircraft Profiles GSX will use.<br/>
 Aircraft Profiles are an essential Part of the App, basically the Glue bringing everything together: they determine what Any2GSX Features (GSX Automation, Volume Control, PilotsDeck Integration) should be active for a specific Aircraft and which Aircraft Plugin and/or Audio Channel should be loaded for that. All Automation Settings found in the 'Automation' View are stored per Profile - so together with the Ability to filter on specific IDs, Airlines or Titles/Liveries you can have different Settings for different Airlines having different SOPs to follow (or just having different Operator Preferences for different Airlines).<br/>
-<br/>
+<br/><br/>
+But **Note**: the **GSX Aircraft Profile** used is even more important with Any2GSX! While the App can set/override some Settings in there, it is dependent that the GSX Aircraft Profile is configured in an expected Way. Check the Plugin Notes which Profile or Settings they expect or recommend! If unsure: use Developer-provided (except iniBuilds & PMDG) or GSX Internal.<br/>
 
 #### GSX Automation
 
@@ -136,14 +138,13 @@ As the Name suggests it provides the App Access to Simulator's CommBus API provi
 ### 2.2 - GSX Pro
 
 - It is recommended (but not required) to enter your **SimBrief Username** and have **Ignore Time** checked to have correct Information on the VDGS Displays.
-- Set **Automated staircases** to semi-automatic (half-checked) - eventually it works with all Modes, but the App is designed around the semi-automatic Mode.
-- Disable **Automated reposition** in GSX -or- disable it in the App! Both are enabled by Default. It is recommended to let the App do the Repositioning.
-- It is **not recommended** to use the **Always ask for pushback** Option - use Any2GSX to Answer the Question with Yes, No (default) or answer it manually
+- It is recommended that the Repositioning is done by Any2GSX and that **Automated reposition** is disabled in the GSX Settings (if enabled in GSX the App will skip its own Repositioning)
+- It is **not recommended** to use the **Always ask for pushback** Option - Any2GSX will always answer the Question with 1/Yes
 - The De-/Boarding Speed of Passengers is dependent on the Passenger Density Setting (GSX In-Game Menu -> GSX Settings -> Timings). Higher Density => faster De/Boarding (But "Extreme" can be to extreme in some Cases).
-- Ensure the other two Settings under Timings are on their Default (15s, 1x).
-- It is **not recommended** to use the Boarding Delays (under Timings)
-- As with GSX itself, Any2GSX runs best when you have a proper Airport Profile installed!
-- Up to everyone's *Preference*, but disabling the **Aural Cues** (GSX In-Game Menu -> GSX Settings -> Audio) and setting **Message verbosity** to "*only Important*" (GSX In-Game Menu -> GSX Settings -> Simulation) can improve Immersion! 😉
+  - Any2GSX can set different Densities depending on the Gate having a Jetway or only Stairs (see App Settings -> GSX Options)
+- It is **not recommended** to use the Boarding Delays (under Timings): If it works: fine. If it doesn't: I won't do anything about it because these Settings are just band-aids for missing Features in GSX (i.e. Separation of Crew and Pax Boarding)
+- As with GSX itself, Any2GSX runs best when you have a proper Airport Profile installed (or at least have Configuration/Customization for the Gate used)!
+- Any2GSX can disable certain Settings to make GSX *quieter* and improve *Immersion* (up to everyone's Preference). See App Settings -> GSX Options.
 
 <br/><br/>
 
@@ -163,7 +164,7 @@ Since Any2GSX can be used with all Aircrafts, I'd recommend to check out the '**
 ##### Gate & Doors
 
 Configure when Doors, Jetway and Stairs are operated - for Example if Jetway/Stairs should be connected on Session Start and when they should be removed.<br/>
-The Jetway & Stair Options apply to all Aircrafts, but the Door-Handling Options only apply to Aircraft-Plugins having their own Door-Sync-Code and have implemented these Settings!<br/>
+The Jetway & Stair Options apply to all Aircrafts, but some of the Door-Handling Options are only available with Aircraft-Plugins having their own Door-Sync-Code and have implemented these Settings!<br/>
 <br/>
 
 ##### Ground Equipment
@@ -173,9 +174,10 @@ Options influencing how & when Ground Equipment (Chocks, GPU, PCA) is placed or 
 
 ##### OFP Import
 
-Options allowing to modify the OFP Data when imported - for Example to round up Fuel or randomize the Passenger Count. Note that these are only relevant when Any2GSX is providing Fuel- & Payload-Sync through an Aircraft Plugin!<br/>
+Options allowing to modify the OFP Data when imported - for Example to round up Fuel or randomize the Passenger Count. Mostly relevant when the Aircraft Plugin is providing Fuel- & Payload-Sync, but Aircrafts with their own Payload-Sync will see the different Pax Target set in GSX!<br/>
+Note that Any2GSX will use the "actual" Pax/Bag Count from Simbrief by default. If not wanted or desired, that can be disabled here.<br/>
 In addtition the Delays used in the Turnaround Phase can be configured here, which control when Any2GSX will check again for a new OFP ID on SimBrief.<br/>
-The Time Source used to compare against the Departure Time can also be configured here.<br/>
+The Time Source used to compare against the Departure Time can also be configured here (defaults to using the Time in the Simulator, else Real-Time).<br/>
 <br/>
 
 ##### Fuel & Payload
@@ -186,80 +188,63 @@ So they are really Integration Settings, so they still apply when GSX Automation
 
 ##### GSX Services
 
-Configure if and when GSX Services are called:
-- Reposition on Startup (either use Any2GSX for that or the GSX Setting - but not both!)
-- The Service Activation and Constraints (if and when) as well as Order of the Departure Services (Refuel, Catering, Boarding as well as Lavatory, Water & Cleaning)
-- If the Departure Services should already be called while Deboarding (in the Arrival Phase)
-- If the last called Service should be cancled when using the SmartButton (to call the next Service)
-- Calling Deboard automatically on Arrival
-- If and when Pushback should be called automatically
-- If Departure Services should be canceled in the Pushback Phase
+These Options determine if and when GSX Services are called (activated) or even cancelled. Besides the Departure Services (Lavatory, Water, Refuel, Cleaning, Catering, Boarding) there are also Options for Deboard, Pushback and Repositioning (not a real Service, but handled by A2G like one).<br/>
+Deboarding is called by default when Any2GSX enters its "Arrival" Phase (but that can be disabled here). Starting Departure Services during the Arrival Phase (i.e. through EFB/FMS Import on some Plugins) can be enabled here.<br/>
+Pushback is by Default only called automatically when the Tug was attached during Boarding and after the Final LS was received. But that can be disabled or changed here to happen directly after all Services, on Beacon or on Final (without Tug attached).<br/><br/>
+The cental Piece is the Departure Service Queue. The Queue is always fixed to these 6 Services (unless externally controlled) but they can be individually configured or have their Order changed. Click on a Service to expand and change the Order, Activation, Cancellation and Constraints of the Service.<br/>
+The App/Queue works "forward looking": It checks the Services in Order, but all Services - not only the "top" one. For example the "third" Service could be called before the "second" (depending on the Activation).<br/>
+Services can also be automatically cancelled by Any2GSX which can either be based on Max Run Time or also dependent on other Services.<br/>
 
 <img src="img/ui-auto.png" width="66%"><br/>
 
 <br/>
 
-##### Service Activation
+###### Service Activation
 
-The Activation Column determines how the respective Service is handled and/or called by the App:
-- **Skip / Ignore**: Service will neither be called nor monitored by the App
-- **Manual by User**: Service will be called externally by the User or another App. BUT: it must be completed to end the Departure Phase
-- **Previous called**: Service will directly be called after the previous Service was called
-- **Previous requested**: Service will be called as soon as the previous Service is reported as 'requested' by GSX
-- **Previous active**: Service will be called as soon as the previous Service is reported as 'active' by GSX
-- **Previous completed**: Service will be called as soon as the previous Service is reported as 'completed' by GSX
-- **All completed**: Service will only be called after all previous Service are reported as 'completed' by GSX
-
-Note: The first Service will always be called directly (if not set to skipped or manual or having Constraints set), as it has no previous Service!
+The Activate Service Dropdown allows to configure when a Service is called:
+- **Never (Skip/Ignore)**: The Service is not called by Any2GSX and is not monitored. If you don't want to use a Service at all, select that.
+- **Manual by User / Addon**: The Service is not called by Any2GSX but is monitored - the Service needs to be called and needs to be completed before the Pushback Phase can start.
+- **Independent**: The Service is automatically called by Any2GSX as soon as it is allowed (i.e. not calling Boarding while Deboarding or a Service with a Stair Conflict while Services requiring them run).
+- **Dependent on Services**: The Service is automatically called by Any2GSX depending on the State of the called or previous Services State: "called" doesn't care about the Order (meaning all Services that where called or completed yet, even Services that come after in the Queue) while "previous" does care about the Order and looks at the Service that came before in the Queue.
+- **Time to Departure**: The Service is automatically called by Any2GSX X Minutes to the Departure Time imported via Simbrief (against the current Sim-Time). The Order in the Queue has no importance, it goes purely by Time.
 
 <br/>
 
-##### Service Constraints
+Note: The first Service will always be called directly (if not set to skipped or manual or having Constraints set).
 
-All other Columns allow to skip Services dynamically based on additional Constraints that can be set.<br/><br/>
+<br/>
 
-**Activate at**
-Wait to call the Service until X Minutes (or lower) before Departure. A Value of 0 calls the Service without Delay.<br/>
-The Service Activation still applies when the configured Minutes are reached. The SmartButton will override the Departure Time Check.<br/>
-Note that the Time is only evaluated for the next Service in Queue - other Services further down will not be checked until they are next.<br/>
-The SimBrief Departure Date/Time ('sched_out') is compared against the current Simulator Date/Time by default. The System (UTC) Time can also be used (=> Aircraft Options). But in any Case the current Time Source has to align with the Departure Time for this Constraint to work! I.e. if you change the Simulator Time away from Real-Time, use your System Time and ensure the SimBrief Departure Time is ahead of that.
-<br/><br/>
+###### Service Cancellation
 
-**Flight Time**
-Skip the Service when the scheduled Block Time is equal or above the configured Minutes - i.e. only call Catering on 'longer' Flights, else skip it.<br/>
-A Value of 0 ignores the Block Time.
-<br/><br/>
+A Service can also be cancelled under certain Conditions:
+- **Max Run Time**: The Service is cancelled when it was active for a certain Amount of Minutes.
+- **Dependent on Services**: The Service is automatically cancelled by Any2GSX depending on the State of the called or previous Services State - basically works like with Activation.
 
-**Constraint**
-Skip the Service in certain Situations:
-- **None**: No Constraint applied, the Service is called normally (according to the other Options)
-- **Only Departure**: The Service is only called on the first Departure (resetted by App Restart or new Session)
-- **Only Turn**: The Service is only called on Turn Arounds (resetted by App Restart or new Session)
-- **Only on Hub**: The Service is only called when the Departure ICAO (as of SimBrief) has a Match in the Company Hub List
-- **Only on Non-Hub**: The Service is only called when the Departure ICAO (as of SimBrief) has NO Match in the Company Hub List
-- **Turn on Hub**: The Service is only called on Turn Arounds when the Arrival ICAO (as of SimBrief) has a Match in the Company Hub List
-- **Turn on Non-Hub**: The Service is only called on Turn Arounds when the Arrival ICAO (as of SimBrief) has NO Match in the Company Hub List
+<br/>
+
+###### Service Constraints
+
+The Constraint Checkboxes/Input determine if a Service is really called or skipped (even when the automatic Activation allows). Multiple Constraints can be combined together (except opposites) and every single one can skip a Service (only one must be true).<br/>
+
+- **Only on Departure**: The Service is only called on the first Leg of the Session (first Leg can be flown again with clicking the "Skip Preparation" Button in Turnaround Phase)
+- **Only on Turnaround**: The Service is only called on the consecutive Legs of the Session (to start in Turnaround use the "Skip Turnaround" Button in Preparation Phase)
+- **Only on Hub Airport**: The Service is only called when the Departure ICAO (as of SimBrief) has a Match in the Company Hub List
+- **Only on Non-Hub Airport**: The Service is only called when the Departure ICAO (as of SimBrief) has NO Match in the Company Hub List
+- **Only for Pax**: The Service is only called when the Aircraft is NOT a Cargo Aircraft
 - **Preferred Operator**: The Service is only called if the already selected Handling (!) Operator was on the preferred List
+- **Min. Flight Time**: The Service is only called if the scheduled Block Time is equal or above the configured Duration (i.e. only call Catering on 'longer' Flights)
 
 <br/>
-
-**Cargo**
-When checked, the Service will also be called on Cargo Aircrafts (as identified by Profile/Plugin), otherwise it is skipped.
-<br/><br/>
-
-**Run Time**
-The maximum Time the Service is allowed to run before it is canceled (gracefully). A Value of 0 means no Limitation.
-<br/><br/>
 
 **Delay**
-The Time to delay this Service's Call after the previous Service was called.
+Its not really a Constraint, just the Time to delay this Service's Call when it is eligible to be called.
 <br/><br/>
 
 ##### Operator Selection
 
-Enable or Disable the automatic Operator Selection. You can also define Preferences to control which Operator is picked by Any2GSX! If no preferred Operator is found, it will use the 'GSX Choice' in the Menu.<br/>
+Enable or Disable the automatic Operator Selection. You can also define Preferences to control which Operator is picked by Any2GSX! If no preferred Operator is found, it will use the 'GSX Choice' in the Menu (if automatic Selection is enabled).<br/>
 A 'semi-automatic' Mode is also possible with Any2GSX only selecting preferred Operators automatically or else leave the Selection to the User.<br/>
-The Preferred Operator List Operator List works only on the *Name* of the Operator as seen in the *GSX Menu*!<br/>
+The Preferred Operator List Operator List works only on the *Name* of the Operator as seen in the *GSX Menu* (so not the ID/Texture seen in the Gate Configuration)!<br/>
 The Strings you add to the Preferred Operator List will be used in a (case insensitive) Substring-Search - so does *Name* listed in the *Menu* contains that Text. The List is evaluated from Top to Bottom - so the higher of two available Operator is choosen.<br/>
 <br/>
 
@@ -305,8 +290,6 @@ Both Buttons only activate when a Sim Session is running.
 Other notable Settings on available for the 'generic' Plugin and some specialized Plugins:
 
 - **Is Cargo**: Treat this Aircraft as Cargo Aircraft. (Note that this doesn't and can't tell GSX - so make sure the Aircraft is also configured as Cargo in the GSX Aircraft Profile)
-- **Refuel on Left/Port Side**: Tells the App that Refuel and Stairs are on the same Side, so that it can consider that on certain Calls.
-- **Uses Refuel Dialog**: The Aircraft is configured to use the 'Default Fuel System' in the GSX Aircraft Profile triggering the 'Select refueling' Dialog. When enabled the App will automatically select Simbrief (or else custom) in that Dialog. *NOTE*: It is not recommended to enable that Option in the GSX Profile and App if the Aircraft (Plugin) has Fuel-Sync (it's obviously not default).
 
 <br/><br/>
 

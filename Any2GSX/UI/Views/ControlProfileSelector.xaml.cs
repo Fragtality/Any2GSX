@@ -19,8 +19,8 @@ namespace Any2GSX.UI.Views
             GridProfile.MouseEnter += GridProfileOnMouseEnter;
             GridProfile.MouseLeave += GridProfileOnMouseLeave;
 
-            AppService.Instance.ProfileChanged += (profile) => ViewModel.RunOnDispatcher(() => OnProfileChanged(profile));
-            AppService.Instance.ProfileCollectionChanged += () => ViewModel.RunOnDispatcher(() => OnProfileCollectionChanged());
+            AppService.Instance.ProfileChanged += OnProfileChanged;
+            AppService.Instance.ProfileCollectionChanged += OnProfileCollectionChanged;
             SelectorProfiles.SelectionChanged += SelectorProfilesOnSelectionChanged;
             OnProfileCollectionChanged();
         }

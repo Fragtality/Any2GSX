@@ -10,6 +10,7 @@ namespace Installer.Worker
     public class WorkerModuleRemove<C> : TaskWorker<Config>
     {
         public virtual List<ModuleItem> ModuleItems { get; } = new List<ModuleItem>();
+        protected virtual List<string> RemovedPaths { get; } = new List<string>();
 
         public WorkerModuleRemove(Config config) : base(config, $"CommBus Sim Module", "Finding Module Installations ...")
         {
@@ -59,11 +60,20 @@ namespace Installer.Worker
 
         protected virtual bool RemoveModule(ModuleItem item)
         {
-            Model.Message = $"Removing Module on Simulator {item.Simulator} {item.Store} ...";
             string modulePath = WorkerModuleInstall<Config>.GetModulePath(item.PackagePath);
+            if (RemovedPaths.Contains(modulePath) && !Directory.Exists(modulePath))
+                return true;
+
+            Model.Message = $"Removing Module on Simulator {item.Simulator} {item.Store} ...";
             Logger.Debug($"Using ModulePath {modulePath}");
             Directory.Delete(modulePath, true);
-            return !Directory.Exists(modulePath);
+            if (!Directory.Exists(modulePath))
+            {
+                RemovedPaths.Add(modulePath);
+                return true;
+            }
+            else
+                return false;
         }
     }
 }

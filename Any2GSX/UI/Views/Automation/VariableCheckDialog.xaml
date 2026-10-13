@@ -54,6 +54,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -62,26 +63,30 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Column="0" Grid.Row="0" Style="{StaticResource VariableLabel}">
-                    Name
+                    Type
                 </TextBlock>
                 <TextBlock Grid.Column="1" Grid.Row="0" Style="{StaticResource VariableLabel}">
+                    Name
+                </TextBlock>
+                <TextBlock Grid.Column="2" Grid.Row="0" Style="{StaticResource VariableLabel}">
                     Unit
                 </TextBlock>
-                <TextBlock Grid.Column="3" Grid.Row="0" Style="{StaticResource VariableLabel}">
+                <TextBlock Grid.Column="4" Grid.Row="0" Style="{StaticResource VariableLabel}">
                     Value
                 </TextBlock>
 
-                <TextBox Grid.Column="0" Grid.Row="1" Name="InputVariableName" Text="{Binding VariableName}" IsEnabled="{Binding IsEditAllowed}" IsHitTestVisible="{Binding IsEditAllowed}" MinWidth="240" Style="{StaticResource VariableInput}"/>
-                <TextBox Grid.Column="1" Grid.Row="1" Name="InputVariableUnit" Text="{Binding VariableUnit}" IsEnabled="{Binding IsEditAllowed}" IsHitTestVisible="{Binding IsEditAllowed}" MinWidth="160" Style="{StaticResource VariableInput}"/>
-                <TextBlock Grid.Column="3" Grid.Row="1" Text="{Binding VariableValue}" MinWidth="96" Style="{StaticResource VariableUnit}"/>
+                <ComboBox Grid.Column="0" Grid.Row="1" Name="SelectorVariableType" ItemsSource="{Binding MonitorTypes}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding VariableType}" IsEnabled="{Binding IsEditAllowed}" IsHitTestVisible="{Binding IsEditAllowed}" VerticalAlignment="Center" Margin="0,-6,0,0" MinHeight="24" Style="{StaticResource ComboBoxDefault}" MinWidth="96" />
+                <TextBox Grid.Column="1" Grid.Row="1" Name="InputVariableName" Text="{Binding VariableName}" IsEnabled="{Binding IsEditAllowed}" IsHitTestVisible="{Binding IsEditAllowed}" MinWidth="224" Style="{StaticResource VariableInput}"/>
+                <TextBox Grid.Column="2" Grid.Row="1" Name="InputVariableUnit" Text="{Binding VariableUnit}" IsEnabled="{Binding IsEditAllowed}" IsHitTestVisible="{Binding IsEditAllowed}" MinWidth="148" Style="{StaticResource VariableInput}"/>
+                <TextBlock Grid.Column="4" Grid.Row="1" Text="{Binding VariableValue}" MinWidth="96" Style="{StaticResource VariableUnit}"/>
 
-                <ToggleButton Grid.Column="2" Grid.Row="1" Command="{Binding MonitorVariableCommand}" Style="{StaticResource QueryButton}">
+                <ToggleButton Grid.Column="3" Grid.Row="1" Command="{Binding MonitorVariableCommand}" Style="{StaticResource QueryButton}">
                     <Image Source="../../Icons/binoculars.png" Style="{StaticResource ImgSquareSmall}"/>
                 </ToggleButton>
 
-                <TextBlock Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="2" Margin="6,4,4,4" Style="{StaticResource TextBlockDefault}">
+                <TextBlock Grid.Column="1" Grid.ColumnSpan="4" Grid.Row="2" Margin="6,4,4,4" Style="{StaticResource TextBlockDefault}">
                     <Italic>        
-                        <Bold>Note:</Bold> L-Vars need to prefixed with 'L:'
+                        <Bold>Note:</Bold> L-Vars need to prefixed with L:
                     </Italic>
                 </TextBlock>
             </Grid>

@@ -1,0 +1,174 @@
+﻿<UserControl x:Class="Any2GSX.UI.Views.Settings.ControlGsxOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Any2GSX.UI.Views.Settings"
+             d:DataContext="{d:DesignInstance Type=local:ModelSettings}"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../StyleResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid HorizontalAlignment="Stretch">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Grid.Column="0" Grid.Row="0" Margin="8,0,8,8" Style="{StaticResource GroupBoxDefault}"
+                  ToolTip="Overwrite certain GSX Settings (when checked) that can enhance Immersion.&#x0a;The Settings are persistently set!">
+            <GroupBox.Header>Notifications</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Column="0" Grid.Row="0" Margin="6,4,0,2" MaxWidth="620" TextWrapping="WrapWithOverflow" HorizontalAlignment="Left">
+                    <Italic>
+                        These Options can improve Immersion by configuring GSX in such a Way that it runs silently in the Background.
+                        <LineBreak/>
+                        <Bold>Note:</Bold> An Option changes the according GSX Setting permanently when checked. Unchecking does not restore the GSX Setting.
+                        <LineBreak/>
+                        Options are automatically checked when the according GSX Setting is already set.
+                    </Italic>
+                </TextBlock>
+                <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding GsxNotifyOnlyImportant}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}"
+                  ToolTip="The Message Box in left upper Corner will only show important Messages.">
+                    <TextBlock>Only display <Underline>important Messages</Underline></TextBlock>
+                </CheckBox>
+                <CheckBox Grid.Column="0" Grid.Row="2" IsChecked="{Binding GsxNotifyNoInvoice}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}"
+                  ToolTip="Disable Invoice generation completely - including Printing!">
+                    <TextBlock>Disable <Underline>Invoice generation</Underline></TextBlock>
+                </CheckBox>
+                <CheckBox Grid.Column="0" Grid.Row="3" IsChecked="{Binding GsxNotifyNoAudio}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}"
+                  ToolTip="Disable Audio Messages for Service/Vehicle States.">
+                    <TextBlock>Disable <Underline>Audio Cues</Underline></TextBlock>
+                </CheckBox>
+                <CheckBox Grid.Column="0" Grid.Row="4" IsChecked="{Binding GsxNotifyNoCashRegister}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}"
+                  ToolTip="Disable the Cash Register Sound played as part of the Invoice generation.">
+                    <TextBlock>Disable <Underline>Cash Register</Underline> Sound</TextBlock>
+                </CheckBox>
+                <CheckBox Grid.Column="0" Grid.Row="5" IsChecked="{Binding GsxNotifyPinnedMenuAuto}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}"
+                  ToolTip="Set the Menu pinning Mode to Auto so that it is not pinned (except in VR).">
+                    <TextBlock>Set <Underline>Menu pinning</Underline> Mode to Auto</TextBlock>
+                </CheckBox>
+                <CheckBox Grid.Column="0" Grid.Row="6" IsChecked="{Binding GsxNotifyNoNumberKeys}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}"
+                  ToolTip="Disable the Number Key Selection used by the GSX Menu to prevent inadvertent Menu Selections.">
+                    <TextBlock>Disable <Underline>Number Key Selection</Underline> in the GSX Menu</TextBlock>
+                </CheckBox>
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Column="0" Grid.Row="1" Style="{StaticResource GroupBoxDefault}">
+            <GroupBox.Header>Loading Speed</GroupBox.Header>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="112"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Column="0" Grid.Row="0" Margin="6" Style="{StaticResource TextBlockDefault}" VerticalAlignment="Center"
+                           ToolTip="Enable to change the Pax Density for Boarding/Deboarding (persistently!) depending on the Gate having a Jetway or only Stairs available.&#x0a;Both Values for Boarding and Deboarding will be set.">
+                    Set Pax Density:
+                </TextBlock>
+                <Grid Grid.Column="1" Grid.Row="0" ToolTip="Enable to change the Pax Density for Boarding/Deboarding (persistently!) depending on the Gate having a Jetway or only Stairs available.&#x0a;Both Values for Boarding and Deboarding will be set.">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="72"/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource TextBlockDefault}" Padding="1" HorizontalAlignment="Center">Enable</TextBlock>
+                    <CheckBox Grid.Row="1" Grid.Column="0" IsChecked="{Binding GsxChangePaxDensity}" Style="{StaticResource CheckBoxDefault}" HorizontalAlignment="Center"/>
+
+                    <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource TextBlockDefault}" Padding="1">Jetway</TextBlock>
+                    <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding DensityValues}" SelectedValue="{Binding GsxPaxDensityJetway}" SelectedValuePath="Key" DisplayMemberPath="Value" IsEnabled="{Binding GsxChangePaxDensity}"
+                              Style="{StaticResource ComboBoxDefault}" Margin="0,0,16,0" MinWidth="96"/>
+
+                    <TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource TextBlockDefault}" Padding="1">Stairs</TextBlock>
+                    <ComboBox Grid.Row="1" Grid.Column="2" ItemsSource="{Binding DensityValues}" SelectedValue="{Binding GsxPaxDensityStairs}" SelectedValuePath="Key" DisplayMemberPath="Value" IsEnabled="{Binding GsxChangePaxDensity}"
+                              Style="{StaticResource ComboBoxDefault}" MinWidth="96"/>
+                </Grid>
+
+                <TextBlock Grid.Column="0" Grid.Row="1" Margin="6" Style="{StaticResource TextBlockDefault}" VerticalAlignment="Center"
+                           ToolTip="Enable to change the Baggage &amp; Cargo Loadscale GSX Setting depending on Cargo or Pax Aircrafts/Flights.&#x0a;Note that both Values for Bag and Cargo will be set regardless (to be safe).">
+                    Set Load Scale:
+                </TextBlock>
+                <Grid Grid.Column="1" Grid.Row="1" Margin="0,6,0,0" ToolTip="Enable to change the Baggage &amp; Cargo Loadscale GSX Setting depending on Cargo or Pax Aircrafts/Flights.&#x0a;Note that both Values for Bag and Cargo will be set regardless (to be safe).">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="72"/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource TextBlockDefault}" Padding="1" HorizontalAlignment="Center">Enable</TextBlock>
+                    <CheckBox Grid.Row="1" Grid.Column="0" IsChecked="{Binding GsxChangeLoadScale}" Style="{StaticResource CheckBoxDefault}" HorizontalAlignment="Center"/>
+
+                    <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource TextBlockDefault}" Padding="1">Pax</TextBlock>
+                    <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding LoadScaleValues}" SelectedValue="{Binding GsxLoadScalePax}" IsEnabled="{Binding GsxChangeLoadScale}"
+                              Style="{StaticResource ComboBoxDefault}" Margin="0,0,16,0" MinWidth="96"/>
+
+                    <TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource TextBlockDefault}" Padding="1">Cargo</TextBlock>
+                    <ComboBox Grid.Row="1" Grid.Column="2" ItemsSource="{Binding LoadScaleValues}" SelectedValue="{Binding GsxLoadScaleCargo}" IsEnabled="{Binding GsxChangeLoadScale}"
+                              Style="{StaticResource ComboBoxDefault}" MinWidth="96"/>
+                </Grid>
+
+                <TextBlock Grid.Column="0" Grid.Row="2" Margin="6" Style="{StaticResource TextBlockDefault}" VerticalAlignment="Center"
+                           ToolTip="Enable to change the multiple Trips GSX Settings (for Baggage/Cargo Trains only) depending on Cargo or Pax Aircrafts/Flights.">
+                    Set multi Train Trips:
+                </TextBlock>
+                <Grid Grid.Column="1" Grid.Row="2" Margin="0,6,0,0" ToolTip="Enable to change the multiple Trips GSX Settings (for Baggage/Cargo Trains only) depending on Cargo or Pax Aircrafts/Flights.">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="72"/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource TextBlockDefault}" Padding="2" HorizontalAlignment="Center">Enable</TextBlock>
+                    <CheckBox Grid.Row="1" Grid.Column="0" IsChecked="{Binding GsxChangeMultiTrips}" Style="{StaticResource CheckBoxDefault}" HorizontalAlignment="Center"/>
+
+                    <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource TextBlockDefault}" Padding="1">Pax</TextBlock>
+                    <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding GsxMultiTripsPax}" IsEnabled="{Binding GsxChangeMultiTrips}" Style="{StaticResource CheckBoxDefault}" Margin="0,0,16,0" MinWidth="96"/>
+
+                    <TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource TextBlockDefault}" Padding="1">Cargo</TextBlock>
+                    <CheckBox Grid.Row="1" Grid.Column="2" IsChecked="{Binding GsxMultiTripsCargo}" IsEnabled="{Binding GsxChangeMultiTrips}" Style="{StaticResource CheckBoxDefault}" />
+                </Grid>
+            </Grid>
+        </GroupBox>
+    </Grid>
+</UserControl>

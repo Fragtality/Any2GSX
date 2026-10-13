@@ -1,6 +1,4 @@
-﻿using System.Text.Json;
-
-namespace Any2GSX.CommBus
+﻿namespace Any2GSX.CommBus
 {
     public class MessageReceive
     {
@@ -16,16 +14,6 @@ namespace Any2GSX.CommBus
                 @event = @event,
                 data = data,
             };
-        }
-
-        public static MessageReceive Parse(string json)
-        {
-            return JsonSerializer.Deserialize<MessageReceive>(json);
-        }
-
-        public string Serialize()
-        {
-            return JsonSerializer.Serialize(this);
         }
     }
 }

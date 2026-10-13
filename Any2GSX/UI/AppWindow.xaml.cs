@@ -27,6 +27,7 @@ namespace Any2GSX.UI
         public static UiIconLoader IconLoader { get; } = new(Assembly.GetExecutingAssembly(), IconLoadSource.Embedded, "Any2GSX.UI.Icons.");
         protected virtual Button CurrentButton { get; set; } = null;
         protected virtual IView CurrentView { get; set; } = null;
+        public virtual bool IsFirstOpen { get; set; } = true;
         protected static SolidColorBrush BrushDefault { get; } = SystemColors.WindowFrameBrush;
         protected static SolidColorBrush BrushHighlight { get; } = SystemColors.HighlightBrush;
         protected static Thickness ThicknessDefault { get; } = new(1);
@@ -107,7 +108,11 @@ namespace Any2GSX.UI
             if (this.Visibility != Visibility.Visible)
                 CurrentView?.Stop();
             else
+            {
                 CurrentView?.Start();
+                if (IsFirstOpen)
+                    _ = TaskTools.RunDelayed(() => this.IsFirstOpen = false, 125);
+            }
         }
 
         protected virtual void SetView(Button menuButton, IView viewControl)
