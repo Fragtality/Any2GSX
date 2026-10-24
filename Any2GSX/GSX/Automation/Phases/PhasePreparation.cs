@@ -163,7 +163,7 @@ namespace Any2GSX.GSX.Automation.Phases
                     Store[StateVar.WalkaroundBeforeNotified] = true;
                 }
 
-                if (Profile.SkipWalkAround && Profile.RunAutomationService && GsxController.IsWalkaround)
+                if (Profile.SkipWalkAround && Profile.RunAutomationService && GsxController.IsWalkaround && !walkaroundSkipped)
                 {
                     Logger.Information("Automation: Skip Walkaround");
                     await ToggleWalkaround();
