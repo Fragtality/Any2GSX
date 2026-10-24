@@ -29,7 +29,6 @@ namespace Any2GSX.Aircraft
             public virtual dynamic Function { get; set; } = func;
         }
         public virtual Lua LuaEngine { get; set; } = null;
-        public override bool IsConnected => LuaEngine != null && InitComplete;
         protected virtual bool InitComplete { get; set; } = false;
         public virtual LuaGlobal LuaEnv { get; set; }
         public virtual LuaChunk LuaChunk { get; set; }
@@ -64,11 +63,11 @@ namespace Any2GSX.Aircraft
             catch (Exception ex)
             {
                 if (ex is LuaRuntimeException luaEx)
-                    Logger.Error($"LuaRuntimeException in {FileName} Line {luaEx.Line}");
+                    Logger.Error($"LuaRuntimeException in {FileName} Line {luaEx.Line} Init: {ex.Message}\r\n{ex.StackTrace}");
                 else if (ex is LuaParseException parseEx)
-                    Logger.Error($"LuaParseException in {FileName} Line {parseEx.Line}");
+                    Logger.Error($"LuaParseException in {FileName} Line {parseEx.Line} Init: {ex.Message}\r\n{ex.StackTrace}");
                 else
-                    Logger.Error($"{ex.GetType().Name} in File {FileName}: {ex.Message}");
+                    Logger.Error($"{ex.GetType().Name} in File {FileName} Init: {ex.Message}");
             }
         }
 
@@ -84,11 +83,11 @@ namespace Any2GSX.Aircraft
             catch (Exception ex)
             {
                 if (ex is LuaRuntimeException luaEx)
-                    Logger.Error($"LuaRuntimeException in File {FileName} Line {luaEx.Line}: {code}");
+                    Logger.Error($"LuaRuntimeException in File {FileName} Line {luaEx.Line} Code '{code}': {ex.Message}\r\n{ex.StackTrace}");
                 else if (ex is LuaParseException parseEx)
-                    Logger.Error($"LuaParseException in File {FileName} Line {parseEx.Line}: {code}");
+                    Logger.Error($"LuaParseException in File {FileName} Line {parseEx.Line} Code '{code}': {ex.Message}\r\n{ex.StackTrace}");
                 else
-                    Logger.Error($"{ex.GetType().Name} in File {FileName}: {ex.Message} (code: {code})");
+                    Logger.Error($"{ex.GetType().Name} in File {FileName} Code '{code}': {ex.Message}");
             }
         }
 
@@ -121,9 +120,9 @@ namespace Any2GSX.Aircraft
         protected virtual void LogError(Exception ex, LuaFunction func)
         {
             if (ex is LuaRuntimeException luaEx)
-                Logger.Error($"LuaRuntimeException in File {FileName} Line {luaEx.Line} Function '{func?.Name}'");
+                Logger.Error($"LuaRuntimeException in File {FileName} Line {luaEx.Line} Function '{func?.Name}': {ex.Message}\r\n{ex.StackTrace}");
             else if (ex is LuaParseException parseEx)
-                Logger.Error($"LuaParseException in File {FileName} Line {parseEx.Line} Function '{func?.Name}'");
+                Logger.Error($"LuaParseException in File {FileName} Line {parseEx.Line} Function '{func?.Name}': {ex.Message}\r\n{ex.StackTrace}");
             else
                 Logger.Error($"{ex.GetType().Name} in File {FileName} Function '{func?.Name}': {ex.Message}");
         }
@@ -156,11 +155,34 @@ namespace Any2GSX.Aircraft
             return Task.FromResult(default(T));
         }
 
-        protected virtual Task<T> CallLua<T>(LuaFunction func, dynamic param0)
+        protected virtual Task<T> CallLua<T>(LuaFunction func, params object[] parameters)
         {
             try
             {
-                return Task.FromResult((T)(func?.Function?.Invoke(param0)));
+                if (parameters != null)
+                {
+                    for (int i = 0; i < parameters.Length; i++)
+                    {
+                        if (parameters[i] is Enum e)
+                            parameters[i] = Convert.ChangeType(e, e.GetTypeCode());
+                    }
+                }
+
+                object result = func?.Function?.DynamicInvoke(parameters);
+                if (result is LuaResult luaResult)
+                {
+                    if (luaResult.Count == 0)
+                        return Task.FromResult(default(T));
+                    if (typeof(T).IsEnum)
+                        return Task.FromResult((T)luaResult[0]);
+                    else
+                        return Task.FromResult((T)Convert.ChangeType(luaResult[0], typeof(T)));
+                }
+
+                if (result == null)
+                    return Task.FromResult(default(T));
+
+                return Task.FromResult((T)Convert.ChangeType(result, typeof(T)));
             }
             catch (Exception ex)
             {
@@ -170,52 +192,43 @@ namespace Any2GSX.Aircraft
             return Task.FromResult(default(T));
         }
 
-        protected virtual Task<T> CallLua<T>(LuaFunction func, dynamic param0, dynamic param1)
+        protected virtual void CreateEnum<T>(dynamic _env) where T : Enum
         {
-            try
+            var table = new LuaTable();
+
+            foreach (string name in Enum.GetNames(typeof(T)))
             {
-                return Task.FromResult((T)(func?.Function?.Invoke(param0, param1)));
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, func);
+                var rawValue = Enum.Parse(typeof(T), name);
+                var enumValue = Convert.ChangeType(rawValue, Enum.GetUnderlyingType(typeof(T)));
+
+                table[name] = enumValue;
+                table[enumValue] = name;
             }
 
-            return Task.FromResult(default(T));
+            _env[typeof(T).Name] = table;
         }
 
-        protected virtual Task<T> CallLua<T>(LuaFunction func, dynamic param0, dynamic param1, dynamic param2)
+        protected virtual void CreateEnums(dynamic _env)
         {
-            try
-            {
-                return Task.FromResult((T)(func?.Function?.Invoke(param0, param1, param2)));
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, func);
-            }
-
-            return Task.FromResult(default(T));
-        }
-
-        protected virtual Task<T> CallLua<T>(LuaFunction func, dynamic param0, dynamic param1, dynamic param2, dynamic param3)
-        {
-            try
-            {
-                return Task.FromResult((T)(func?.Function?.Invoke(param0, param1, param2, param3)));
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, func);
-            }
-
-            return Task.FromResult(default(T));
+            CreateEnum<DisplayUnit>(_env);
+            CreateEnum<AutomationState>(_env);
+            CreateEnum<GsxMenuState>(_env);
+            CreateEnum<GsxServiceType>(_env);
+            CreateEnum<GsxServiceState>(_env);
+            CreateEnum<GsxDoor>(_env);
+            CreateEnum<AircraftDoor>(_env);
+            CreateEnum<GsxVehicleLocation>(_env);
+            CreateEnum<GsxVehicleStairState>(_env);
+            CreateEnum<GsxVehicleCateringState>(_env);
+            CreateEnum<CockpitNotification>(_env);
+            CreateEnum<BroadcastFlag>(_env);
         }
 
         protected virtual void CreateEnvironment()
         {
             LuaEnv = LuaEngine.CreateEnvironment<LuaGlobal>();
             dynamic _env = LuaEnv;
+            CreateEnums(_env);
             _env.GetSetting = new Func<string, dynamic>(GetSetting);
             _env.GetGenericSetting = new Func<string, dynamic>(GetGenericSetting);
             _env.SetGenericSetting = new Action<string, dynamic>(SetGenericSetting);
@@ -224,6 +237,12 @@ namespace Any2GSX.Aircraft
             _env.GetSettingProfile = new Func<ISettingProfile>(() => AppService.Instance?.ISettingProfile);
             _env.GetAircraftPlugin = new Func<AircraftBase>(() => AppService.Instance?.AircraftController?.Aircraft);
             _env.GetGsxController = new Func<IGsxController>(() => AppService.Instance?.GsxController);
+
+            _env.ToJsonString = new Func<dynamic, string>((data) => JsonSerializer.Serialize(data));
+            _env.ToJsonNode = new Func<string, LuaTable>((json) => LuaTable.FromJson(json));
+
+            _env.WeightToLb = new Func<double, double>((weightKg) => AppService.Instance.WeightConverter.ToLb(weightKg));
+            _env.WeightToKg = new Func<double, double>((weightLb) => AppService.Instance.WeightConverter.ToKg(weightLb));
             _env.FuelWeightKgPerGallon = new Func<double>(() => AppService.Instance?.AircraftController?.Aircraft?.FuelWeightKgPerGallon ?? 3.03907);
 
             _env.UseVar = new Action<string, string>(RegisterVariable); //Variable => Sim and Local Variables (A: and L:)
@@ -252,7 +271,6 @@ namespace Any2GSX.Aircraft
             _env.Log = new Action<string>(WriteDebug);
             _env.Info = new Action<string>(WriteInfo);
 
-            _env.ToggleWalkaround = new Func<Task>(() => GsxController.ToggleWalkaround());
             _env.AutomationState = new Func<int>(() => (int)GsxController.IAutomationController.State);
             _env.MatchAircraftString = new Func<string, bool>(MatchAircraftString);
             _env.SetPaxBoard = new Func<int, Task>((pax) => GsxController.SetPaxBoard(pax));
@@ -708,6 +726,17 @@ namespace Any2GSX.Aircraft
                 return base.OnAutomationStateChange(state);
         }
 
+        public override Task<bool> GetIsConnected()
+        {
+            if (LuaEngine == null || !InitComplete)
+                return Task.FromResult(false);
+
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<bool>(func);
+            else
+                return base.GetIsConnected();
+        }
+
         public override Task CheckConnection()
         {
             if (HasLuaFunction(out LuaFunction func))
@@ -1036,6 +1065,45 @@ namespace Any2GSX.Aircraft
                 return base.HandleWalkaroundEquipment();
         }
 
+        public override Task<bool> HasCustomStairs()
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<bool>(func);
+            else
+                return base.HasCustomStairs();
+        }
+
+        public override Task<bool> GetCustomStairsFront()
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<bool>(func);
+            else
+                return base.GetCustomStairsFront();
+        }
+
+        public override Task<bool> GetCustomStairsRear()
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<bool>(func);
+            else
+                return base.GetCustomStairsRear();
+        }
+
+        public override Task SetCustomStairsFront(bool target)
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<object>(func, target);
+            else
+                return base.SetCustomStairsFront(target);
+        }
+
+        public override Task SetCustomStairsRear(bool target)
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<object>(func, target);
+            else
+                return base.SetCustomStairsRear(target);
+        }
 
         public override Task<bool> GetBrakeSet()
         {
@@ -1173,12 +1241,12 @@ namespace Any2GSX.Aircraft
                 return base.SetCargoDoors(target);
         }
 
-        public override Task DoorsAllClose()
+        public override Task CloseAllCustomDoors()
         {
             if (HasLuaFunction(out LuaFunction func))
                 return CallLua(func);
             else
-                return base.DoorsAllClose();
+                return base.CloseAllCustomDoors();
         }
 
         public override Task<bool> GetHasAirStairForward()
@@ -1195,6 +1263,38 @@ namespace Any2GSX.Aircraft
                 return CallLua<bool>(func);
             else
                 return base.GetHasAirStairAft();
+        }
+
+        public override Task<bool> GetAirStairForward()
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<bool>(func);
+            else
+                return base.GetAirStairForward();
+        }
+
+        public override Task<bool> GetAirStairAft()
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<bool>(func);
+            else
+                return base.GetAirStairAft();
+        }
+
+        public override Task SetAirStairForward(bool target)
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<object>(func, target);
+            else
+                return base.SetAirStairForward(target);
+        }
+
+        public override Task SetAirStairAft(bool target)
+        {
+            if (HasLuaFunction(out LuaFunction func))
+                return CallLua<object>(func, target);
+            else
+                return base.SetAirStairAft(target);
         }
 
         public override Task<bool> OnDoorTrigger(AircraftDoor aircraftDoor, bool trigger, bool isAllowed)

@@ -164,11 +164,13 @@ namespace Any2GSX.Audio
         {
             try
             {
-                while ((AircraftController?.Aircraft == null || !AircraftController.IsConnected || !await AircraftController.Aircraft?.GetAvionicPowered() == false) && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
+                while ((!AppService.Instance.IsSessionInitialized || AircraftController?.Aircraft == null || !AircraftController.IsAircraftConnected || await AircraftController.Aircraft?.GetAvionicPowered() == false) && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
                     await Task.Delay(Config.AudioServiceRunInterval, RequestToken);
+                if (!IsExecutionAllowed || RequestToken.IsCancellationRequested)
+                    return;
 
                 RegisterChannels();
-                await Task.Delay(1000, RequestToken);
+                await Task.Delay(500, RequestToken);
                 SessionManager.RegisterMappings();
                 await Task.Delay(500, RequestToken);
                 bool rescanNeeded = false;

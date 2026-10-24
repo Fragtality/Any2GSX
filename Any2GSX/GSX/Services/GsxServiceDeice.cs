@@ -19,7 +19,7 @@ namespace Any2GSX.GSX.Services
 
         }
 
-        protected override Task DoReset()
+        protected override Task DoReset(bool resetVariable)
         {
             return Task.CompletedTask;
         }

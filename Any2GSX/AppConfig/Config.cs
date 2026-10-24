@@ -55,6 +55,7 @@ namespace Any2GSX.AppConfig
         public virtual string DeckVarCall { get; set; } = "X:GSX_INFO_CALL";
         public virtual string DeckVarInfoPax { get; set; } = "X:GSX_INFO_PAX";
         public virtual string DeckVarInfoCargo { get; set; } = "X:GSX_INFO_CARGO";
+        public virtual string DeckVarGateHasPush { get; set; } = "X:GSX_GATE_HAS_PUSH";
         public virtual int UiRefreshInterval { get; set; } = 500;
         public virtual double FuelCompareVariance { get; set; } = 50;
         public virtual int TimerGsxCheck { get; set; } = 1000;
@@ -82,8 +83,8 @@ namespace Any2GSX.AppConfig
         public virtual int AudioProcessMaxSearchCount { get; set; } = 30;
         public virtual bool AudioSynchSessionOnCountChange { get; set; } = false;
         public virtual List<string> AudioDeviceBlacklist { get; set; } = [];
-        public virtual int GsxServiceStartDelay { get; set; } = 3000;
-        public virtual int GroundTicks { get; set; } = 2;
+        public virtual int GsxServiceStartDelay { get; set; } = 1500;
+        public virtual int GroundTicks { get; set; } = 4;
         public virtual int DelayForegroundChange { get; set; } = 1250;
         public virtual int DelayAircraftModeChange { get; set; } = 1500;
         public virtual int MenuCheckInterval { get; set; } = 250;
@@ -261,7 +262,7 @@ namespace Any2GSX.AppConfig
             }
 
             if ((ConfigVersion < 23 && buildConfigVersion >= 23)
-                || ConfigVersion < 24 && buildConfigVersion >= 24)
+                || (ConfigVersion < 24 && buildConfigVersion >= 24))
             {
                 PanelRefuelOpenDelayUnderground = 82;
                 PanelRefuelCloseDelayUnderground = 10;
@@ -289,6 +290,13 @@ namespace Any2GSX.AppConfig
                     foreach (var service in defaultQueue)
                         profile.DepartureServices.Add(service.Key, service.Value);
                 }
+            }
+
+            if ((ConfigVersion < 25 && buildConfigVersion >= 25)
+                || (ConfigVersion < 28 && buildConfigVersion >= 28))
+            {
+                GsxServiceStartDelay = 1500;
+                GroundTicks = 4;
             }
         }
 
@@ -403,7 +411,7 @@ namespace Any2GSX.AppConfig
             }
             else if (AppService.Instance?.SimConnect?.IsSessionRunning == true)
             {
-                if (DisplayUnitSource == DisplayUnitSource.Aircraft && AppService.Instance?.AircraftController?.Aircraft?.IsConnected == true
+                if (DisplayUnitSource == DisplayUnitSource.Aircraft && AppService.Instance?.AircraftController?.IsAircraftConnected == true
                     && AppService.Instance?.AircraftController?.Aircraft.GetAircraftUnits().RunSync() != DisplayUnitCurrent)
                 {
                     DisplayUnitCurrent = AppService.Instance.AircraftController.Aircraft.GetAircraftUnits().RunSync();

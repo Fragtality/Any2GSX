@@ -43,10 +43,14 @@ namespace Any2GSX.PluginInterface
         public virtual bool HasPayloadSync => PayloadSync.HasFlag(SyncType.Plugin);
         public virtual SyncType DoorHandling { get; set; } = SyncType.ManualNone;
         public virtual DoorTypeSynced DoorsSynced { get; set; } = DoorTypeSynced.Standard;
+        public virtual bool HasCustomStairs { get; set; } = false;
+        public virtual bool HasAirStairs { get; set; } = false;
         [JsonIgnore]
         public virtual bool HasDoorSync => DoorHandling.HasFlag(SyncType.Plugin);
         [JsonIgnore]
         public virtual bool HasDoorSyncPax => DoorsSynced.HasFlag(DoorTypeSynced.PaxJetway) || DoorsSynced.HasFlag(DoorTypeSynced.PaxStairs);
+        [JsonIgnore]
+        public virtual bool HasDoorSyncPaxJetway => DoorsSynced.HasFlag(DoorTypeSynced.PaxJetway);
         [JsonIgnore]
         public virtual bool HasDoorSyncPaxStair => DoorsSynced.HasFlag(DoorTypeSynced.PaxStairs);
         [JsonIgnore]

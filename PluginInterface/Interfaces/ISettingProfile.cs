@@ -19,7 +19,6 @@ namespace Any2GSX.PluginInterface.Interfaces
         public int DelayTurnAroundSeconds { get; }
         public int DelayTurnRecheckSeconds { get; }
         public bool RefreshGsxOnDeparture { get; }
-        public bool RefreshGsxOnTurn { get; }
         public bool UseSimTime { get; }
         public bool NotifyPrepFinished { get; }
         public bool NotifyFinalReceived { get; }
@@ -36,11 +35,13 @@ namespace Any2GSX.PluginInterface.Interfaces
         public bool CallReposition { get; }
         public bool PcaOverride { get; }
         public bool CallJetwayStairsInWalkaround { get; }
+        public bool PreferCustomStairsInWalkaround { get; }
         public bool CallJetwayStairsOnPrep { get; }
         public bool CallJetwayStairsDuringDeparture { get; }
         public bool CallJetwayStairsOnArrival { get; }
         public int RemoveStairsAfterDepature { get; }
         public bool SecureAircraftOnSessionStart { get; }
+        public bool PlaceGroundEquipWalkaround { get; }
         public bool SkipFuelOnTankering { get; }
         public bool CallPushbackOnBeacon { get; }
         public int CallPushbackWhenTugAttached { get; }
@@ -56,6 +57,7 @@ namespace Any2GSX.PluginInterface.Interfaces
         public bool CloseDoorsOnFinal { get; }
         public bool DoorPaxHandling { get; }
         public bool DoorStairHandling { get; }
+        public bool DoorPreferAirstair { get; }
         public bool DoorServiceHandling { get; }
         public bool DoorPanelHandling { get; }
         public bool DoorCargoHandling { get; }

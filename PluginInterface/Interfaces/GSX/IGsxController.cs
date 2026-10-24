@@ -1,7 +1,6 @@
 ﻿using Any2GSX.PluginInterface.Interfaces.GSX.API;
 using CFIT.SimConnectLib.SimResources;
 using System;
-using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,6 +12,7 @@ namespace Any2GSX.PluginInterface.Interfaces.GSX
         public string PathInstallation { get; }
         public bool IsMsfs2024 { get; }
         public IGsxApiClient IApiClient { get; }
+        public IGsxGate IGate { get; }
         public IGsxMenu IMenu { get; }
         public IGsxAutomationController IAutomationController { get; }
         public AutomationState AutomationState { get; }
@@ -44,23 +44,11 @@ namespace Any2GSX.PluginInterface.Interfaces.GSX
         public bool IsGsxRunning { get; }
         public bool IsOnGround { get; }
         public bool IsAirStart { get; }
-        public bool CanAutomationRun { get; }
         public bool IsPaused { get; }
         public bool IsWalkaround { get; }
-        public bool SkippedWalkAround { get; }
-        public bool WalkAroundSkipActive { get; }
-        public bool WalkaroundPreActionNotified { get; }
-        public bool WalkaroundNotified { get; }
-        public string AutoSelectionPushback { get; }
-        public bool HasSelectionPushback { get; }
-        public JsonNode AutoSelectionArrivalGate { get; }
-        public bool HasSelectionArrivalGate { get; }
+        public bool IsSessionReady { get; }
 
-        public event Func<Task> WalkaroundPreAction;
-        public event Func<Task> WalkaroundWasSkipped;
         public event Func<bool, Task> RepositionSignal;
-        public event Func<string, Task> OnPushDirectionChanged;
-        public event Func<string, Task> OnArrivalGateChanged;
 
         public ISimResourceSubscription SubDoorToggleExit1 { get; }
         public ISimResourceSubscription SubDoorToggleExit2 { get; }
@@ -79,14 +67,9 @@ namespace Any2GSX.PluginInterface.Interfaces.GSX
         public bool TryGetService(GsxServiceType type, out IGsxService gsxService);
         public DateTime GetTime();
 
-        public Task ToggleWalkaround();
         public Task ReloadSimbrief();
         public Task SetPaxBoard(int pax);
         public Task SetPaxDeboard(int pax);
-        public Task CancelRefuel();
-        public void SetPushDirection(string direction);
-        public void SetArrivalGateName(string name);
-        public void SetArrivalGateNumber(int number);
 
         public static bool IsCargoDoor(GsxDoor door)
         {

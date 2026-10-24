@@ -29,6 +29,7 @@ namespace Any2GSX.PluginInterface.Interfaces.GSX.API.Messages
             catch (Exception ex)
             {
                 Logger.LogException(ex);
+                Logger.Debug(jsonString);
             }
 
             return message;

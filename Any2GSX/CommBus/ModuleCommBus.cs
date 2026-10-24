@@ -59,7 +59,7 @@ namespace Any2GSX.CommBus
 
         public virtual async Task Reset()
         {
-            if (!AppService.Instance.Token.IsCancellationRequested && !AppService.Instance.RequestToken.IsCancellationRequested)
+            if (!AppService.Instance.RequestToken.IsCancellationRequested)
                 await ResetSmartButtonDefault();
             await UnregisterAll();
             IsPingReceived = false;

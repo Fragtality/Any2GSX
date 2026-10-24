@@ -1,8 +1,9 @@
 ﻿using Any2GSX.Aircraft;
 using Any2GSX.AppConfig;
 using Any2GSX.GSX;
+using Any2GSX.PluginInterface;
 using Any2GSX.PluginInterface.Interfaces;
-using Any2GSX.PluginInterface.Interfaces.GSX.API.Payload;
+using CFIT.AppLogger;
 using CFIT.AppTools;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
@@ -22,7 +23,10 @@ namespace Any2GSX.UI.Views.Automation
         public static string NotAvailable => "NOT AVAIL";
         public override SettingProfile Source => AppService?.SettingProfile;
         protected virtual Flightplan Flightplan => AppService?.Flightplan;
+        protected virtual GsxGate GsxGate => GsxController.Gate;
+        protected virtual AircraftBase Aircraft => AircraftController?.Aircraft;
 
+        public virtual DispatcherTimerAsync WeightRefreshTimer { get; protected set; } = new();
         protected virtual bool IsShowAllowed => IsSessionInitialized && IsFlightplanLoaded;
         public virtual bool IsSessionInitialized { get; set; } = false;
         [ObservableProperty]
@@ -33,7 +37,10 @@ namespace Any2GSX.UI.Views.Automation
         [ObservableProperty]
         public virtual partial string QueuedServices { get; set; } = NotAvailable;
         public virtual ObservableCollection<string> PushbackDirections { get; } = ["NOT ASSIGNED"];
-        public virtual bool IsPushSelectable => AppService.IsSessionInitialized && AutomationController?.ExternalServiceControl == false && AutomationController?.State <= AutomationState.Pushback && GsxController?.ServicePushBack?.PushStatus < 5 && PushbackDirections.Count > 1;
+        public virtual bool IsPushSelectable => AppService.IsSessionInitialized && AutomationController?.ExternalServiceControl == false
+                                                && AutomationController?.State < AutomationState.TaxiOut && GsxController?.ServicePushBack?.PushStatus < 5
+                                                && GsxController.ApiData?.HandlerData?.gate?.IsPushbackEnabled == true && GsxController.ApiData?.HandlerData?.gate?.HasDirections == true;
+        public virtual ObservableCollection<string> GateLabels { get; } = ["No Label", "Gate", "Stand", "Ramp", "Parking", "Cargo", "Dock"];
         public virtual List<string> ArrivalGates { get; } = [];
         public virtual ObservableCollection<string> GatesFiltered { get; } = [];
         public virtual bool IsGateSelectable => AppService.IsSessionInitialized && AutomationController?.ExternalServiceControl == false;
@@ -54,8 +61,8 @@ namespace Any2GSX.UI.Views.Automation
             AutomationController.OnStateChange += (state) => RunOnDispatcher(() => OnAutomationStateChange(state));
             AutomationController.DepartureQueue.ServiceQueueChanged += (list) => RunOnDispatcher(() => OnServiceQueueChanged(list));
             AutomationController.DepartureQueue.ExternalControlChanged += () => RunOnDispatcher(() => OnExternalControlChanged());
-            GsxController.OnPushDirectionChanged += (_) => RunOnDispatcher(() => OnPropertyChanged(nameof(SelectedPushDirection)));
-            GsxController.OnArrivalGateChanged += (_) => RunOnDispatcher(() => OnPropertyChanged(nameof(AssignedArrivalGate)));
+            GsxGate.OnPushDirectionChanged += (_) => RunOnDispatcher(() => OnPropertyChanged(nameof(SelectedPushDirection)));
+            GsxGate.OnArrivalGateChanged += (_) => RunOnDispatcher(() => OnPropertyChanged(nameof(AssignedArrivalGate)));
             GsxController.ServicePushBack.OnPushStatus += (_) => RunOnDispatcher(() => OnPropertyChanged(nameof(IsPushSelectable)));
             Flightplan.OnImport += (_) => RunOnDispatcher(() => NotifyFlightPlan(true));
             Flightplan.OnChanged += () => RunOnDispatcher(() => NotifyFlightPlan(IsFlightplanLoaded));
@@ -63,17 +70,49 @@ namespace Any2GSX.UI.Views.Automation
             Config.PropertyChanged += OnConfigPropertyChanged;
             AppService.MessageService.Subscribe<MsgAppSessionStarted>(() => RunOnDispatcher(() => OnSessionChange(true)));
             AppService.MessageService.Subscribe<MsgAppSessionStopped>(() => RunOnDispatcher(() => OnSessionChange(false)));
+
+            WeightRefreshTimer.Interval = TimeSpan.FromSeconds(1);
+            WeightRefreshTimer.Tick += OnRefreshTick;
+        }
+
+        protected virtual async Task OnRefreshTick()
+        {
+            try
+            {
+                if (Aircraft != null)
+                {
+                    LiveTotal = FormatWeightAircraft(await Aircraft.GetWeightTotalKg());
+                    LiveZeroFuel = FormatWeightAircraft(await Aircraft.GetWeightZeroFuelKg());
+                    LiveFuel = FormatWeightAircraft(await Aircraft.GetFuelOnBoardKg());
+                    LiveEmpty = FormatWeightAircraft(Aircraft.WeightEmptyKg);
+                }
+                else
+                {
+                    LiveTotal = FormatWeightAircraft(0);
+                    LiveZeroFuel = FormatWeightAircraft(0);
+                    LiveFuel = FormatWeightAircraft(0);
+                    LiveEmpty = FormatWeightAircraft(0);
+                }
+                _ = RunOnDispatcher(NotifyLiveWeights);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogException(ex);
+            }
+        }
+
+        protected virtual void NotifyLiveWeights()
+        {
+            OnPropertyChanged(nameof(LiveTotal));
+            OnPropertyChanged(nameof(LiveZeroFuel));
+            OnPropertyChanged(nameof(LiveFuel));
+            OnPropertyChanged(nameof(LiveEmpty));
         }
 
         protected virtual void ResetPushDirections()
         {
             PushbackDirections.Clear();
             PushbackDirections.Add(NotAssigned);
-        }
-
-        public virtual void OnLoaded()
-        {
-
         }
 
         protected virtual void OnSessionChange(bool state)
@@ -104,6 +143,8 @@ namespace Any2GSX.UI.Views.Automation
             OnPropertyChanged(nameof(IsPushSelectable));
             OnPropertyChanged(nameof(IsGateSelectable));
             OnPropertyChanged(nameof(State));
+            OnPropertyChanged(nameof(SchedOut));
+            OnPropertyChanged(nameof(TimeToDepart));
             OnServiceQueueChanged(AutomationController.DepartureQueue.GetQueuedServicesTypes());
 
             if (state <= AutomationState.SessionStart)
@@ -128,6 +169,7 @@ namespace Any2GSX.UI.Views.Automation
                     PushbackDirections.Add(direction);
             }
             OnPropertyChanged(nameof(SelectedPushDirection));
+            OnPropertyChanged(nameof(IsPushSelectable));
             OnPropertyChanged(nameof(State));
 
             return Task.CompletedTask;
@@ -201,7 +243,7 @@ namespace Any2GSX.UI.Views.Automation
         {
             get
             {
-                string dir = GsxController?.AutoSelectionPushback;
+                string dir = GsxGate?.AutoSelectionPushback;
                 if (string.IsNullOrWhiteSpace(dir) || !AppService.IsSessionInitialized)
                     return NotAssigned;
                 else if (PushbackDirections.Contains(dir))
@@ -215,9 +257,9 @@ namespace Any2GSX.UI.Views.Automation
             set
             {
                 if (value?.Equals(NotAssigned, StringComparison.InvariantCultureIgnoreCase) == false)
-                    GsxController.AutoSelectionPushback = value;
+                    GsxGate.SetPushDirection(value);
                 else
-                    GsxController.AutoSelectionPushback = "";
+                    GsxGate.SetPushDirection("");
 
                 OnPropertyChanged();
             }
@@ -258,7 +300,7 @@ namespace Any2GSX.UI.Views.Automation
         {
             get
             {
-                string gate = GsxController?.AutoSelectionArrivalGate?.ToString() ?? NotAssigned;
+                string gate = GsxGate?.AutoSelectionArrivalGate?.ToString() ?? NotAssigned;
                 if (string.IsNullOrWhiteSpace(gate) || !AppService.IsSessionInitialized)
                     gate = NotAssigned;
                 return gate;
@@ -266,9 +308,9 @@ namespace Any2GSX.UI.Views.Automation
             set
             {
                 if (string.IsNullOrWhiteSpace(value) || value.Equals(NotAssigned, StringComparison.InvariantCultureIgnoreCase))
-                    GsxController.AutoSelectionArrivalGate = null;
+                    GsxGate.SetArrivalGate(null);
                 else
-                    GsxController.AutoSelectionArrivalGate = JsonValue.Create(GsxPayloadHandlerGateInfo.NormalizeName(value));
+                    GsxGate.SetArrivalGate(JsonValue.Create(value));
 
                 OnPropertyChanged();
             }
@@ -316,13 +358,18 @@ namespace Any2GSX.UI.Views.Automation
                 return $"0 {Config.DisplayUnitCurrentString.ToUpper()}";
         }
 
+        protected virtual string FormatWeightAircraft(double weight)
+        {
+            return $"{Config.ConvertKgToDisplayUnit(weight).ToString("N0", CultureInfo.InstalledUICulture)} {Config.DisplayUnitCurrentString.ToUpper()}";
+        }
+
         public virtual string OfpId => IsShowAllowed ? $"OFP #{Flightplan.Id}/{Flightplan.Edition}" : "";
         public virtual string Date => IsShowAllowed ? Flightplan?.ScheduledOutTime.ToString("ddMMMyy", CultureInfo.InvariantCulture)?.ToUpper() : "";
-        public virtual string FlightNumber { get => IsShowAllowed ? Flightplan?.FlightNumber : ""; set { } }
+        public virtual string FlightNumber => IsShowAllowed ? Flightplan?.FlightNumber : "";
         public virtual string Leg => IsShowAllowed ? $"{Flightplan?.Origin}-{Flightplan?.Destination}" : "";
-        public virtual string CallSign { get => IsShowAllowed ? Flightplan?.CallSign : ""; set { } }
-        public virtual string AircraftReg { get => IsShowAllowed ? Flightplan?.AircraftReg : ""; set { } }
-        public virtual string AircraftType { get => IsShowAllowed ? Flightplan?.AircraftType : ""; set { } }
+        public virtual string CallSign => IsShowAllowed ? Flightplan?.CallSign : "";
+        public virtual string AircraftReg => IsShowAllowed ? Flightplan?.AircraftReg : "";
+        public virtual string AircraftType => IsShowAllowed ? Flightplan?.AircraftType : "";
         public virtual string SchedOut => IsShowAllowed && AutomationController.State < AutomationState.TaxiOut ? Flightplan?.ScheduledOutTime.ToString("HH:mmZ", CultureInfo.InvariantCulture)?.ToUpper() : "";
         public virtual string TimeToDepart => IsShowAllowed && AutomationController.State < AutomationState.TaxiOut ? (Flightplan.ScheduledOutTime - GsxController.GetTime()).ToString(@"hh\:mm", CultureInfo.InvariantCulture) : "";
         public virtual string PaxBag => IsShowAllowed ? $"{Flightplan.CountPaxPlanned} / {Flightplan.CountBagsPlanned}" : "0 / 0";
@@ -338,5 +385,9 @@ namespace Any2GSX.UI.Views.Automation
         public virtual string Cargo => FormatWeight(nameof(Flightplan.WeightCargoKg));
         public virtual string PayloadDiff => FormatWeight(nameof(Flightplan.DiffPayloadKg));
 
+        public virtual string LiveEmpty { get; protected set; }
+        public virtual string LiveZeroFuel { get; protected set; }
+        public virtual string LiveTotal { get; protected set; }
+        public virtual string LiveFuel { get; protected set; }
     }
 }

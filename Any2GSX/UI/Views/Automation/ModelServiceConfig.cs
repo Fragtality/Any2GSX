@@ -99,6 +99,19 @@ namespace Any2GSX.UI.Views.Automation
                     NotifyPropertyChanged(nameof(MaxRunTime));
             }
         }
+        public virtual string MinRunTime
+        {
+            get => Source.MinRunTime.TotalMinutes.ToString();
+            set
+            {
+                if (!string.IsNullOrWhiteSpace(value) && double.TryParse(value, new RealInvariantFormat(value), out double number))
+                {
+                    SetModelValue<TimeSpan>(TimeSpan.FromMinutes(number));
+                }
+                else
+                    NotifyPropertyChanged(nameof(MinRunTime));
+            }
+        }
         public virtual string ServiceCancellationName => Source.ServiceCancellationName;
         public virtual bool HasCancellation => ServiceCancellation >= GsxServiceActivation.DepartureTime;
         public virtual bool HasMaxRunTime => ServiceCancellation == GsxServiceActivation.DepartureTime && HasActivation;

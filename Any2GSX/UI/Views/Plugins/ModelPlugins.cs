@@ -83,6 +83,7 @@ namespace Any2GSX.UI.Views.Plugins
                 ModelInstalledChannels.NotifyCollectionChanged();
                 if (PluginRepo.HasUpdates())
                 {
+                    Logger.Debug($"Plugin Updates detected - showing Notice in UI");
                     Any2GSX.Instance.NotifyIcon.SetIconUpdate();
                     AppWindow.SetPluginUpdateNotice();
                     HasUpdates = true;

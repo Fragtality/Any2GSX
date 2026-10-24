@@ -49,7 +49,7 @@ namespace Any2GSX.PluginInterface.Interfaces.GSX
         public static string SettingLoadScaleBag { get; } = "baggage_load_scale";
         public static string SettingLoadScaleCargo { get; } = "cargo_load_scale";
         public static double ConstantFuelRate { get; } = 45;
-        public static double ConstantStairAngle { get; } = 35;
+        public static double ConstantStairAngle { get; } = 37.5;
         public static double ConstantStairWorkArea { get; } = 2.5;
         public static string VarSetRemoteServer { get; } = "L:FSDT_GSX_SET_REMOTE_SERVER_ENABLED";
         public static string VarSetAutoDoors { get; } = "L:FSDT_GSX_AUTOMATION_DOORS";
@@ -150,6 +150,7 @@ namespace Any2GSX.PluginInterface.Interfaces.GSX
         public static string MenuRefuelLevelCustom { get; } = "Custom refueling";
         public static string MenuNoJetway { get; } = "No Jetways here";
         public static string MenuRemoveStairs { get; } = "Remove the stairs?";
+        public static string MenuUseAirStairs { get; } = "Use airplane's own airstairs?";
         public static readonly Dictionary<GsxStopPush, string[]> MenuLinesPush = new()
         {
             { GsxStopPush.Pause, ["Pause", "Resume"] },

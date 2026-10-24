@@ -6,5 +6,7 @@
         public virtual int CountPax { get; set; }
         public virtual int CountBags { get; set; }
         public virtual double WeightCargoKg { get; set; }
+
+
     }
 }

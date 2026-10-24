@@ -12,6 +12,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.WebSockets;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -61,7 +62,7 @@ namespace Any2GSX.GSX.API
 
             Logger.Debug("Starting GSX API Task ...");
             LinkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(AppService.RequestToken);
-            RunTask = Task.Factory.StartNew(async () => await Run(), AppService.Token, TaskCreationOptions.AttachedToParent | TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            RunTask = Task.Factory.StartNew(async () => await Run(), RequestToken, TaskCreationOptions.AttachedToParent | TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
         public virtual async Task Stop()
@@ -119,16 +120,18 @@ namespace Any2GSX.GSX.API
             {
                 LinkedTokenSource?.Dispose();
                 WebSocket?.Dispose();
+                WebSocket = null;
+                Logger.Debug($"GSX API Disposed");
             }
             _isDisposed = true;
         }
 
-        protected virtual void LogException(Exception ex)
+        protected virtual void LogException(Exception ex, [CallerMemberName] string caller = "")
         {
             if (!AppService.Instance.NotificationTracker.IsActive(AppNotification.GsxRestart))
-                Logger.Warning($"{ex.GetType().Name} on GSX API Connection: {ex.Message}");
+                Logger.Warning($"{ex.GetType().Name} on GSX API Connection in {caller}(): {ex.Message}");
             else
-                Logger.Debug($"{ex.GetType().Name} on GSX API Connection: {ex.Message}");
+                Logger.Debug($"{ex.GetType().Name} on GSX API Connection {caller}(): {ex.Message}");
         }
 
         public virtual async Task Disconnect()
@@ -170,8 +173,9 @@ namespace Any2GSX.GSX.API
             DispatcherTimer.Interval = TimeSpan.FromSeconds(Config.GsxApiRetryInterval);
             DispatcherTimer.Tick += CheckConnection;
             DispatcherTimer.Start();
+            bool cancelReceived = false;
 
-            while (!RequestToken.IsCancellationRequested)
+            while (!RequestToken.IsCancellationRequested && !cancelReceived)
             {
                 try
                 {
@@ -184,14 +188,15 @@ namespace Any2GSX.GSX.API
 
                     await ProcessReceived();
                 }
-                catch (OperationCanceledException) when (RequestToken.IsCancellationRequested)
-                {
-                    Logger.Debug($"Cancellation received for GSX API Task");
-                    break;
-                }
                 catch (Exception ex)
                 {
-                    LogException(ex);
+                    if (ex is not OperationCanceledException && ex is not TaskCanceledException)
+                        LogException(ex);
+                    else
+                    {
+                        Logger.Debug($"Cancellation received for GSX API Task");
+                        cancelReceived = true;
+                    }
                 }
                 finally
                 {
@@ -200,17 +205,20 @@ namespace Any2GSX.GSX.API
                     WebSocket = null;
                 }
 
-                if (!RequestToken.IsCancellationRequested)
+                if (!RequestToken.IsCancellationRequested && !cancelReceived)
                 {
                     Logger.Debug($"GSX Web Socket not connected, Retry in {Config.GsxApiRetryInterval / 1000.0}s");
                     try
                     {
                         await Task.Delay(Config.GsxApiRetryInterval, RequestToken);
                     }
-                    catch (OperationCanceledException)
+                    catch (Exception ex)
                     {
-                        Logger.Debug($"Cancellation received for GSX API Task");
-                        break;
+                        if (ex is OperationCanceledException || ex is TaskCanceledException)
+                        {
+                            Logger.Debug($"Cancellation received for GSX API Task");
+                            break;
+                        }
                     }
                 }
             }
@@ -284,6 +292,12 @@ namespace Any2GSX.GSX.API
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(jsonString) || jsonString.Length < 3)
+                {
+                    Logger.Error("Received empty Message from GSX API!");
+                    return;
+                }
+
                 var message = GsxMessageEnvelop.Parse(jsonString);
 
                 if (message.v == 1)
@@ -315,7 +329,7 @@ namespace Any2GSX.GSX.API
                 else
                 {
                     Logger.Error($"Unsupported GSX API Version!");
-                    Logger.Debug(message.ToString());
+                    Logger.Debug(jsonString);
                 }
             }
             catch (Exception ex)
@@ -471,13 +485,14 @@ namespace Any2GSX.GSX.API
         {
             ApiData.ParseDataHandler(node);
 
-            AppService.Instance.NotificationTracker.CaptureActiveGate(ApiData?.HandlerData?.gate?.uiGateName ?? "");
+            AppService.Instance.GsxController.Gate.CaptureActiveGate(ApiData?.HandlerData?.gate?.uiGateName ?? "");
             NotifyHandlerData();
 
             if (node!?["aircraft"]?.ToJsonString() != LastAircraftHandler?.ToJsonString())
             {
                 Logger.Debug($"GSX Aircraft Handler has changed (not null: {ApiData?.HandlerData?.aircraft != null})");
-                _ = TaskTools.RunPool(() => AircraftHandlerChanged?.Invoke());
+                if (AircraftHandlerChanged != null)
+                    _ = TaskTools.RunPool(() => AircraftHandlerChanged!?.Invoke());
             }
             LastAircraftHandler = node!?["aircraft"];
         }
@@ -620,7 +635,7 @@ namespace Any2GSX.GSX.API
         {
             IsSubscribed = false;
 
-            token ??= AppService.Instance.Token;
+            token ??= AppService.Instance.RequestToken;
             if (token?.IsCancellationRequested == false)
                 try { return SendJsonNode(JsonSerializer.Serialize(GsxApiMsgSubscribe.Unsubscribe()), token); } catch { }
 

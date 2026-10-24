@@ -13,6 +13,7 @@ using CFIT.AppTools;
 using CFIT.SimConnectLib;
 using CFIT.SimConnectLib.SimResources;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -28,11 +29,13 @@ namespace Any2GSX.Aircraft
         public virtual GsxAutomationController AutomationController => GsxController?.AutomationController;
         public virtual SimConnectManager SimConnect => AppService.Instance?.SimConnect;
         public virtual Flightplan Flightplan => AppService.Instance?.Flightplan;
-        public virtual DispatcherTimerAsync RefuelTimer { get; } = new();
+        protected virtual DispatcherTimerAsync RefuelTimer { get; } = new();
+        protected virtual DispatcherTimerAsync StateQueueTimer { get; } = new();
         protected virtual bool IsLocked { get; set; } = false;
         protected virtual double FuelFobCounter { get; set; } = 0;
         protected virtual double FuelProgress { get; set; } = 0;
         protected virtual double FuelRate { get; set; } = 0;
+        public virtual bool IsDefuel { get; protected set; } = false;
         protected virtual bool FuelHoseWasConnected { get; set; } = false;
         protected virtual bool FuelWasPaused { get; set; } = false;
         protected virtual int PaxProgress { get; set; } = 0;
@@ -41,21 +44,24 @@ namespace Any2GSX.Aircraft
         public virtual bool IsBoarding { get; protected set; } = false;
         public virtual bool IsDeboarding { get; protected set; } = false;
         public virtual string Title => AppService.Instance.AircraftTitle;
-        public virtual bool IsConnected => Aircraft?.IsConnected == true;
+        public virtual bool IsAircraftConnected { get; protected set; } = false;
         public virtual bool IsAircraftLoaded => Aircraft != null;
         protected virtual bool WasInSessionStart { get; set; } = false;
         public virtual string PluginId { get; protected set; } = "NULL";
         public virtual AircraftBase Aircraft { get; protected set; } = null;
+        public virtual PluginCapabilities PluginCapabilities { get; protected set; } = null;
         public virtual SettingProfile SettingProfile => AppService.Instance.SettingProfile;
-        protected virtual bool IsValidState => GsxController.IsActive && Aircraft?.IsConnected == true;
-        protected virtual bool IsValidGroundPhase => GsxController.AutomationState < AutomationState.TaxiOut || GsxController.AutomationState > AutomationState.TaxiIn;
+        protected virtual bool IsValidState => GsxController.IsActive && IsAircraftConnected;
+        protected virtual bool IsValidGroundPhase => GsxController.ApiClient.IsReady && GsxController.AutomationState < AutomationState.TaxiOut || GsxController.AutomationState > AutomationState.TaxiIn;
         protected virtual AutomationState LoaderConnectPhase { get; set; } = AutomationState.Unknown;
         protected virtual List<SimResourceSubCallback> SubscriptionCallbacks { get; } = [];
+        protected virtual ConcurrentQueue<AutomationState> StateQueue { get; } = [];
 
 
         public AircraftController(Config config) : base(config)
         {
             RefuelTimer.Tick += OnRefuelTick;
+            StateQueueTimer.Tick += OnStateTimerTick;
         }
 
         public virtual async Task Restart()
@@ -72,6 +78,7 @@ namespace Any2GSX.Aircraft
             Logger.Debug($"Initializing Aircraft Interface ...");
             Aircraft = PluginController.GetAircraftInterface(SettingProfile, SimConnect.AircraftString, out string pluginId);
             PluginId = pluginId;
+            PluginCapabilities = PluginController.GetPluginCapabilities(PluginId);
             Logger.Debug($"Run Init for Plugin '{pluginId}'");
             await Aircraft.Init();
 
@@ -98,9 +105,6 @@ namespace Any2GSX.Aircraft
             GsxController.ServiceLavatory.OnStateChanged += OnLavatoryStateChange;
             GsxController.ServiceWater.OnStateChanged += OnWaterStateChange;
 
-            GsxController.WalkaroundPreAction += BeforeWalkaroundSkip;
-            GsxController.WalkaroundWasSkipped += AfterWalkaroundSkip;
-
             SubscriptionCallbacks.Add(new(GsxController.SubDoorToggleExit1, (sub, data) => OnDoorTrigger(GsxDoor.PaxDoor1, sub.GetNumber())));
             SubscriptionCallbacks.Add(new(GsxController.SubDoorToggleExit2, (sub, data) => OnDoorTrigger(GsxDoor.PaxDoor2, sub.GetNumber())));
             SubscriptionCallbacks.Add(new(GsxController.SubDoorToggleExit3, (sub, data) => OnDoorTrigger(GsxDoor.PaxDoor3, sub.GetNumber())));
@@ -120,30 +124,32 @@ namespace Any2GSX.Aircraft
             GsxController.ApiClient.AircraftHandlerChanged += OnAircraftHandlerChanged;
         }
 
-        protected virtual Task OnAircraftHandlerChanged()
+        protected virtual async Task OnAircraftHandlerChanged()
         {
-            if (Aircraft?.IsConnected == true)
+            if (Aircraft != null && await Aircraft?.GetIsConnected() == true)
                 Aircraft?.CheckDoorVariables();
-
-            return Task.CompletedTask;
         }
 
         protected override async Task DoRun()
         {
             try
             {
-                if (Aircraft.InitDelay <= 0)
-                    await Task.Delay(1000, RequestToken);
                 Logger.Debug($"Interface initialized.");
-
                 Logger.Debug($"Waiting for Aircraft Interface Connection ...");
-                while (!Aircraft.IsConnected && !Token.IsCancellationRequested && !RequestToken.IsCancellationRequested)
+                bool connected = false;
+                while (!connected && !RequestToken.IsCancellationRequested && ExecutionFlag)
                 {
-                    await Task.Delay(Config.CheckInterval, RequestToken);
                     await Aircraft.CheckConnection();
+                    await Task.Delay(Config.CheckInterval, RequestToken);
+                    connected = await Aircraft.GetIsConnected();
                 }
+                if (Aircraft.InitDelay <= 0)
+                    await Task.Delay(1500, RequestToken);
+                else
+                    await Task.Delay(Aircraft.InitDelay, RequestToken);
+
+                IsAircraftConnected = connected;
                 Logger.Debug($"Aircraft connected.");
-                await Task.Delay(Config.CheckInterval * 2, RequestToken);
 
                 var units = await Aircraft.GetAircraftUnits();
                 if (Config.DisplayUnitSource == DisplayUnitSource.Aircraft && units != Config.DisplayUnitCurrent)
@@ -156,9 +162,17 @@ namespace Any2GSX.Aircraft
                 Aircraft.CheckDoorVariables();
                 Logger.Debug($"GSX -> Aircraft Doors mapped.");
 
+                if (await Aircraft.GetSmartButtonRequest() || GsxController?.SubDefaultSmartButton?.GetNumber() != 0)
+                {
+                    Logger.Debug($"Reset Smart Button on Aircraft Start");
+                    await Aircraft.ResetSmartButton();
+                    await GsxController.SubDefaultSmartButton.WriteValue(0);
+                }
+
                 while (SimConnect?.IsSessionRunning == true && IsExecutionAllowed && !RequestToken.IsCancellationRequested)
                 {
-                    if (Aircraft?.IsConnected == true)
+                    IsAircraftConnected = Aircraft != null && await Aircraft?.GetIsConnected() == true;
+                    if (IsAircraftConnected)
                         await Aircraft?.RunInterval();
                     else
                         await Aircraft?.CheckConnection();
@@ -177,6 +191,7 @@ namespace Any2GSX.Aircraft
                 if (ex is not TaskCanceledException)
                     Logger.LogException(ex);
             }
+            IsAircraftConnected = false;
         }
 
         protected override async Task DoCleanup()
@@ -187,6 +202,7 @@ namespace Any2GSX.Aircraft
                 FuelFobCounter = 0;
                 FuelProgress = 0;
                 FuelRate = 0;
+                IsDefuel = false;
                 FuelHoseWasConnected = false;
                 FuelWasPaused = false;
                 PaxProgress = 0;
@@ -196,6 +212,7 @@ namespace Any2GSX.Aircraft
                 IsDeboarding = false;
                 WasInSessionStart = false;
                 IsLocked = false;
+                IsAircraftConnected = false;
                 PluginId = "NULL";
 
                 foreach (var callback in SubscriptionCallbacks)
@@ -221,11 +238,10 @@ namespace Any2GSX.Aircraft
                 GsxController.ServiceLavatory.OnStateChanged -= OnLavatoryStateChange;
                 GsxController.ServiceWater.OnStateChanged -= OnWaterStateChange;
 
-                GsxController.WalkaroundPreAction -= BeforeWalkaroundSkip;
-                GsxController.WalkaroundWasSkipped -= AfterWalkaroundSkip;
-
                 Flightplan.OnImport -= OnFlightplanImport;
                 Flightplan.OnUnload -= OnFlightplanUnload;
+
+                GsxController.ApiClient.AircraftHandlerChanged -= OnAircraftHandlerChanged;
             }
             catch (Exception ex)
             {
@@ -249,6 +265,7 @@ namespace Any2GSX.Aircraft
             }
 
             Aircraft = null;
+            PluginCapabilities = null;
         }
 
         public virtual Task<bool> GetIsCargo()
@@ -267,14 +284,8 @@ namespace Any2GSX.Aircraft
                 return Aircraft.GetEngineRunning();
         }
 
-        protected virtual async Task SetInitialFuelPayload()
+        public virtual async Task SetInitialFuelPayload()
         {
-            if (!IsConnected)
-            {
-                Logger.Debug("Aircraft not connected - cannot set Fuel/Payload");
-                return;
-            }
-
             var isReady = await Aircraft.GetReadyDepartureServices();
             if (await Aircraft.GetHasFobSaveRestore() && SettingProfile.FuelSaveLoadFob && !isReady)
             {
@@ -290,8 +301,37 @@ namespace Any2GSX.Aircraft
             }
         }
 
+        protected virtual async Task DoorCheckOnStateChange(AutomationState state)
+        {
+            if (await Aircraft.GetHasOpenDoors() && GsxController.GsxServices.Where(kv => kv.Value.RequiresAircraftDoor).All(kv => !kv.Value.IsRunning))
+            {
+                Logger.Information($"Close all Doors on {state} (has open Doors)");
+                await Aircraft.DoorsAllClose();
+                await Task.Delay(2000, RequestToken);
+            }
+            await CheckPaxDoorConnections();
+        }
+
+        protected virtual async Task OnStateTimerTick()
+        {
+            if (!StateQueue.IsEmpty)
+            {
+                if (IsAircraftConnected)
+                    await OnAutomationStateChange(StateQueue.Dequeue());
+            }
+            else
+                StateQueueTimer.Stop();
+        }
+
         protected virtual async Task OnAutomationStateChange(AutomationState state)
         {
+            if (!IsAircraftConnected)
+            {
+                StateQueue.Enqueue(state);
+                StateQueueTimer.Start();
+                return;
+            }
+
             while (IsLocked)
                 await Task.Delay(Config.StateMachineInterval, RequestToken);
             IsLocked = true;
@@ -300,23 +340,14 @@ namespace Any2GSX.Aircraft
             {
                 LoaderConnectPhase = AutomationState.Unknown;
                 WasInSessionStart = true;
-                if (GsxController.IsOnGround && await Aircraft.GetHasOpenDoors() && GsxController.GsxServices.All(kv => !kv.Value.IsRunning))
-                    await Aircraft.DoorsAllClose();
-            }
-            else if (state == AutomationState.Preparation)
-            {
-                await SetInitialFuelPayload();
-                await CheckPaxDoorConnections();
+                if (GsxController.IsOnGround)
+                    await DoorCheckOnStateChange(state);
             }
             else if (state == AutomationState.Departure)
             {
                 IsDeboarding = false;
-                if (!WasInSessionStart && await Aircraft.GetHasOpenDoors() && GsxController.GsxServices.All(kv => !kv.Value.IsRunning))
-                {
-                    await Aircraft.DoorsAllClose();
-                    await Task.Delay(2000, Token);
-                }
-                await CheckPaxDoorConnections();
+                if (!WasInSessionStart)
+                    await DoorCheckOnStateChange(state);
             }
             else if (state == AutomationState.Arrival)
             {
@@ -363,7 +394,7 @@ namespace Any2GSX.Aircraft
                     Logger.Information($"Boarding set to completed due to GSX Restart");
                 }
 
-                if (AutomationController.State == AutomationState.Pushback && (RefuelTimer.IsEnabled || (GsxController.ServiceRefuel.WasRunning && await Aircraft.GetFuelOnBoardKg() <= Flightplan.FuelRampKg - Config.FuelCompareVariance)))
+                if (AutomationController.State <= AutomationState.Pushback && (RefuelTimer.IsEnabled || (GsxController.ServiceRefuel.WasRunning && await Aircraft.GetFuelOnBoardKg() <= Flightplan.FuelRampKg - Config.FuelCompareVariance)))
                 {
                     await RefuelStopEarly();
                     Logger.Information($"Aircraft Refueling finished early due to GSX Restart");
@@ -379,22 +410,6 @@ namespace Any2GSX.Aircraft
             }
         }
 
-        protected virtual Task BeforeWalkaroundSkip()
-        {
-            if (IsValidState)
-                return Aircraft.BeforeWalkaroundSkip();
-            else
-                return Task.CompletedTask;
-        }
-
-        protected virtual Task AfterWalkaroundSkip()
-        {
-            if (IsValidState)
-                return Aircraft.AfterWalkaroundSkip();
-            else
-                return Task.CompletedTask;
-        }
-
         protected virtual async Task OnDoorTrigger(GsxDoor gsxDoor, double value)
         {
             if (!IsValidState || !IsValidGroundPhase || (GsxController.ServiceStairs.InhibitStateUpdates && IGsxController.IsPaxDoor(gsxDoor)))
@@ -402,6 +417,9 @@ namespace Any2GSX.Aircraft
 
             AircraftDoor aircraftDoor = Aircraft.GsxDoorMapping[gsxDoor];
             Logger.Debug($"Received Trigger for Door {gsxDoor} ({aircraftDoor}): {value}");
+            if (aircraftDoor == AircraftDoor.None)
+                return;
+
             bool trigger = value > 0;
             bool allowed = IGsxController.IsServiceDoor(gsxDoor) && SettingProfile.DoorServiceHandling || IGsxController.IsCargoDoor(gsxDoor) && SettingProfile.DoorCargoHandling || IGsxController.IsPaxDoor(gsxDoor) && SettingProfile.DoorPaxHandling;
             bool handled = await Aircraft.OnDoorTrigger(aircraftDoor, trigger, allowed);
@@ -455,6 +473,9 @@ namespace Any2GSX.Aircraft
                 return;
 
             AircraftDoor aircraftDoor = Aircraft.GsxDoorMapping[gsxDoor];
+            if (aircraftDoor == AircraftDoor.None)
+                return;
+
             if (state || (!state && !SettingProfile.DoorsCargoKeepOpenOnDetachBoard && !SettingProfile.DoorsCargoKeepOpenOnDetachDeboard && IsExitNotLoading(gsxDoor))
                 || (!state && LoaderConnectPhase == AutomationState.Departure && !SettingProfile.DoorsCargoKeepOpenOnDetachBoard && IsExitNotLoading(gsxDoor))
                 || (!state && LoaderConnectPhase == AutomationState.Arrival && !SettingProfile.DoorsCargoKeepOpenOnDetachDeboard && IsExitNotLoading(gsxDoor)))
@@ -475,12 +496,12 @@ namespace Any2GSX.Aircraft
                 var door = Aircraft.GetHandlerExitPreferred();
                 if (!await Aircraft.GetDoor(door))
                 {
-                    Logger.Debug($"Setting Preferred Door {door} for Jetway");
+                    Logger.Information($"Open Preferred Door {door} for Jetway");
                     await Aircraft.SetDoor(door, true);
                 }
             }
 
-            if (GsxController.HasGateStair && GsxController.ServiceStairs.IsAnyStair(s => s == GsxVehicleStairState.InPosition) && SettingProfile.DoorPaxHandling && SettingProfile.DoorStairHandling)
+            if (GsxController.HasGateStair && GsxController.ServiceStairs.IsConnected && SettingProfile.DoorPaxHandling && SettingProfile.DoorStairHandling)
             {
                 foreach (var stair in Enum.GetValues<GsxVehicleLocation>())
                 {
@@ -489,7 +510,7 @@ namespace Any2GSX.Aircraft
                         var door = GsxConstants.MapStairDoor(stair);
                         if (!await Aircraft.GetDoor(door))
                         {
-                            Logger.Debug($"Setting Door {door} for Stair {stair}");
+                            Logger.Information($"Open Door {door} for Stair {stair}");
                             await Aircraft.SetDoor(door, true);
                         }
                     }
@@ -503,9 +524,18 @@ namespace Any2GSX.Aircraft
             {
                 GsxDoor gsxDoor = Aircraft.GetHandlerExitPreferred();
                 AircraftDoor aircraftDoor = Aircraft.GsxDoorMapping[gsxDoor];
-                bool handled = await Aircraft.OnJetwayStateChange(aircraftDoor, service.State, SettingProfile.DoorPaxHandling);
+                if (aircraftDoor == AircraftDoor.None)
+                    return;
 
-                if (SettingProfile.DoorPaxHandling && !handled && service.IsActive)
+                bool handled = await Aircraft.OnJetwayStateChange(aircraftDoor, service.State, SettingProfile.DoorPaxHandling && PluginCapabilities.HasDoorSyncPaxJetway);
+
+                if (await Aircraft.HasCustomStairs() == true && await Aircraft.GetCustomStairsFront() == true)
+                {
+                    Logger.Information($"Remove Aircraft Custom Front Stairs on Jetway State Change");
+                    await Aircraft.SetCustomStairsFront(false);
+                }
+
+                if (SettingProfile.DoorPaxHandling && PluginCapabilities.HasDoorSyncPaxJetway && !handled && service.IsActive)
                 {
                     bool target = true;
                     if (await Aircraft.IsDoorCustom(gsxDoor) && target != await Aircraft.GetDoor(gsxDoor))
@@ -523,9 +553,18 @@ namespace Any2GSX.Aircraft
             {
                 GsxDoor gsxDoor = Aircraft.GetHandlerExitPreferred();
                 AircraftDoor aircraftDoor = Aircraft.GsxDoorMapping[gsxDoor];
-                bool handled = await Aircraft.OnJetwayOperationChange(aircraftDoor, state, SettingProfile.DoorPaxHandling);
+                if (aircraftDoor == AircraftDoor.None)
+                    return;
 
-                if (SettingProfile.DoorPaxHandling && !handled && state == GsxServiceState.Active)
+                bool handled = await Aircraft.OnJetwayOperationChange(aircraftDoor, state, SettingProfile.DoorPaxHandling && PluginCapabilities.HasDoorSyncPaxJetway);
+
+                if (await Aircraft.HasCustomStairs() == true && await Aircraft.GetCustomStairsFront() == true)
+                {
+                    Logger.Information($"Remove Aircraft Custom Front Stairs on Jetway Operation Change");
+                    await Aircraft.SetCustomStairsFront(false);
+                }
+
+                if (SettingProfile.DoorPaxHandling && PluginCapabilities.HasDoorSyncPaxJetway && !handled && state == GsxServiceState.Active)
                 {
                     bool target = false;
                     if (await Aircraft.IsDoorCustom(gsxDoor) && target != await Aircraft.GetDoor(gsxDoor))
@@ -537,24 +576,22 @@ namespace Any2GSX.Aircraft
             }
         }
 
-        protected virtual Task OnStairStateChanged(IGsxService service)
+        protected virtual async Task OnStairStateChanged(IGsxService service)
         {
             if (IsValidState && IsValidGroundPhase && !GsxController.ServiceStairs.IsStateOverridden)
             {
                 Logger.Debug($"Trigger OnStairStateChange {service.State}");
-                return Aircraft.OnStairStateChange(service.State, SettingProfile.DoorPaxHandling && SettingProfile.DoorStairHandling);
+                await Aircraft.OnStairStateChange(service.State, SettingProfile.DoorPaxHandling && SettingProfile.DoorStairHandling && PluginCapabilities.HasDoorSyncPaxStair);
             }
-            return Task.CompletedTask;
         }
 
-        protected virtual Task OnStairOperationChange(GsxServiceState state)
+        protected virtual async Task OnStairOperationChange(GsxServiceState state)
         {
             if (IsValidState && IsValidGroundPhase && !GsxController.ServiceStairs.IsStateOverridden)
             {
                 Logger.Debug($"Trigger OnStairOperationChange {state}");
-                return Aircraft.OnStairOperationChange(state, SettingProfile.DoorPaxHandling && SettingProfile.DoorStairHandling);
+                await Aircraft.OnStairOperationChange(state, SettingProfile.DoorPaxHandling && SettingProfile.DoorStairHandling && PluginCapabilities.HasDoorSyncPaxStair);
             }
-            return Task.CompletedTask;
         }
 
         protected virtual async Task OnStairVehicleChange(GsxVehicleLocation stair, GsxVehicleStairState state)
@@ -563,12 +600,28 @@ namespace Any2GSX.Aircraft
             {
                 GsxDoor gsxDoor = GsxConstants.MapStairDoor(stair);
                 AircraftDoor aircraftDoor = Aircraft.GsxDoorMapping[gsxDoor];
-                bool handled = await Aircraft.OnStairVehicleChange(aircraftDoor, stair, state, SettingProfile.DoorPaxHandling && SettingProfile.DoorStairHandling);
+                if (aircraftDoor == AircraftDoor.None)
+                    return;
 
-                if (SettingProfile.DoorPaxHandling && SettingProfile.DoorStairHandling && !handled && (!GsxController.HasGateJetway || stair == GsxVehicleLocation.Rear))
+                bool handled = await Aircraft.OnStairVehicleChange(aircraftDoor, stair, state, SettingProfile.DoorPaxHandling && SettingProfile.DoorStairHandling && PluginCapabilities.HasDoorSyncPaxStair);
+
+                if (await Aircraft.HasCustomStairs() == true && state > GsxVehicleStairState.Idle)
                 {
+                    if ((stair == GsxVehicleLocation.Front || stair == GsxVehicleLocation.Middle) && await Aircraft.GetCustomStairsFront() == true)
+                    {
+                        Logger.Information($"Remove Aircraft Custom Front Stairs on Stair Vehicle Change");
+                        await Aircraft.SetCustomStairsFront(false);
+                    }
 
+                    if (stair == GsxVehicleLocation.Rear && await Aircraft.GetCustomStairsRear() == true)
+                    {
+                        Logger.Information($"Remove Aircraft Custom Rear Stairs on Stair Vehicle Change");
+                        await Aircraft.SetCustomStairsRear(false);
+                    }
+                }
 
+                if (SettingProfile.DoorPaxHandling && SettingProfile.DoorStairHandling && PluginCapabilities.HasDoorSyncPaxStair && !handled && (!GsxController.HasGateJetway || stair == GsxVehicleLocation.Rear))
+                {
                     bool target = false;
                     if (state == GsxVehicleStairState.InPosition)
                         target = true;
@@ -587,6 +640,9 @@ namespace Any2GSX.Aircraft
             {
                 GsxDoor gsxDoor = GsxConstants.MapCateringDoor(truck);
                 AircraftDoor aircraftDoor = Aircraft.GsxDoorMapping[gsxDoor];
+                if (aircraftDoor == AircraftDoor.None)
+                    return;
+
                 bool handled = await Aircraft.OnCateringVehicleChange(aircraftDoor, truck, state, SettingProfile.DoorServiceHandling);
 
                 if (SettingProfile.DoorServiceHandling && !handled)
@@ -604,12 +660,18 @@ namespace Any2GSX.Aircraft
             }
         }
 
-        protected virtual Task OnPushStateChange(IGsxService servicePushback)
+        protected virtual async Task OnPushStateChange(IGsxService servicePushback)
         {
             if (!IsValidState || !IsValidGroundPhase)
-                return Task.CompletedTask;
+                return;
 
-            return Aircraft.PushStateChange(servicePushback.State);
+            if (servicePushback.State >= GsxServiceState.Requested && await Aircraft.HasCustomStairs() == true && await Aircraft.GetCustomStairs() == true)
+            {
+                await Aircraft.SetCustomStairsFront(false);
+                await Aircraft.SetCustomStairsRear(false);
+            }
+
+            await Aircraft.PushStateChange(servicePushback.State);
         }
 
         protected virtual Task OnPushOperationChange(GsxServicePushback servicePushback)
@@ -696,7 +758,7 @@ namespace Any2GSX.Aircraft
 
             if (connected && GsxController.ServiceRefuel.IsRunning)
             {
-                bool isFuelInc = await SetRefuelRate();
+                await SetRefuelRate();
                 if (!FuelHoseWasConnected)
                     await Aircraft.RefuelStart(Flightplan.FuelRampKg);
 
@@ -706,7 +768,7 @@ namespace Any2GSX.Aircraft
                     FuelProgress = 0;
                     RefuelTimer.Start();
                     Logger.Debug($"Aircraft Refuel Timer started (Interval {Aircraft.RefuelIntervalMs}ms)");
-                    Logger.Information($"Aircraft {(isFuelInc ? "Refueling" : "Defueling")} {(FuelHoseWasConnected ? "resumed" : "started")}. Refuel Rate: {(isFuelInc ? "" : "-")}{Math.Round(Config.ConvertKgToDisplayUnit(FuelRate), 1)}{Config.DisplayUnitCurrentString}/s{(SettingProfile.UseRefuelTimeTarget ? $" (Time Target {SettingProfile.RefuelTimeTargetSeconds}s)" : "")}");
+                    Logger.Information($"Aircraft {(!IsDefuel ? "Refueling" : "Defueling")} {(FuelHoseWasConnected ? "resumed" : "started")}. Refuel Rate: {(!IsDefuel ? "" : "-")}{Math.Round(Config.ConvertKgToDisplayUnit(FuelRate), 1)}{Config.DisplayUnitCurrentString}/s{(SettingProfile.UseRefuelTimeTarget ? $" (Time Target {SettingProfile.RefuelTimeTargetSeconds}s)" : "")}");
                 }
                 FuelHoseWasConnected = true;
             }
@@ -715,13 +777,13 @@ namespace Any2GSX.Aircraft
                 if (((!multiTrips || GsxController.HasUndergroundRefuel) && SettingProfile.RefuelFinishOnHose) || GsxController.ServiceRefuel.IsCompleting)
                 {
                     await RefuelStopEarly();
-                    Logger.Information($"Aircraft Refueling finished early (Hose disconnected). FOB: {Math.Round(Config.ConvertKgToDisplayUnit(await Aircraft.GetFuelOnBoardKg()), 2)}{Config.DisplayUnitCurrentString}");
+                    Logger.Information($"Aircraft {(!IsDefuel ? "Refueling" : "Defueling")} finished early (Hose disconnected). FOB: {Math.Round(Config.ConvertKgToDisplayUnit(await Aircraft.GetFuelOnBoardKg()), 2)}{Config.DisplayUnitCurrentString}");
                 }
                 else if (multiTrips && !GsxController.HasUndergroundRefuel)
                 {
                     RefuelTimerStop();
                     FuelProgress = 0;
-                    Logger.Information($"Aircraft Refueling paused - waiting for next Truck");
+                    Logger.Information($"Aircraft {(!IsDefuel ? "Refueling" : "Defueling")} paused - waiting for next Truck");
                 }
             }
 
@@ -737,10 +799,10 @@ namespace Any2GSX.Aircraft
             }
         }
 
-        protected virtual async Task<bool> SetRefuelRate()
+        protected virtual async Task SetRefuelRate()
         {
             FuelFobCounter = await Aircraft.GetFuelOnBoardKg();
-            bool isFuelInc = FuelFobCounter <= Flightplan.FuelRampKg;
+            IsDefuel = FuelFobCounter > Flightplan.FuelRampKg;
             if (SettingProfile.UseRefuelTimeTarget && !FuelHoseWasConnected)
             {
                 FuelRate = Math.Abs(Flightplan.FuelRampKg - FuelFobCounter) / SettingProfile.RefuelTimeTargetSeconds;
@@ -751,15 +813,13 @@ namespace Any2GSX.Aircraft
                 FuelRate = SettingProfile.RefuelRateKgSec;
 
 
-            if (Config.GsxAllowSettingManipulation)
+            if (Config.GsxAllowSettingManipulation && await Aircraft.GetHasFuelSync())
             {
-                double gsxRate = Math.Round((FuelRate / GsxConstants.ConstantFuelRate) + 0.5, 0);
+                double gsxRate = Math.Round((Math.Abs(FuelRate) / GsxConstants.ConstantFuelRate) + 0.5, 0);
                 gsxRate = (int)Math.Max(Math.Min(gsxRate, 10), 1);
                 Logger.Debug($"Setting GSX Refuel Time Accelaration to x{(int)gsxRate}");
                 await GsxController.ApiClient.SetSetting(GsxConstants.SettingRefuelTimeAccel, (int)gsxRate);
             }
-
-            return isFuelInc;
         }
 
         protected virtual ulong TickCounter { get; set; } = 0;
@@ -774,7 +834,7 @@ namespace Any2GSX.Aircraft
         {
             try
             {
-                if (Token.IsCancellationRequested || Aircraft == null || Config == null)
+                if (RequestToken.IsCancellationRequested || Aircraft == null || Config == null)
                 {
                     RefuelTimerStop();
                     return;
@@ -807,7 +867,7 @@ namespace Any2GSX.Aircraft
                     await Aircraft.RefuelStop(Flightplan.FuelRampKg, false);
                     await Task.Delay(200);
                     fob = await Aircraft.GetFuelOnBoardKg();
-                    Logger.Information($"Aircraft Refueling finished. FOB: {Math.Round(Config.ConvertKgToDisplayUnit(fob), 2)}{Config.DisplayUnitCurrentString}");
+                    Logger.Information($"Aircraft {(isFuelInc ? "Refueling" : "Defueling")} finished. FOB: {Math.Round(Config.ConvertKgToDisplayUnit(fob), 2)}{Config.DisplayUnitCurrentString}");
                     _ = TaskTools.RunDelayed(CancelGsxRefuel, Config.RefuelDisconnectTimeout, RequestToken);
                 }
                 else
@@ -816,7 +876,7 @@ namespace Any2GSX.Aircraft
                     await Aircraft.RefuelTick(isFuelInc, rate, FuelFobCounter, Flightplan.FuelRampKg);
                     if (FuelProgress > 1000)
                     {
-                        Logger.Information($"Aircraft Refueling in Progress. FOB: {Math.Round(Config.ConvertKgToDisplayUnit(fob), 2)}{Config.DisplayUnitCurrentString}");
+                        Logger.Information($"Aircraft {(isFuelInc ? "Refueling" : "Defueling")} in Progress. FOB: {Math.Round(Config.ConvertKgToDisplayUnit(fob), 2)}{Config.DisplayUnitCurrentString}");
                         FuelProgress = 0;
                     }
                 }
@@ -875,7 +935,6 @@ namespace Any2GSX.Aircraft
                 await Aircraft.BoardCompleted(Flightplan.CountPax, Flightplan.WeightPerPaxKg, Flightplan.WeightCargoKg);
                 if (SettingProfile.DoorCargoHandling && SettingProfile.DoorCargoOpenOnActive && !SettingProfile.DoorsCargoKeepOpenOnDetachBoard)
                     _ = CargoDoorsOpenCloseDelayed(false);
-                AutomationController.PayloadArrival = await Aircraft.GetPayload();
                 Logger.Information($"Boarding is completed");
             }
 
@@ -943,11 +1002,11 @@ namespace Any2GSX.Aircraft
             if (!IsValidState || !IsValidGroundPhase || !serviceDeboarding.IsRunning || (serviceDeboarding.PaxTotal == 0 && PaxProgress > 0))
                 return Task.CompletedTask;
 
-            int paxOnBoard = AutomationController.PayloadArrival.CountPax - serviceDeboarding.PaxTotal;
+            int paxOnBoard = Flightplan.PayloadArrival.CountPax - serviceDeboarding.PaxTotal;
             if (paxOnBoard < 0)
                 paxOnBoard = 0;
 
-            if (serviceDeboarding.PaxTotal - PaxProgress >= 20 || AutomationController.PayloadArrival.CountPax == serviceDeboarding.PaxTotal)
+            if (serviceDeboarding.PaxTotal - PaxProgress >= 20 || Flightplan.PayloadArrival.CountPax == serviceDeboarding.PaxTotal)
             {
                 Logger.Information($"Deboarding in Progress. Pax deboarded: {serviceDeboarding.PaxTotal}");
                 PaxProgress = serviceDeboarding.PaxTotal;
@@ -993,7 +1052,7 @@ namespace Any2GSX.Aircraft
                     if (direction == 1)
                         await Aircraft.BoardChangeCargo(CargoApplyProgress, Flightplan.WeightCargoKg * scalar, Flightplan.WeightCargoKg);
                     else if (direction == -1)
-                        await Aircraft.DeboardChangeCargo(CargoApplyProgress, AutomationController.PayloadArrival.WeightCargoKg * scalar);
+                        await Aircraft.DeboardChangeCargo(CargoApplyProgress, Flightplan.PayloadArrival.WeightCargoKg * scalar);
 
                     await Task.Delay(1000, RequestToken);
                 }

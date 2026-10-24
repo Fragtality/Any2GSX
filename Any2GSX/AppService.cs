@@ -71,7 +71,10 @@ namespace Any2GSX
         public virtual ApiServer ApiServer { get; protected set; }
         public virtual AppResetRequest ResetRequested { get; set; } = AppResetRequest.None;
         public virtual bool IsSessionInitialized { get; protected set; } = false;
+        protected virtual bool IsSessionChangeActive { get; set; } = false;
+        protected virtual bool SessionRunFlag => IsExecutionAllowed && !RequestToken.IsCancellationRequested;
         protected virtual DateTime NextGarbageCollection { get; set; } = DateTime.Now + TimeSpan.FromSeconds(300);
+        protected virtual DateTime LastSessionCleanup { get; set; } = DateTime.Now;
 
         public virtual string AircraftAtcAirline { get; protected set; } = "";
         public virtual string AircraftAtcId { get; protected set; } = "";
@@ -312,6 +315,10 @@ namespace Any2GSX
                 if (IsSessionInitialized)
                     return;
 
+                while (DateTime.Now - LastSessionCleanup < TimeSpan.FromMilliseconds(1000) || IsSessionChangeActive)
+                    await Task.Delay(Config.CheckInterval, Token);
+
+                IsSessionChangeActive = true;
                 MessageService.Send<MsgAppSessionStarting>();
 
                 if (string.IsNullOrWhiteSpace(Config?.SimbriefUser))
@@ -331,35 +338,32 @@ namespace Any2GSX
 
                 Logger.Debug($"Reset CommBus");
                 await CommBus.Reset();
-                await Task.Delay(750, RequestToken);
-
-                Logger.Debug($"Waiting for CommBus Module ...");
-                while (!CommBus.IsConnected && !Token.IsCancellationRequested && !RequestToken.IsCancellationRequested)
-                    await Task.Delay(Config.CheckInterval, RequestToken);
-                Logger.Debug($"CommBus Module connected");
-                if (!IsExecutionAllowed || Token.IsCancellationRequested || RequestToken.IsCancellationRequested)
+                await Task.Delay(500, RequestToken);
+                await CommBus.PingModule();
+                if (!SessionRunFlag)
                     return;
 
                 Logger.Debug($"Fetching Setting Profile");
                 SetSettingProfile();
-                if (!IsExecutionAllowed || Token.IsCancellationRequested || RequestToken.IsCancellationRequested)
-                    return;
 
                 Logger.Debug($"Reset Notification Tracker");
                 NotificationTracker.Reset();
 
+                if (!await WaitService("Waiting for CommBus Module", "CommBus Module connected", Config.CheckInterval / 2, () => CommBus.IsConnected))
+                    return;
+
                 Logger.Debug($"Start GSX Controller");
                 await GsxController.Start();
-                Logger.Debug($"Waiting for GSX Controller active ...");
-                while (!GsxController.IsActive && !Token.IsCancellationRequested)
-                    await Task.Delay(Config.CheckInterval, RequestToken);
-                Logger.Debug($"GSX Controller active");
-                if (!IsExecutionAllowed || Token.IsCancellationRequested || RequestToken.IsCancellationRequested)
+
+                if (!await WaitService("Waiting for Input Event Enumeration", "Input Events enumerated", Config.CheckInterval / 2, () => SimConnect.InputManager.HasEventsEnumerated || SimConnect.InputManager.EnumerationAttempts > 0))
+                    return;
+
+                if (!await WaitService("Waiting for GSX Controller active", "GSX Controller active", Config.CheckInterval / 2, () => GsxController.IsActive))
                     return;
 
                 Logger.Debug($"Start AircraftController");
                 await AircraftController.Start();
-                if (!IsExecutionAllowed || Token.IsCancellationRequested || RequestToken.IsCancellationRequested)
+                if (!SessionRunFlag)
                     return;
 
                 Logger.Debug($"Start Notification Manager");
@@ -377,11 +381,28 @@ namespace Any2GSX
             }
             catch (Exception ex)
             {
-                if (ex is not TaskCanceledException)
-                    Logger.LogException(ex);
+                //if (ex is not TaskCanceledException)
+                Logger.LogException(ex);
+                //else
+                //    Logger.Error("Task Cancel during Session Init");
             }
+            IsSessionChangeActive = false;
 
             Logger.Debug("--- Session Init Done ---");
+        }
+
+        protected virtual async Task<bool> WaitService(string messageWait, string messageSuccess, int interval, Func<bool> checkWait)
+        {
+            if (checkWait() == false)
+                Logger.Debug($"{messageWait} ...");
+
+            while (checkWait() == false && SessionRunFlag)
+                await Task.Delay(interval, RequestToken);
+
+            if (checkWait() == true)
+                Logger.Debug(messageSuccess);
+
+            return SessionRunFlag;
         }
 
         protected virtual async Task SessionCleanup()
@@ -391,6 +412,10 @@ namespace Any2GSX
                 if (!IsSessionInitialized)
                     return;
 
+                while (IsSessionChangeActive)
+                    await Task.Delay(Config.CheckInterval, RequestToken);
+
+                IsSessionChangeActive = true;
                 MessageService.Send<MsgAppSessionStopping>();
 
                 Logger.Debug($"Cancel Request Token");
@@ -430,6 +455,8 @@ namespace Any2GSX
 
             IsSessionInitialized = false;
             MessageService.Send<MsgAppSessionStopped>();
+            LastSessionCleanup = DateTime.Now;
+            IsSessionChangeActive = false;
             Logger.Debug("--- Session Cleanup Done ---"); ;
         }
 
@@ -447,11 +474,16 @@ namespace Any2GSX
         public virtual async Task RestartGsx(bool force = false)
         {
             NotificationTracker.Track(AppNotification.GsxRestart);
+
             await GsxController.ApiClient.Disconnect();
+            await GsxController.ResetServices(true);
+
             if (Config.GsxUseHardReset || force)
                 await KillGsx();
             else
                 await ResetGsx();
+            SetGsxStartTime();
+
             NotificationTracker.Clear(AppNotification.GsxRestart);
         }
 
@@ -465,7 +497,6 @@ namespace Any2GSX
                 await Task.Delay(Config.DelayGsxBinaryStart, Token);
 
                 Logger.Debug($"GSX Restart finished");
-                SetGsxStartTime();
             }
             catch (Exception ex)
             {
@@ -502,7 +533,6 @@ namespace Any2GSX
                 await Task.Delay(Config.DelayGsxBinaryStart, Token);
 
                 Logger.Debug($"GSX Restart finished");
-                SetGsxStartTime();
             }
             catch (Exception ex)
             {
@@ -525,7 +555,7 @@ namespace Any2GSX
                     await Task.Delay(2500, Token);
                 else
                 {
-                    Logger.Information($"Restarting GSX ...");
+                    Logger.Information($"Restarting GSX (hard) ...");
                     await RestartGsx(true);
                 }
                 if (session)

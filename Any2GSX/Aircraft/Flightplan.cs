@@ -1,5 +1,6 @@
 ﻿using Any2GSX.AppConfig;
 using Any2GSX.GSX.Automation;
+using Any2GSX.Notifications;
 using Any2GSX.PluginInterface;
 using Any2GSX.PluginInterface.Interfaces;
 using CFIT.AppLogger;
@@ -22,6 +23,8 @@ namespace Any2GSX.Aircraft
         public virtual GsxAutomationController AutomationController => AppService.Instance.GsxController.AutomationController;
         public virtual SettingProfile SettingProfile => AppService.Instance.SettingProfile;
         public virtual IWeightConverter WeightConverter => AppService.Instance.WeightConverter;
+        public virtual PayloadReport PayloadArrival { get; protected set; } = new(0);
+        public virtual long OfpArrivalId => PayloadArrival?.Id ?? 0;
         public virtual CancellationToken Token => AppService.Instance.RequestToken;
         protected virtual HttpClient HttpClient { get; }
 
@@ -314,7 +317,7 @@ namespace Any2GSX.Aircraft
 
                 Id = id;
 
-                if (SettingProfile.RandomizePax && !AutomationController.IsCargo)
+                if (SettingProfile.RandomizePax && !AutomationController.AircraftState.IsCargo)
                 {
                     DiffPax = Random.Shared.Next(SettingProfile.RandomizePaxMaxDiff * -1, SettingProfile.RandomizePaxMaxDiff);
                     if (MaxPax > 0 && CountPaxPlanned + DiffPax > MaxPax)
@@ -343,9 +346,12 @@ namespace Any2GSX.Aircraft
                     _ = TaskTools.RunPool(() => OnImport?.Invoke(this), AppService.Instance.RequestToken);
 
                 Logger.Information($"Flightplan #{Id}/{Edition} imported from SimBrief");
+                AppService.Instance.NotificationTracker.TrackTimeout(AppNotification.OfpImported, 30000);
+
                 var strings = GetInfoStrings();
                 foreach (string str in strings)
                     Logger.Debug(str);
+
                 return true;
             }
             catch (Exception ex)
@@ -427,7 +433,18 @@ namespace Any2GSX.Aircraft
         {
             LastId = 0;
             Id = 0;
+            ResetArrivalPayload();
             return Unload();
+        }
+
+        public virtual void ResetArrivalPayload()
+        {
+            PayloadArrival = new(0);
+        }
+
+        public virtual async Task ImportArrivalPayload()
+        {
+            PayloadArrival = await Aircraft.GetPayload();
         }
 
         public virtual Task<bool> ImportOfp()
@@ -457,6 +474,7 @@ namespace Any2GSX.Aircraft
         {
             CountPaxPlanned = count;
             DiffPax = diff;
+            AppService.Instance.GsxController.SetPaxBoard(CountPax);
             NotifyChange();
         }
 

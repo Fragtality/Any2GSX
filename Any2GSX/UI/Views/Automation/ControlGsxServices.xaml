@@ -187,7 +187,7 @@
                                             </Style>
                                         </Grid.Resources>
                                         <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" MinHeight="28"/>
+                                            <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
@@ -225,7 +225,7 @@
                                         </TextBlock>
                                         <ComboBox Grid.Row="0" Grid.Column="2" ItemsSource="{Binding DataContext.TextServiceActivations, RelativeSource={RelativeSource AncestorType=UserControl}}" DisplayMemberPath="Value" SelectedValuePath="Key"
                                                     SelectedValue="{Binding ServiceActivation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                    MinWidth="184" >
+                                                    MinWidth="184">
                                             <ComboBox.ToolTip>
                                                 <TextBlock>
                                                     Select if and how the Service is activated:<LineBreak />
@@ -303,7 +303,7 @@
                                                     Select if and how the Service is cancelled:<LineBreak />
                                                     - Never: The Service is not cancelled by the App.<LineBreak />
                                                     - Max Run Time: The Service is cancelled by the App if it runs longer than the configured Time.<LineBreak />
-                                                    - Dependent on Services: The Service is cancelled by the App based on the State of other Services.
+                                                    - Dependent on Services: The Service is cancelled by the App based on the State of other Services (when at least in the Active State).
                                                 </TextBlock>
                                             </ComboBox.ToolTip>
                                         </ComboBox>
@@ -330,8 +330,8 @@
                                                 Service(s) at least in State
                                             </TextBlock>
                                             <ComboBox ItemsSource="{Binding DataContext.TextServiceDependencies, RelativeSource={RelativeSource AncestorType=UserControl}}" DisplayMemberPath="Value" SelectedValuePath="Key"  
-                                                      Visibility="{Binding HasCancelDependency, Converter={StaticResource BoolVisibilityConverter}}"
-                                                      SelectedValue="{Binding ServiceCancelDependency, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinWidth="96">
+                                                        Visibility="{Binding HasCancelDependency, Converter={StaticResource BoolVisibilityConverter}}"
+                                                        SelectedValue="{Binding ServiceCancelDependency, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinWidth="96">
                                                 <ComboBox.ToolTip>
                                                     <TextBlock>
                                                         The minimum State of the Service(s):<LineBreak />
@@ -359,7 +359,7 @@
                                         
 
                                         <!-- CONSTRAINTS -->
-                                        <TextBlock Grid.Row="2" Grid.Column="1" 
+                                        <TextBlock Grid.Row="2" Grid.Column="1"
                                                    Visibility="{Binding HasActivation, Converter={StaticResource BoolVisibilityConverter}}">
                                             <Underline>Constraints</Underline>:
                                         </TextBlock>
@@ -427,6 +427,17 @@
                                                          HorizontalContentAlignment="Center" MinWidth="64"/>
                                                 <TextBlock FontWeight="Light">
                                                     <Italic>hh:mm</Italic>
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <StackPanel Grid.Row="2" Grid.Column="1" Visibility="{Binding HasCancelDependency, Converter={StaticResource BoolVisibilityConverter}}"
+                                                        ToolTip="Minimum Time the Service needs to be in the Active State before it is cancelled.">
+                                                <TextBlock>
+                                                    Min. Run Time:
+                                                </TextBlock>
+                                                <TextBox Text="{Binding MinRunTime, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                         HorizontalContentAlignment="Center" MinWidth="64"/>
+                                                <TextBlock FontWeight="Light">
+                                                    <Italic>minutes</Italic>
                                                 </TextBlock>
                                             </StackPanel>
                                             <StackPanel Grid.Row="2" Grid.Column="2" ToolTip="Delay the Service Call x Seconds after the last called Service.">

@@ -1,5 +1,6 @@
 ﻿using Any2GSX.PluginInterface.Interfaces;
 using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -43,11 +44,13 @@ namespace Any2GSX.UI.Views.Automation
         protected virtual void OnControlLoaded(object sender, RoutedEventArgs e)
         {
             DepartureTimer.Start();
+            ViewModel.WeightRefreshTimer.Start();
         }
 
         protected virtual void OnControlUnloaded(object sender, RoutedEventArgs e)
         {
             DepartureTimer.Stop();
+            ViewModel.WeightRefreshTimer.Stop();
         }
 
         protected virtual void OnDepartureTimerTick(object? sender, EventArgs e)
@@ -59,9 +62,16 @@ namespace Any2GSX.UI.Views.Automation
         protected virtual void EndSearch(string newGate)
         {
             if (!string.IsNullOrWhiteSpace(newGate) && !newGate.Equals(ViewModel.NotAssigned))
-                ViewModel.AssignedArrivalGate = newGate;
+            {
+                if (ComboGateLabel.SelectedIndex > 0)
+                    ViewModel.AssignedArrivalGate = $"{ComboGateLabel.SelectionBoxItem} {newGate}";
+                else
+                    ViewModel.AssignedArrivalGate = newGate;
+            }
+
+            ComboGateLabel.SelectedIndex = 0;
             TextGate.Visibility = Visibility.Visible;
-            InputGate.Visibility = Visibility.Collapsed;
+            PanelInputGate.Visibility = Visibility.Collapsed;
             ListGates.Visibility = Visibility.Collapsed;
             SearchActive = false;
         }
@@ -71,11 +81,17 @@ namespace Any2GSX.UI.Views.Automation
             if (!SearchActive)
             {
                 TextGate.Visibility = Visibility.Collapsed;
-                InputGate.Visibility = Visibility.Visible;
+                PanelInputGate.Visibility = Visibility.Visible;
                 if (ViewModel.ArrivalGates.Count > 0 && ViewModel.AutomationController.State >= AutomationState.TaxiIn)
                     ListGates.Visibility = Visibility.Visible;
                 ListGates.SelectedIndex = -1;
                 InputGate.Text = ViewModel.AssignedArrivalGate?.Equals(ViewModel.NotAssigned) == false ? ViewModel.AssignedArrivalGate : "";
+                string? match = ViewModel.GateLabels.FirstOrDefault(InputGate.Text.TrimStart().StartsWith);
+                if (match != null)
+                {
+                    InputGate.Text = InputGate.Text.TrimStart()[match.Length..].TrimStart();
+                    ComboGateLabel.SelectedValue = match;
+                }
                 ViewModel.SetGateFilter("");
                 SearchActive = true;
             }

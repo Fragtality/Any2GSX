@@ -62,7 +62,7 @@ namespace Any2GSX.GSX.Automation
         public virtual string ServiceCancelDependencyName => TextServiceDependencies[ServiceDependency];
         public virtual GsxServiceDependencyScope ServiceCancelDependencyScope { get; set; } = GsxServiceDependencyScope.AllCalled;
         [JsonIgnore]
-        public virtual string ServiceDCancelependencyScopeName => TextServiceDependencyScope[ServiceCancelDependencyScope];
+        public virtual string ServiceCancelDependencyScopeName => TextServiceDependencyScope[ServiceCancelDependencyScope];
         public virtual TimeSpan MaxTimeBeforeDeparture { get; set; } = TimeSpan.Zero;
 
         public virtual bool OnlyDeparture { get; set; } = false;
@@ -80,6 +80,9 @@ namespace Any2GSX.GSX.Automation
         public virtual TimeSpan CallDelay { get; set; } = TimeSpan.Zero;
         [JsonIgnore]
         public virtual bool HasCallDelay => CallDelay > TimeSpan.Zero;
+        public virtual TimeSpan MinRunTime { get; set; } = TimeSpan.FromMinutes(5);
+        [JsonIgnore]
+        public virtual bool HasMinRunTime => MinRunTime > TimeSpan.Zero;
 
         [JsonIgnore]
         public virtual int TurnCount { get; set; } = 0;

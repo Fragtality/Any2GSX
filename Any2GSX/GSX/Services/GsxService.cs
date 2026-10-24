@@ -27,6 +27,7 @@ namespace Any2GSX.GSX.Services
 
         public abstract GsxServiceType Type { get; }
         public virtual GsxMenuCommandOperatorType OperatorType => GsxMenuCommandOperatorType.Handling;
+        public virtual bool RequiresAircraftDoor => false;
         public virtual bool RequiresStair => false;
         public virtual bool HasStairConflict => false;
         public virtual bool HasSubmenu => Type == GsxServiceType.GPU || Type == GsxServiceType.Water || Type == GsxServiceType.Lavatory || Type == GsxServiceType.Cleaning || Type == GsxServiceType.Deice;
@@ -147,7 +148,7 @@ namespace Any2GSX.GSX.Services
 
         protected abstract void DoRelease();
 
-        public virtual async Task ResetState(bool resetVariable = false)
+        public async Task ResetState(bool resetVariable = false)
         {
             StatesReceived.Clear();
             ActivationTime = DateTime.MaxValue;
@@ -158,15 +159,16 @@ namespace Any2GSX.GSX.Services
             {
                 StateOverride = GsxServiceState.Callable;
                 await ResetStateVariable(GsxServiceState.Callable);
+                await ResetVehicleState(true);
             }
+            else
+                await ResetVehicleState(false);
             StateOverride = GsxServiceState.Unknown;
             InhibitStateUpdates = false;
-            await DoReset();
-            if (resetVariable)
-                await ResetVehicleState();
+            await DoReset(resetVariable);
         }
 
-        protected abstract Task DoReset();
+        protected abstract Task DoReset(bool resetVariable);
 
         public virtual Task ResetVehicleState(bool force = false)
         {
@@ -233,17 +235,6 @@ namespace Any2GSX.GSX.Services
             }
         }
 
-        public virtual void ForceComplete()
-        {
-            if (!IsCompleted)
-            {
-                Logger.Debug($"Force Complete for {Type}");
-                ClearStateOverride();
-                StatesReceived.TryAdd(GsxServiceState.Completed, true);
-                NotifyStateChange(GsxServiceState.Completed);
-            }
-        }
-
         protected virtual bool CheckOverride()
         {
             if (IsStateOverridden && (RawState >= GsxServiceState.Completed || RawState <= GsxServiceState.Callable))
@@ -254,6 +245,12 @@ namespace Any2GSX.GSX.Services
 
         protected virtual async Task OnStateChange(ISimResourceSubscription sub, object data)
         {
+            if (!Controller.ApiClient.IsReady)
+            {
+                Logger.Debug($"Ignoring State Change for {Type}: API not ready");
+                return;
+            }
+
             if (!CheckOverride() || InhibitStateUpdates)
             {
                 Logger.Debug($"State {RawState} ignored for {Type} (Override {IsStateOverridden} | InhibitUpdates {InhibitStateUpdates})");
@@ -261,6 +258,12 @@ namespace Any2GSX.GSX.Services
             }
 
             var state = ReadState();
+            if (state == GsxServiceState.Unknown)
+            {
+                Logger.Debug($"Ignoring State Change for {Type}: Unknown");
+                return;
+            }
+
             if (state <= GsxServiceState.Bypassed)
             {
                 ActivationTime = DateTime.MaxValue;
@@ -286,12 +289,6 @@ namespace Any2GSX.GSX.Services
 
         protected virtual void NotifyStateChange(GsxServiceState state)
         {
-            if (state == GsxServiceState.Unknown)
-            {
-                Logger.Debug($"Ignoring State Change - State for {Type} is unknown");
-                return;
-            }
-
             if (!StatesReceived.ContainsKey(state))
             {
                 Logger.Debug($"Notify State Change for {Type}: {TextState} (Raw: {ReadState(true)})");

@@ -1,7 +1,7 @@
 ﻿using Any2GSX.AppConfig;
 using Any2GSX.GSX;
+using Any2GSX.GSX.Automation.SmartCalls;
 using Any2GSX.GSX.Services;
-using Any2GSX.Notifications;
 using Any2GSX.PluginInterface.Interfaces;
 using CFIT.AppLogger;
 using CFIT.AppTools;
@@ -242,13 +242,13 @@ namespace Any2GSX.UI.Views.Monitor
         protected virtual void UpdateApp()
         {
             UpdateBoolState(nameof(AppGsxController), nameof(AppGsxControllerColor), GsxController?.IsActive ?? false);
-            UpdateBoolState(nameof(AppAircraftInterface), nameof(AppAircraftInterfaceColor), AircraftController?.IsConnected == true);
+            UpdateBoolState(nameof(AppAircraftInterface), nameof(AppAircraftInterfaceColor), AircraftController?.IsAircraftConnected == true);
             UpdateBoolState(nameof(AppAutomationController), nameof(AppAutomationControllerColor), AutomationController?.IsStarted ?? false);
-            UpdateBoolState(nameof(AppAudioController), nameof(AppAudioControllerColor), AudioController?.IsActive ?? false);
+            UpdateBoolState(nameof(AppAudioController), nameof(AppAudioControllerColor), (AudioController?.IsActive ?? false) && (AudioController?.IsAircraftPowered ?? false));
             UpdateBoolState(nameof(AppDeckController), nameof(AppDeckControllerColor), Source.NotificationManager?.IsRunning ?? false);
 
             UpdateState<AutomationState>(nameof(AppAutomationState), AutomationController?.State ?? AutomationState.SessionStart);
-            UpdateState<string>(nameof(AppSmartCall), $"{Source?.NotificationTracker?.SmartButton ?? SmartButtonCall.None}");
+            UpdateState<string>(nameof(AppSmartCall), $"{AutomationController?.SmartButtonCurrent ?? SmartButtonCall.None}");
             var queue = Source?.GsxController?.AutomationController?.DepartureQueue;
             UpdateState<string>(nameof(AppAutomationDepartureServices), $"{queue?.CountCompleted ?? 0} / {queue?.CountRunning ?? 0} / {queue?.CountSkipped ?? 0} / {queue?.CountTotal ?? 0}" ?? "0 / 0 / 0 / 0");
             if (queue?.HasNext == true || queue?.HasNextQueued == true)
@@ -325,26 +325,26 @@ namespace Any2GSX.UI.Views.Monitor
             try
             {
                 UpdateState<bool>(nameof(AppOnGround), GsxController?.IsOnGround ?? true);
-                UpdateState<bool>(nameof(PluginAvionics), AutomationController?.EquipManager?.AvionicsPowered ?? false);
-                UpdateState<bool>(nameof(PluginExtCon), AutomationController?.EquipManager?.PowerConnected ?? false);
-                UpdateState<bool>(nameof(PluginGpu), AutomationController?.EquipManager?.EquipmentGpu ?? false);
-                UpdateState<bool>(nameof(PluginChocks), AutomationController?.EquipManager?.EquipmentChocks ?? false);
-                UpdateState<bool>(nameof(PluginCones), AutomationController?.EquipManager?.EquipmentCones ?? false);
-                UpdateState<bool>(nameof(PluginPca), AutomationController?.EquipManager?.EquipmentPca ?? false);
-                UpdateState<bool>(nameof(PluginApuRun), AutomationController?.EquipManager?.ApuRunning ?? false);
-                UpdateState<bool>(nameof(PluginApuBleed), AutomationController?.EquipManager?.ApuBleed ?? false);
-                UpdateState<bool>(nameof(PluginBrake), AutomationController?.EquipManager?.BrakeSet ?? false);
-                UpdateState<bool>(nameof(PluginBeacon), AutomationController?.LightBeacon ?? false);
-                UpdateState<bool>(nameof(PluginNav), AutomationController?.LightNav ?? false);
-                UpdateState<bool>(nameof(PluginEngineRunning), AutomationController?.EnginesRunning ?? false);
-                UpdateState<bool>(nameof(PluginSmartButton), (AutomationController?.HasSmartButtonRequest ?? false) || (AutomationController?.HasExternalSmartButtonRequest ?? false));
-                UpdateState<int>(nameof(PluginSpeed), (int)(AutomationController?.Speed ?? 0));
-                UpdateState<bool>(nameof(PluginCargo), AutomationController?.IsCargo ?? false);
-                UpdateState<bool>(nameof(PluginReadyDeparture), AutomationController?.ReadyDepartureServices ?? false);
+                UpdateState<bool>(nameof(PluginAvionics), AutomationController?.AircraftState?.AvionicsPowered ?? false);
+                UpdateState<bool>(nameof(PluginExtCon), AutomationController?.AircraftState?.PowerConnected ?? false);
+                UpdateState<bool>(nameof(PluginGpu), AutomationController?.AircraftState?.EquipmentGpu ?? false);
+                UpdateState<bool>(nameof(PluginChocks), AutomationController?.AircraftState?.EquipmentChocks ?? false);
+                UpdateState<bool>(nameof(PluginCones), AutomationController?.AircraftState?.EquipmentCones ?? false);
+                UpdateState<bool>(nameof(PluginPca), AutomationController?.AircraftState?.EquipmentPca ?? false);
+                UpdateState<bool>(nameof(PluginApuRun), AutomationController?.AircraftState?.ApuRunning ?? false);
+                UpdateState<bool>(nameof(PluginApuBleed), AutomationController?.AircraftState?.ApuBleed ?? false);
+                UpdateState<bool>(nameof(PluginBrake), AutomationController?.AircraftState?.BrakeSet ?? false);
+                UpdateState<bool>(nameof(PluginBeacon), AutomationController?.AircraftState?.LightBeacon ?? false);
+                UpdateState<bool>(nameof(PluginNav), AutomationController?.AircraftState?.LightNav ?? false);
+                UpdateState<bool>(nameof(PluginEngineRunning), AutomationController?.AircraftState?.EnginesRunning ?? false);
+                UpdateState<bool>(nameof(PluginSmartButton), (AutomationController?.AircraftState?.HasSmartButtonRequest ?? false) || (AutomationController?.ExternalSmartButton ?? false));
+                UpdateState<int>(nameof(PluginSpeed), (int)(AutomationController?.AircraftState?.Speed ?? 0));
+                UpdateState<bool>(nameof(PluginCargo), AutomationController?.AircraftState?.IsCargo ?? false);
+                UpdateState<bool>(nameof(PluginReadyDeparture), AutomationController?.AircraftState?.ReadyDepartureServices ?? false);
 
-                UpdateState<string>(nameof(PluginZeroFuel), $"{Math.Round(Config.ConvertKgToDisplayUnit(AutomationController?.ZeroFuel ?? 0), 1)} {Config.DisplayUnitCurrentString}");
-                UpdateState<string>(nameof(PluginFuelOnBoard), $"{Math.Round(Config.ConvertKgToDisplayUnit(AutomationController?.FuelOnBoard ?? 0), 1)} {Config.DisplayUnitCurrentString}");
-                UpdateState<string>(nameof(PluginTotalWeight), $"{Math.Round(Config.ConvertKgToDisplayUnit(AutomationController?.WeightTotal ?? 0), 1)} {Config.DisplayUnitCurrentString}");
+                UpdateState<string>(nameof(PluginZeroFuel), $"{Math.Round(Config.ConvertKgToDisplayUnit(AutomationController?.AircraftState?.ZeroFuel ?? 0), 1)} {Config.DisplayUnitCurrentString}");
+                UpdateState<string>(nameof(PluginFuelOnBoard), $"{Math.Round(Config.ConvertKgToDisplayUnit(AutomationController?.AircraftState?.FuelOnBoard ?? 0), 1)} {Config.DisplayUnitCurrentString}");
+                UpdateState<string>(nameof(PluginTotalWeight), $"{Math.Round(Config.ConvertKgToDisplayUnit(AutomationController?.AircraftState?.WeightTotal ?? 0), 1)} {Config.DisplayUnitCurrentString}");
             }
             catch { }
         }

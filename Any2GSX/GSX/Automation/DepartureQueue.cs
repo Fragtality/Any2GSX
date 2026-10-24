@@ -30,6 +30,7 @@ namespace Any2GSX.GSX.Automation
         public virtual string ExternalServiceHandler { get; protected set; } = TextExternal;
         protected virtual ConcurrentDictionary<int, DepartureService> ExternalServiceQueue { get; } = [];
         protected virtual ConcurrentDictionary<int, DepartureService> ServicesQueued => ExternalServiceControl ? ExternalServiceQueue : InternalServiceQueue;
+        public virtual bool HasServiceQueued => !ServicesQueued.IsEmpty;
         protected virtual int? NextIndex { get; set; } = null;
         protected virtual int MaxIndex { get; set; } = 0;
         public virtual DepartureService Next => NextIndex != null && ServicesQueued.TryGetValue((int)NextIndex, out var service) ? service : null;
@@ -89,13 +90,12 @@ namespace Any2GSX.GSX.Automation
 
         public virtual void Reset()
         {
-            SetExternalState(false);
             ExternalServiceQueue.Clear();
             BuildQueue();
             ResetActivations();
         }
 
-        public virtual void ResetFlight()
+        public virtual void CountActivations()
         {
             if (Profile?.DepartureServices != null)
             {
@@ -194,14 +194,14 @@ namespace Any2GSX.GSX.Automation
                 isCallable = false;
             }
 
-            if (service.Service.HasStairConflict && (HasCalled(s => s.Service.IsRunning && s.Service.RequiresStair) || GsxController.ServiceDeboard.IsRunning))
+            if (service.Service.HasStairConflict && (HasCalled(s => s.Service.IsRequested && s.Service.RequiresStair) || (GsxController.ServiceDeboard.IsRunning && !GsxController.HasGateJetway)))
             {
                 if (isCallable)
                     ErrorMessage = $"Service {service.Service.Type} has Stair Conflict and running Services require Stairs";
                 isCallable = false;
             }
 
-            if (service.Service.RequiresStair && HasCalled(s => s.Service.IsRequested && s.Service.HasStairConflict) && (!GsxController.ServiceStairs.IsConnected || GsxController.ServiceStairs.IsOperating || GsxController.Menu.WasStairRemoved || GsxController.Tracker.IsActive(AppNotification.UpdatesBlocked)))
+            if (service.Service.RequiresStair && HasCalled(s => s.Service.IsRequested && s.Service.HasStairConflict) && (!GsxController.ServiceStairs.IsConnected || GsxController.ServiceStairs.IsOperating || GsxController.StateStore[StateVar.WasStairRemoved] == true || GsxController.Tracker.IsActive(AppNotification.UpdatesBlocked)))
             {
                 if (isCallable)
                     ErrorMessage = $"Service {service.Service.Type} requires Stair but running Services have Stair Conflict";
@@ -254,20 +254,20 @@ namespace Any2GSX.GSX.Automation
 
         protected virtual bool CheckCancellation(int index, DepartureService service)
         {
-            bool isCallable = false;
+            bool isCancelable = false;
             switch (service.Config.ServiceCancellation)
             {
                 case GsxServiceActivation.DepartureTime:
-                    isCallable = service.Service.IsRunning && !service.Service.IsCompleted && service.Config.HasMaxRunTime && service.Service.ActivationTime != DateTime.MaxValue && DateTime.Now - service.Service.ActivationTime >= service.Config.MaxRunTime;
+                    isCancelable = service.Service.IsRunning && !service.Service.IsCompleted && service.Config.HasMaxRunTime && service.Service.ActivationTime != DateTime.MaxValue && DateTime.Now - service.Service.ActivationTime >= service.Config.MaxRunTime;
                     break;
                 case GsxServiceActivation.ServiceDependent:
-                    isCallable = CheckServiceCancelDependency(index, service);
+                    isCancelable = service.Service.IsActive && CheckServiceCancelDependency(index, service) && (service.Config.MinRunTime == TimeSpan.Zero || (service.Service.ActivationTime != DateTime.MaxValue && DateTime.Now - service.Service.ActivationTime >= service.Config.MinRunTime));
                     break;
                 default:
                     break;
             }
 
-            return isCallable;
+            return isCancelable;
         }
 
         public virtual async Task ApplyCancellations()
@@ -294,12 +294,7 @@ namespace Any2GSX.GSX.Automation
             if (service.IsCalled || service.IsRunning)
             {
                 move = true;
-                if (AutomationController.HasFuelSync && service.Type == GsxServiceType.Refuel
-                    && !AircraftController.RefuelTimer.IsEnabled && service.IsActive && GsxController.ServiceRefuel.IsHoseConnected)
-                {
-                    Logger.Debug($"Starting Refuel Sync for already running GSX Service");
-                    await AircraftController.OnRefuelHoseChanged(true);
-                }
+                reason = $"Service State '{service.TextState}'";
             }
             else if (service.IsBypassed)
             {
@@ -312,7 +307,7 @@ namespace Any2GSX.GSX.Automation
                 reason = "Service Completed";
 
             }
-            else if (!config.CallOnCargo && AutomationController.IsCargo)
+            else if (!config.CallOnCargo && AutomationController.AircraftState.IsCargo)
             {
                 asSkipped = true;
                 reason = "Constraint 'Cargo'";
@@ -342,12 +337,12 @@ namespace Any2GSX.GSX.Automation
                 asSkipped = true;
                 reason = $"Constraint 'Only Non-Hub'";
             }
-            else if (config.OnlyPreferredOp && GsxController.Menu.OperatorSelectionState[GsxMenuCommandOperatorType.Handling] && !GsxController.Menu.WasOperatorPreferred)
+            else if (config.OnlyPreferredOp && GsxController.Menu.OperatorSelectionState[GsxMenuCommandOperatorType.Handling] && GsxController.StateStore[StateVar.WasOperatorPreferred] == false)
             {
                 asSkipped = true;
                 reason = $"Constraint 'Preferred Operator'";
             }
-            else if (Profile.SkipFuelOnTankering && service.Type == GsxServiceType.Refuel && Flightplan.IsLoaded && AutomationController.FuelOnBoard >= Flightplan.FuelRampKg - Config.FuelCompareVariance)
+            else if (Profile.SkipFuelOnTankering && service.Type == GsxServiceType.Refuel && Flightplan.IsLoaded && AutomationController.AircraftState.FuelOnBoard >= Flightplan.FuelRampKg - Config.FuelCompareVariance)
             {
                 asSkipped = true;
                 reason = "FOB is greater than planned";
@@ -377,17 +372,10 @@ namespace Any2GSX.GSX.Automation
 
         public virtual void FinishServices()
         {
-            foreach (var called in ServicesCalled.Values)
-            {
-                if (!called.Service.IsCompleted)
-                    called.Service.ForceComplete();
-            }
-
             while (!ServicesQueued.IsEmpty)
             {
                 var service = ServicesQueued.First();
-                service.Value.Service.ForceComplete();
-                MoveQueue(service.Key);
+                MoveQueue(service.Key, true);
             }
         }
 
@@ -477,6 +465,7 @@ namespace Any2GSX.GSX.Automation
                 MaxIndex = 0;
             }
             ExternalServiceControl = state;
+
             if (notify)
             {
                 Logger.Information($"External Service Control is set to: {(state ? "On" : "Off")}");

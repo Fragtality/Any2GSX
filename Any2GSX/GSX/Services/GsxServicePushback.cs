@@ -33,9 +33,9 @@ namespace Any2GSX.GSX.Services
         {
             var sequence = base.InitCallSequence();
             sequence.Commands.Add(GsxMenuCommand.Wait(5));
-            if (!Controller.IsDeiceAvail || Controller.Menu.DeiceGateQuestionAnswered)
+            if (!Controller.IsDeiceAvail || Controller.StateStore[StateVar.DeiceGateQuestionAnswered] == true)
                 sequence.Commands.Add(GsxMenuCommand.Close());
-            sequence.EnableMenuCheck = () => Profile.EnableMenuForSelection && ((Controller.IsDeiceAvail && !Controller.Menu.DeiceGateQuestionAnswered) || !Controller.HasSelectionPushback);
+            sequence.EnableMenuCheck = () => Profile.EnableMenuForSelection && ((Controller.IsDeiceAvail && Controller.StateStore[StateVar.DeiceGateQuestionAnswered] == false) || !Controller.Gate.HasSelectionPushback);
             sequence.EnableMenuAfterResetCheck = () => false;
             sequence.ResetMenuCheck = () => false;
 
@@ -56,7 +56,7 @@ namespace Any2GSX.GSX.Services
             SubBypassPin.OnReceived += NotifyBypassPin;
         }
 
-        protected override Task DoReset()
+        protected override Task DoReset(bool resetVariable)
         {
             TugAttachedOnBoarding = false;
 
@@ -103,7 +103,7 @@ namespace Any2GSX.GSX.Services
             sequence.Commands.Add(GsxMenuCommand.Select(3, GsxConstants.MenuPushbackInterrupt, [GsxConstants.MenuPushbackDirection]));
             sequence.Commands.Add(GsxMenuCommand.Wait());
             sequence.Commands.Add(GsxMenuCommand.Close(GsxConstants.MenuPushbackInterrupt));
-            sequence.EnableMenuCheck = () => Profile.EnableMenuForSelection && IsTugConnected && !Controller.HasSelectionPushback && !Controller.Tracker.IsActive(AppNotification.PushDirectionSelected);
+            sequence.EnableMenuCheck = () => Profile.EnableMenuForSelection && IsTugConnected && !Controller.Gate.HasSelectionPushback && !Controller.Tracker.IsActive(AppNotification.PushDirectionSelected);
             sequence.EnableMenuAfterResetCheck = () => false;
             sequence.ResetMenuCheck = () => false;
 

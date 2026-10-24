@@ -1,4 +1,5 @@
-﻿using Any2GSX.AppConfig;
+﻿using Any2GSX.Aircraft;
+using Any2GSX.AppConfig;
 using Any2GSX.GSX.Services;
 using Any2GSX.PluginInterface;
 using Any2GSX.PluginInterface.Interfaces;
@@ -13,33 +14,19 @@ using System.Threading.Tasks;
 
 namespace Any2GSX.GSX.Automation
 {
-    public class GroundEquipManager
+    public class GroundEquipManager(AircraftState aircraftState)
     {
         protected virtual CancellationToken RequestToken => AppService.Instance.RequestToken;
-        protected virtual AircraftBase Aircraft => AppService.Instance?.AircraftController?.Aircraft;
+        protected virtual AircraftController AircraftController => AppService.Instance?.AircraftController;
+        protected virtual AircraftBase Aircraft => AircraftController?.Aircraft;
+        protected virtual AircraftState State { get; } = aircraftState;
         protected virtual SettingProfile Profile => AppService.Instance?.SettingProfile;
         protected virtual GsxController GsxController => AppService.Instance?.GsxController;
-        protected virtual ConcurrentDictionary<GsxServiceType, GsxService> GsxServices => GsxController?.GsxServices;
         protected virtual GsxServiceGpu ServiceGpu => GsxController?.ServiceGpu;
+        protected virtual GsxServiceJetway ServiceJetway => GsxController?.ServiceJetway;
         protected virtual int ConnectPca => Profile?.ConnectPca ?? 2;
         protected virtual bool PcaOverride => Profile?.PcaOverride ?? true;
         protected virtual bool HasGateJetway => GsxController?.HasGateJetway ?? true;
-        public virtual bool HasChocks { get; protected set; } = false;
-        public virtual bool EquipmentChocks { get; protected set; } = false;
-        public virtual bool BrakeSet { get; protected set; } = false;
-        public virtual bool HasCones { get; protected set; } = false;
-        public virtual bool EquipmentCones { get; protected set; } = false;
-        public virtual bool HasGpuInternal { get; protected set; } = false;
-        public virtual bool GpuRequireChocks { get; protected set; } = false;
-        public virtual GsxGpuUsage UseGpuGsx { get; protected set; } = GsxGpuUsage.Never;
-        public virtual bool EquipmentGpu { get; protected set; } = false;
-        public virtual bool AvionicsPowered { get; protected set; } = false;
-        public virtual bool PowerConnected { get; protected set; } = false;
-        public virtual bool HasPca { get; protected set; } = false;
-        public virtual bool PcaRequirePower { get; protected set; } = false;
-        public virtual bool EquipmentPca { get; protected set; } = false;
-        public virtual bool ApuRunning { get; protected set; } = false;
-        public virtual bool ApuBleed { get; protected set; } = false;
 
         protected virtual List<GroundEquipment> GroundEquipmentKeys { get; } = [GroundEquipment.GPU, GroundEquipment.Chocks, GroundEquipment.Cones, GroundEquipment.PCA];
         protected virtual ConcurrentDictionary<GroundEquipment, DateTime> GroundEquipmentTimes { get; } = new()
@@ -102,49 +89,13 @@ namespace Any2GSX.GSX.Automation
         public virtual void Reset()
         {
             SetZeroDelays();
-            HasCones = false;
-            EquipmentCones = false;
-            BrakeSet = false;
-            HasChocks = false;
-            EquipmentChocks = false;
-            HasGpuInternal = false;
-            GpuRequireChocks = false;
-            UseGpuGsx = GsxGpuUsage.Never;
-            EquipmentGpu = false;
-            AvionicsPowered = false;
-            PowerConnected = false;
-            HasPca = false;
-            PcaRequirePower = false;
-            EquipmentPca = false;
-            ApuRunning = false;
-            ApuBleed = false;
-        }
-
-        public virtual async Task Refresh()
-        {
-            HasCones = await Aircraft.GetHasCones();
-            EquipmentCones = await Aircraft.GetEquipmentCones();
-            BrakeSet = await Aircraft.GetBrakeSet();
-            HasChocks = await Aircraft.GetHasChocks();
-            EquipmentChocks = await Aircraft.GetEquipmentChocks();
-            HasGpuInternal = await Aircraft.GetHasGpuInternal();
-            GpuRequireChocks = await Aircraft.GetGpuRequireChocks();
-            UseGpuGsx = await Aircraft.GetUseGpuGsx();
-            EquipmentGpu = await Aircraft.GetExternalPowerAvailable();
-            AvionicsPowered = await Aircraft.GetAvionicPowered();
-            PowerConnected = await Aircraft.GetExternalPowerConnected();
-            HasPca = await Aircraft.GetHasPca();
-            PcaRequirePower = await Aircraft.GetPcaRequirePower();
-            EquipmentPca = await Aircraft.GetEquipmentPca();
-            ApuRunning = await Aircraft.GetApuRunning();
-            ApuBleed = await Aircraft.GetApuBleedOn();
         }
 
         protected virtual async Task SetAircraftPower(bool target)
         {
             await Aircraft.SetEquipmentPower(target);
             if (AppService.Instance.Config.GsxSetGpuOnInternal)
-                await GsxController.ServiceGpu.SetGpuConnection(target);
+                await ServiceGpu.SetGpuConnection(target);
         }
 
         protected virtual async Task SetPca(string phase)
@@ -152,16 +103,16 @@ namespace Any2GSX.GSX.Automation
             if (GroundEquipmentTimes[GroundEquipment.PCA] > DateTime.MinValue && DateTime.Now < GroundEquipmentTimes[GroundEquipment.PCA])
                 return;
 
-            if (!GsxController.IsGateConnected && !EquipmentGpu)
+            if (!GsxController.IsGateConnected && !State.EquipmentGpu)
                 return;
 
-            if (!EquipmentPca && GetPcaAllowedOnGate())
+            if (!State.EquipmentPca && GetPcaAllowedOnGate())
             {
                 Logger.Information($"Automation: Placing PCA on {phase}");
                 await Aircraft.SetEquipmentPca(true);
                 await Task.Delay(500, RequestToken);
             }
-            else if (EquipmentPca && Profile.PcaOverride && !GetPcaAllowedOnGate())
+            else if (State.EquipmentPca && PcaOverride && !GetPcaAllowedOnGate())
             {
                 Logger.Information($"Automation: Disconnecting PCA (override State)");
                 await Aircraft.SetEquipmentPca(false);
@@ -172,8 +123,8 @@ namespace Any2GSX.GSX.Automation
         protected virtual async Task SetGpu(string phase)
         {
             if (!ServiceGpu.IsCalled && !ServiceGpu.IsRunning &&
-                    (UseGpuGsx == GsxGpuUsage.Always
-                    || (UseGpuGsx == GsxGpuUsage.NoJetway && !HasGateJetway)))
+                    (State.UseGpuGsx == GsxGpuUsage.Always
+                    || (State.UseGpuGsx == GsxGpuUsage.NoJetway && !HasGateJetway)))
             {
                 Logger.Information($"Automation: Calling GSX GPU on {phase}");
                 await ServiceGpu.Call();
@@ -183,7 +134,7 @@ namespace Any2GSX.GSX.Automation
             if (GroundEquipmentTimes[GroundEquipment.GPU] > DateTime.MinValue && DateTime.Now < GroundEquipmentTimes[GroundEquipment.GPU] && !GsxController.IsGateConnected)
                 return;
 
-            if (HasGpuInternal && ((GpuRequireChocks && EquipmentChocks) || !GpuRequireChocks) && !EquipmentGpu && GetPowerWithApuAllowed())
+            if (State.HasGpuInternal && ((State.GpuRequireChocks && State.EquipmentChocks) || !State.GpuRequireChocks) && !State.EquipmentGpu && GetPowerWithApuAllowed())
             {
                 Logger.Information($"Automation: Placing GPU on {phase}");
                 await SetAircraftPower(true);
@@ -196,7 +147,7 @@ namespace Any2GSX.GSX.Automation
             if (GroundEquipmentTimes[GroundEquipment.Cones] > DateTime.MinValue && DateTime.Now < GroundEquipmentTimes[GroundEquipment.Cones])
                 return;
 
-            if (HasCones && !EquipmentCones && (!HasChocks || EquipmentChocks))
+            if (State.HasCones && !State.EquipmentCones && (!State.HasChocks || State.EquipmentChocks))
             {
                 Logger.Information($"Automation: Placing Cones on {phase}");
                 await Aircraft.SetEquipmentCones(true);
@@ -209,7 +160,7 @@ namespace Any2GSX.GSX.Automation
             if (GroundEquipmentTimes[GroundEquipment.Chocks] > DateTime.MinValue && DateTime.Now < GroundEquipmentTimes[GroundEquipment.Chocks])
                 return;
 
-            if (HasChocks && !EquipmentChocks)
+            if (State.HasChocks && !State.EquipmentChocks)
             {
                 Logger.Information($"Automation: Placing Chocks on {phase}");
                 await Aircraft.SetEquipmentChocks(true);
@@ -222,20 +173,20 @@ namespace Any2GSX.GSX.Automation
             await SetChocks(phase);
             await SetCones(phase);
             await SetGpu(phase);
-            if (HasPca)
+            if (State.HasPca)
                 await SetPca(phase);
         }
 
         protected virtual Task RemoveGroundPower(bool force)
         {
-            if (HasGpuInternal && ((EquipmentGpu && AvionicsPowered && !PowerConnected) || (EquipmentGpu && force)))
+            if (State.HasGpuInternal && ((State.EquipmentGpu && State.AvionicsPowered && !State.PowerConnected) || (State.EquipmentGpu && force)))
             {
                 Logger.Information($"Automation: Removing Internal GPU");
                 return SetAircraftPower(false);
             }
 
-            if ((UseGpuGsx != GsxGpuUsage.Never && GsxController.ServiceGpu.IsConnected && !GsxController.ServiceGpu.WasCanceled && AvionicsPowered && !PowerConnected)
-                || (GsxController.ServiceGpu.IsConnected && force))
+            if ((State.UseGpuGsx != GsxGpuUsage.Never && ServiceGpu.IsConnected && !ServiceGpu.WasCanceled && State.AvionicsPowered && !State.PowerConnected)
+                || (ServiceGpu.IsConnected && force))
             {
                 Logger.Information($"Automation: Removing GSX GPU");
                 return ServiceGpu.Cancel();
@@ -247,22 +198,22 @@ namespace Any2GSX.GSX.Automation
         public virtual async Task RemoveDepartureEquip()
         {
             //PCA
-            if (HasPca && ApuRunning && ApuBleed && EquipmentPca && GsxController.AutomationState == AutomationState.Departure)
+            if (State.HasPca && State.ApuRunning && State.ApuBleed && State.EquipmentPca && GsxController.AutomationState == AutomationState.Departure)
             {
                 Logger.Information($"Automation: Disconnecting PCA (APU/Bleed On)");
                 await Aircraft.SetEquipmentPca(false);
             }
 
             //Chocks on Tug attached
-            if (HasChocks && Profile.ClearChocksOnTugAttach && (GsxController.ServicePushBack.PushStatus > 1 || GsxController.ServicePushBack.IsPinInserted)
-                && EquipmentChocks && BrakeSet)
+            if (State.HasChocks && Profile.ClearChocksOnTugAttach && (GsxController.ServicePushBack.PushStatus > 1 || GsxController.ServicePushBack.IsPinInserted)
+                && State.EquipmentChocks && State.BrakeSet)
             {
-                if (!GpuRequireChocks || (GpuRequireChocks && !EquipmentGpu))
+                if (!State.GpuRequireChocks || (State.GpuRequireChocks && !State.EquipmentGpu))
                 {
                     Logger.Information($"Automation: Removing Chocks on Tug attached");
                     await Aircraft.SetEquipmentChocks(false);
                 }
-                else if (GpuRequireChocks && !PowerConnected && (!PcaRequirePower || (PcaRequirePower && !EquipmentPca)))
+                else if (State.GpuRequireChocks && !State.PowerConnected && (!State.PcaRequirePower || (State.PcaRequirePower && !State.EquipmentPca)))
                 {
                     Logger.Information($"Automation: Removing GPU on Tug attached");
                     await SetAircraftPower(false);
@@ -274,23 +225,23 @@ namespace Any2GSX.GSX.Automation
         {
             bool last = EquipmentRemoved();
 
-            if (HasPca && (EquipmentPca || force))
+            if (State.HasPca && (State.EquipmentPca || force))
             {
                 Logger.Information($"Automation: Removing PCA on {reason}");
                 await Aircraft.SetEquipmentPca(false);
             }
 
-            if (!HasPca || (HasPca && (!PcaRequirePower || (PcaRequirePower && !EquipmentPca))))
+            if (!State.HasPca || (State.HasPca && (!State.PcaRequirePower || (State.PcaRequirePower && !State.EquipmentPca))))
                 await RemoveGroundPower(force);
 
-            if ((HasChocks && BrakeSet && EquipmentChocks && ((GpuRequireChocks && GetPowerRemoved()) || !GpuRequireChocks))
-                || (HasChocks && force))
+            if ((State.HasChocks && State.BrakeSet && State.EquipmentChocks && ((State.GpuRequireChocks && GetPowerRemoved()) || !State.GpuRequireChocks))
+                || (State.HasChocks && force))
             {
                 Logger.Information($"Automation: Removing Chocks on {reason}");
                 await Aircraft.SetEquipmentChocks(false);
             }
 
-            if ((HasCones && EquipmentCones && GetChocksRemoved()) || (HasCones && force))
+            if ((State.HasCones && State.EquipmentCones && GetChocksRemoved()) || (State.HasCones && force))
             {
                 Logger.Information($"Automation: Removing Cones on {reason}");
                 await Aircraft.SetEquipmentCones(false);
@@ -302,29 +253,70 @@ namespace Any2GSX.GSX.Automation
 
         public virtual bool EquipmentPlaced()
         {
-            return Aircraft?.IsConnected == true && GetPowerPlaced() && GetChocksPlaced() && GetConesPlaced() && GetPcaPlaced();
+            return AircraftController.IsAircraftConnected && GetPowerPlaced() && GetChocksPlaced() && GetConesPlaced() && GetPcaPlaced();
+        }
+
+        public virtual async Task<bool> CheckSetAirstairs(bool target, int delayChange = 3000)
+        {
+            bool changed = false;
+            if (State.HasAirStairs && (Profile.DoorPreferAirstair || (!target && State.AirstairsState)))
+            {
+                if (await Aircraft.GetHasAirStairForward() == true && State.AirstairForward != target)
+                {
+                    Logger.Information($"Automation: {(target ? "Extend" : "Retract")} Front Airstair ({State.AirstairForward} => {target})");
+                    await Aircraft.SetAirStairForward(target);
+                    changed = true;
+                    await Task.Delay(100, RequestToken);
+                    if (target && State.HasCustomStairs && State.CustomStairsFront)
+                    {
+                        await Aircraft.SetCustomStairsFront(false);
+                        await Task.Delay(100, RequestToken);
+                    }
+                }
+
+                if (await Aircraft.GetHasAirStairAft() == true && State.AirstairAft != target)
+                {
+                    Logger.Information($"Automation: {(target ? "Extend" : "Retract")} Rear Airstair ({State.AirstairForward} => {target})");
+                    await Aircraft.SetAirStairAft(target);
+                    changed = true;
+                    await Task.Delay(100, RequestToken);
+                    if (target && State.HasCustomStairs && State.CustomStairsRear)
+                    {
+                        await Aircraft.SetCustomStairsRear(false);
+                        await Task.Delay(100, RequestToken);
+                    }
+                }
+
+                if (changed)
+                {
+                    await Task.Delay(delayChange, RequestToken);
+                    await State.Refresh();
+                }
+            }
+
+            return changed;
         }
 
         protected virtual bool GetPowerWithApuAllowed()
         {
-            return GsxController.AutomationState == AutomationState.Arrival || Profile.ConnectGpuWithApuRunning || (!Profile.ConnectGpuWithApuRunning && !ApuRunning);
+            return GsxController.AutomationState == AutomationState.Arrival || Profile.ConnectGpuWithApuRunning || (!Profile.ConnectGpuWithApuRunning && !State.ApuRunning);
         }
 
         protected virtual bool GetPowerPlaced()
         {
-            if (HasGpuInternal && EquipmentGpu && AppService.Instance.Config.GsxSetGpuOnInternal)
-                GsxController.ServiceGpu.SetGpuConnection(true);
-            return (!HasGpuInternal && UseGpuGsx == GsxGpuUsage.Never) || (HasGpuInternal && (EquipmentGpu || (!EquipmentGpu && !GetPowerWithApuAllowed()))) || (ServiceGpu.IsConnected && UseGpuGsx != GsxGpuUsage.Never) || (GsxController.ServiceJetway.IsConnected && UseGpuGsx == GsxGpuUsage.NoJetway);
+            if (State.HasGpuInternal && State.EquipmentGpu && AppService.Instance.Config.GsxSetGpuOnInternal)
+                ServiceGpu.SetGpuConnection(true);
+            return (!State.HasGpuInternal && State.UseGpuGsx == GsxGpuUsage.Never) || (State.HasGpuInternal && (State.EquipmentGpu || (!State.EquipmentGpu && !GetPowerWithApuAllowed()))) || (ServiceGpu.IsConnected && State.UseGpuGsx != GsxGpuUsage.Never) || (ServiceJetway.IsConnected && State.UseGpuGsx == GsxGpuUsage.NoJetway);
         }
 
         protected virtual bool GetChocksPlaced()
         {
-            return !HasChocks || (HasChocks && EquipmentChocks);
+            return !State.HasChocks || (State.HasChocks && State.EquipmentChocks);
         }
 
         protected virtual bool GetConesPlaced()
         {
-            return !HasCones || (HasCones && EquipmentCones);
+            return !State.HasCones || (State.HasCones && State.EquipmentCones);
         }
 
         protected virtual bool GetPcaAllowedOnGate()
@@ -334,38 +326,38 @@ namespace Any2GSX.GSX.Automation
 
         protected virtual bool GetPcaPlaced()
         {
-            if (!HasPca)
+            if (!State.HasPca)
                 return true;
 
-            if (!Profile.PcaOverride)
-                return EquipmentPca;
+            if (!PcaOverride)
+                return State.EquipmentPca;
 
-            return EquipmentPca == GetPcaAllowedOnGate();
+            return State.EquipmentPca == GetPcaAllowedOnGate();
         }
 
         public virtual bool EquipmentRemoved()
         {
-            return Aircraft?.IsConnected == true && GetPowerRemoved() && GetChocksRemoved() && GetConesRemoved() && GetPcaRemoved();
+            return AircraftController.IsAircraftConnected && GetPowerRemoved() && GetChocksRemoved() && GetConesRemoved() && GetPcaRemoved();
         }
 
         protected virtual bool GetPowerRemoved()
         {
-            return (!HasGpuInternal && !ServiceGpu.IsConnected) || (HasGpuInternal && !EquipmentGpu);
+            return (!State.HasGpuInternal && !ServiceGpu.IsConnected) || (State.HasGpuInternal && !State.EquipmentGpu);
         }
 
         protected virtual bool GetChocksRemoved()
         {
-            return !HasChocks || (HasChocks && !EquipmentChocks);
+            return !State.HasChocks || (State.HasChocks && !State.EquipmentChocks);
         }
 
         protected virtual bool GetConesRemoved()
         {
-            return !HasCones || (HasCones && !EquipmentCones);
+            return !State.HasCones || (State.HasCones && !State.EquipmentCones);
         }
 
         protected virtual bool GetPcaRemoved()
         {
-            return !HasPca || (HasPca && !EquipmentPca);
+            return !State.HasPca || (State.HasPca && !State.EquipmentPca);
         }
     }
 }

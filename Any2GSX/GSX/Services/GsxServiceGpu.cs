@@ -26,14 +26,28 @@ namespace Any2GSX.GSX.Services
             SubGpuConnect?.OnReceived += OnGpuChange;
         }
 
-        protected override Task DoReset()
+        protected override Task DoReset(bool resetVariable)
         {
-            return Task.CompletedTask;
+            if (resetVariable)
+                return SubGpuConnect.WriteValue(0);
+            else
+                return Task.CompletedTask;
         }
 
         protected override void DoRelease()
         {
             SubGpuConnect?.OnReceived -= OnGpuChange;
+        }
+
+        protected override async Task OnCouatlStopped(IGsxController gsxController)
+        {
+            await base.OnCouatlStopped(gsxController);
+            await ResetState(true);
+        }
+
+        protected override bool EvaluateCompleted(GsxServiceState state)
+        {
+            return state == GsxServiceState.Completed;
         }
 
         protected virtual Task OnGpuChange(ISimResourceSubscription sub, object data)

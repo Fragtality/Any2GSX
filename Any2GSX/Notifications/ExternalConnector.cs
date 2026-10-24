@@ -2,6 +2,7 @@
 using Any2GSX.CommBus;
 using Any2GSX.GSX;
 using Any2GSX.GSX.Automation;
+using Any2GSX.GSX.Automation.SmartCalls;
 using Any2GSX.PluginInterface.Interfaces;
 using CFIT.AppLogger;
 using CFIT.SimConnectLib;
@@ -20,6 +21,7 @@ namespace Any2GSX.Notifications
         public virtual SimConnectManager SimConnect => AppService.Instance?.SimConnect;
         public virtual bool HasEfbApp => SimConnect?.GetSimVersion() == SimVersion.MSFS2024;
         public virtual GsxController GsxController => AppService.Instance?.GsxController;
+        protected virtual GsxGate GsxGate => GsxController.Gate;
         public virtual GsxAutomationController AutomationController => AppService.Instance?.GsxController?.AutomationController;
         public virtual NotificationTracker Tracker => AppService.Instance?.NotificationTracker;
         public virtual bool IsInitialized { get; protected set; } = false;

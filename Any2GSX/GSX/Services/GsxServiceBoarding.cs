@@ -25,6 +25,7 @@ namespace Any2GSX.GSX.Services
         public virtual int CargoPercent => (int)(SubCargoPercent?.GetNumber() ?? 0);
         protected virtual ISimResourceSubscription SubCargoPercent { get; set; }
         public virtual double CargoScalar => CargoPercent / 100.0;
+        public override bool RequiresAircraftDoor => true;
         public override bool RequiresStair => !Controller.HasGateJetway || (Controller.HasGateStair && Controller.Aircraft.HasRearStair());
 
         public event Func<GsxServiceBoarding, Task> OnPaxChange;
@@ -59,7 +60,7 @@ namespace Any2GSX.GSX.Services
             return Task.CompletedTask;
         }
 
-        protected override Task DoReset()
+        protected override Task DoReset(bool resetVariable)
         {
             WasTargetSet = false;
 

@@ -19,6 +19,7 @@ namespace Any2GSX.GSX.Services
         protected override string StateVarName => GsxConstants.VarServiceCatering;
         protected override List<string> ServiceVariables => [GsxConstants.VarVehicleCateringFront, GsxConstants.VarVehicleCateringRear];
         public override GsxMenuCommandOperatorType OperatorType => GsxMenuCommandOperatorType.Catering;
+        public override bool RequiresAircraftDoor => true;
         public override bool HasStairConflict => Controller.HasGateStair && Controller.Aircraft.HasRearStair() && Controller.IsLavatoryOnStairSide && Controller.ApiData?.HandlerData?.aircraft?.HasLavatoryConflict() == true;
 
         protected virtual ConcurrentDictionary<GsxVehicleLocation, ISimResourceSubscription> SubVehicleTrucks { get; } = [];
@@ -38,7 +39,7 @@ namespace Any2GSX.GSX.Services
             SubVehicleTrucks[GsxVehicleLocation.Rear]?.OnReceived += SubVehicleCallbacks[GsxVehicleLocation.Rear];
         }
 
-        protected override Task DoReset()
+        protected override Task DoReset(bool resetVariable)
         {
             return Task.CompletedTask;
         }

@@ -92,6 +92,7 @@ namespace Any2GSX.API
         protected virtual Dictionary<ApiRequestType, Func<RequestPayload, RequestEnvelope, Task>> RequestHandlers { get; } = [];
         public virtual GsxController GsxController => AppService.Instance.GsxController;
         public virtual GsxMenu GsxMenu => GsxController.Menu;
+        public virtual GsxGate GsxGate => GsxController.Gate;
         public virtual GsxAutomationController AutomationController => GsxController.AutomationController;
         public virtual AircraftController AircraftController => AppService.Instance.AircraftController;
         public virtual Flightplan Flightplan => AppService.Instance.Flightplan;
@@ -331,7 +332,7 @@ namespace Any2GSX.API
         protected virtual Task ProcessCommandSendFinal(RequestPayload payload, RequestEnvelope request)
         {
             Logger.Information($"External Control: Loadsheet sent");
-            AutomationController.SendExternalLoadsheet();
+            AutomationController.SendLoadsheet();
             request.SetOk();
 
             return Task.CompletedTask;
@@ -365,7 +366,7 @@ namespace Any2GSX.API
                 else
                     Logger.Information($"External Control: Push Direction cleared");
 
-                GsxController.SetPushDirection(label);
+                GsxGate.SetPushDirection(label);
                 request.SetOk();
             }
             else
@@ -380,7 +381,7 @@ namespace Any2GSX.API
             Logger.Information($"External Control: Push Request received{(!string.IsNullOrWhiteSpace(label) ? " - Label '" + label + "'" : "")}");
 
             if (!string.IsNullOrWhiteSpace(label))
-                GsxController.SetPushDirection(label);
+                GsxGate.SetPushDirection(label);
             await GsxController.ServicePushBack.Call();
 
             request.SetOk();
@@ -390,8 +391,8 @@ namespace Any2GSX.API
         {
             if (payload.HasData && (payload.data.GetValueKind() == JsonValueKind.String || payload.data.GetValueKind() == JsonValueKind.Number))
             {
-                GsxController.SetArrivalGate(payload.data);
-                Logger.Information($"External Control: Arrival Gate received - Name '{GsxController.AutoSelectionArrivalGate}'");
+                GsxGate.SetArrivalGate(payload.data);
+                Logger.Information($"External Control: Arrival Gate received - Name '{GsxGate.AutoSelectionArrivalGate}'");
                 request.SetOk();
             }
             else
@@ -403,7 +404,7 @@ namespace Any2GSX.API
         protected virtual Task ProcessCommandSmartCall(RequestPayload payload, RequestEnvelope request)
         {
             Logger.Information($"External Control: SmartButton Request received");
-            AutomationController.HasExternalSmartButtonRequest = true;
+            AutomationController.SetExternalSmartButton();
             request.SetOk();
 
             return Task.CompletedTask;

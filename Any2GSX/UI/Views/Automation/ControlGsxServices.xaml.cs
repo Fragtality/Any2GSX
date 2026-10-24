@@ -1,4 +1,5 @@
-﻿using Any2GSX.PluginInterface.Interfaces;
+﻿using Any2GSX.GSX;
+using Any2GSX.PluginInterface.Interfaces;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -31,7 +32,7 @@ namespace Any2GSX.UI.Views.Automation
             try
             {
                 var state = AppService.Instance.GsxController.AutomationState;
-                var rundepart = AppService.Instance.GsxController.AutomationController.RunDepartureOnArrival;
+                bool rundepart = AppService.Instance.GsxController.StateStore[StateVar.RunDepartureOnArrival];
 
                 if ((state == AutomationState.Departure || (state == AutomationState.Arrival && rundepart)) && !AppService.Instance.GsxController.AutomationController.ExternalServiceControl)
                     LabelQueueInUse.Visibility = Visibility.Visible;
@@ -72,7 +73,7 @@ namespace Any2GSX.UI.Views.Automation
                     ListDepartureServices.IsEnabled = true;
                     ListDepartureServices.IsHitTestVisible = true;
                     var phase = AppService.Instance.GsxController.AutomationState;
-                    var rundepart = AppService.Instance.GsxController.AutomationController.RunDepartureOnArrival;
+                    bool rundepart = AppService.Instance.GsxController.StateStore[StateVar.RunDepartureOnArrival];
                     if (phase == AutomationState.Departure || (phase == AutomationState.Arrival && rundepart))
                         LabelQueueInUse.Visibility = Visibility.Visible;
                 }

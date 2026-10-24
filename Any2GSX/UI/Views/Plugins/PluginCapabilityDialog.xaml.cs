@@ -65,6 +65,10 @@ namespace Any2GSX.UI.Views.Plugins
                 sb.AppendLine($"• Door Types {GetDoorsSyncString(Capabilities.DoorsSynced)}");
             if (Capabilities.GroundEquipmentHandling != GroundEquipment.ManualNone)
                 sb.AppendLine($"• Equipment-Handling of {GetEquipString(Capabilities.GroundEquipmentHandling)}");
+            if (Capabilities.HasCustomStairs)
+                sb.AppendLine("• Custom Stairs Handling");
+            if (Capabilities.HasAirStairs)
+                sb.AppendLine("• Airstairs Handling");
 
             BlockCapabilities.Text = sb.ToString();
         }

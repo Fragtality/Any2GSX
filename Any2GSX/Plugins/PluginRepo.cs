@@ -50,18 +50,26 @@ namespace Any2GSX.Plugins
 
         public virtual async Task Refresh()
         {
-            if (NextCheck < DateTime.Now)
+            try
             {
-                await RefreshReleaseInfo();
-                if (LatestValid)
+                if (NextCheck < DateTime.Now)
                 {
-                    await RefreshPlugins();
-                    await RefreshChannels();
-                    await RefreshProfiles();
+                    await RefreshReleaseInfo();
+                    if (LatestValid)
+                    {
+                        await RefreshPlugins();
+                        await RefreshChannels();
+                        await RefreshProfiles();
+                    }
+                    else
+                        Logger.Error($"Could not refresh latest Commit from Plugin Repository");
+                    NextCheck = DateTime.Now + TimeSpan.FromMinutes(5);
                 }
-                else
-                    Logger.Error($"Could not refresh latest Commit from Plugin Repository");
-                NextCheck = DateTime.Now + TimeSpan.FromMinutes(5);
+            }
+            finally
+            {
+                if (NextCheck < DateTime.Now)
+                    NextCheck = DateTime.Now + TimeSpan.FromMinutes(5);
             }
         }
 

@@ -5,6 +5,7 @@ using Any2GSX.PluginInterface;
 using Any2GSX.PluginInterface.Interfaces;
 using CFIT.AppFramework.UI.ViewModels.Commands;
 using CFIT.AppLogger;
+using CFIT.AppTools;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.Generic;
@@ -105,14 +106,14 @@ namespace Any2GSX.UI.Views.Automation
         public virtual void SkipToTurn()
         {
             if (AppService.Instance.GsxController.AutomationState == AutomationState.Preparation)
-                AppService.Instance.GsxController.AutomationController.SkipToTurnaround();
+                _ = TaskTools.RunPool(() => AppService.Instance.GsxController.AutomationController.SkipToTurnaround());
         }
 
         [RelayCommand]
         public virtual void SkipToPrep()
         {
             if (AppService.Instance.GsxController.AutomationState == AutomationState.TurnAround)
-                AppService.Instance.GsxController.AutomationController.SkipToPreparation();
+                _ = TaskTools.RunPool(() => AppService.Instance.GsxController.AutomationController.SkipToPreparation());
         }
 
         public virtual string DisplayUnitCurrentString => Config.DisplayUnitCurrentString;
@@ -135,6 +136,7 @@ namespace Any2GSX.UI.Views.Automation
         public virtual bool DoorsCargoKeepOpenOnDetachBoard { get => Source.DoorsCargoKeepOpenOnDetachBoard; set => SetModelValue<bool>(value); }
         public virtual bool DoorsCargoKeepOpenOnDetachDeboard { get => Source.DoorsCargoKeepOpenOnDetachDeboard; set => SetModelValue<bool>(value); }
         public virtual bool DoorPanelHandling { get => Source.DoorPanelHandling; set => SetModelValue<bool>(value); }
+        public virtual bool DoorPreferAirstair { get => Source.DoorPreferAirstair; set => SetModelValue<bool>(value); }
 
 
         public virtual bool CallJetwayStairsOnPrep { get => Source.CallJetwayStairsOnPrep; set => SetModelValue<bool>(value); }
@@ -148,10 +150,12 @@ namespace Any2GSX.UI.Views.Automation
         public virtual bool ClearChocksOnTugAttach { get => Source.ClearChocksOnTugAttach; set => SetModelValue<bool>(value); }
         public virtual bool GradualGroundEquipRemoval { get => Source.GradualGroundEquipRemoval; set => SetModelValue<bool>(value); }
         public virtual bool ConnectGpuWithApuRunning { get => Source.ConnectGpuWithApuRunning; set => SetModelValue<bool>(value); }
+        public virtual bool PlaceGroundEquipWalkaround { get => Source.PlaceGroundEquipWalkaround; set => SetModelValue<bool>(value); }
         public virtual bool SecureAircraftOnSessionStart { get => Source.SecureAircraftOnSessionStart; set => SetModelValue<bool>(value); }
         public virtual int ConnectPca { get => Source.ConnectPca; set => SetModelValue<int>(value); }
         public virtual bool PcaOverride { get => Source.PcaOverride; set => SetModelValue<bool>(value); }
         public virtual bool CallJetwayStairsInWalkaround { get => Source.CallJetwayStairsInWalkaround; set => SetModelValue<bool>(value); }
+        public virtual bool PreferCustomStairsInWalkaround { get => Source.PreferCustomStairsInWalkaround; set => SetModelValue<bool>(value); }
         public virtual int ChockDelayMin
         {
             get => Source.ChockDelayMin;
@@ -184,7 +188,6 @@ namespace Any2GSX.UI.Views.Automation
         public virtual int DelayTurnAroundSeconds { get => Source.DelayTurnAroundSeconds; set => SetModelValue<int>(value); }
         public virtual int DelayTurnRecheckSeconds { get => Source.DelayTurnRecheckSeconds; set => SetModelValue<int>(value); }
         public virtual bool RefreshGsxOnDeparture { get => Source.RefreshGsxOnDeparture; set => SetModelValue<bool>(value); }
-        public virtual bool RefreshGsxOnTurn { get => Source.RefreshGsxOnTurn; set => SetModelValue<bool>(value); }
         public virtual bool UseSimTime { get => Source.UseSimTime; set => SetModelValue<bool>(value); }
 
 

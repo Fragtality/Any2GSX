@@ -37,7 +37,7 @@ namespace Any2GSX.API
         public virtual bool bypassPin => Server.GsxController?.ServicePushBack?.IsPinInserted ?? false;
         public virtual bool releaseBrake => AppService?.NotificationTracker?.IsActive(AppNotification.PushReleaseBrake) == true;
         public virtual List<string> directions => Server.GsxController.ApiData?.HandlerData?.gate?.PushbackDirections ?? [];
-        public virtual string directionSet => Server.GsxController?.AutoSelectionPushback ?? "";
+        public virtual string directionSet => Server.GsxGate?.AutoSelectionPushback ?? "";
     }
 
     public class ResponseGates(ApiServer server) : ReponsePayload(server)

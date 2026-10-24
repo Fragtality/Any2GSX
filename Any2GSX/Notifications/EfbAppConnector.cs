@@ -1,4 +1,5 @@
 ﻿using Any2GSX.GSX;
+using Any2GSX.GSX.Automation.SmartCalls;
 using Any2GSX.PluginInterface.Interfaces;
 using Any2GSX.PluginInterface.Interfaces.GSX;
 using System;
@@ -158,7 +159,7 @@ namespace Any2GSX.Notifications
                 SmartButtonCall.PushStop => $"{callInfo} Pushback",
                 SmartButtonCall.PushConfirm => "Confirm Engine Start",
                 SmartButtonCall.Deice => $"{callInfo} DeIce",
-                SmartButtonCall.ClearGate => callInfo,
+                SmartButtonCall.GateAction => callInfo,
                 SmartButtonCall.Deboard => "Call Deboard",
                 SmartButtonCall.SkipTurn => "Skip Turnaround",
                 SmartButtonCall.WarpGate => "Warp Gate",
@@ -214,14 +215,14 @@ namespace Any2GSX.Notifications
                         status = $"Select Gate!";
                     break;
                 case AppNotification.GateMove:
-                    if (Tracker.HasGateSelection)
+                    if (GsxGate.HasGateSelection)
                     {
                         if (phase <= AutomationState.Departure)
                             status = "Move to Gate!";
                         else if (phase == AutomationState.TaxiOut)
-                            status = $"Deice Pad: {Tracker.LastGateSelection}";
+                            status = $"Deice Pad: {GsxGate.LastGateSelection}";
                         else if (phase == AutomationState.TaxiIn)
-                            status = $"Selected Gate: {Tracker.LastGateSelection}";
+                            status = $"Selected Gate: {GsxGate.LastGateSelection}";
                     }
                     else
                         status = "Move to Gate!";
@@ -232,7 +233,7 @@ namespace Any2GSX.Notifications
                         status = $"Equipment in {countdown}s ...";
                     break;
                 case AppNotification.GateDepart:
-                    status = "Aircraft not ready for Departure!";
+                    status = "Tigger Departure in Aircraft!";
                     break;
                 case AppNotification.OfpImported:
                     status = "Departure triggered - OFP Imported";

@@ -17,6 +17,7 @@ namespace Any2GSX.GSX.Services
         protected override string StateVarName => GsxConstants.VarServiceCleaning;
         protected override List<string> ServiceVariables => [GsxConstants.VarVehicleCleaning];
         protected virtual ISimResourceSubscription SubVehicleCleaning { get; set; }
+        public override bool RequiresAircraftDoor => true;
         public override bool RequiresStair => true;
         public override bool IsActive => IsRunning && GetTruckState() == 3;
 
@@ -28,7 +29,7 @@ namespace Any2GSX.GSX.Services
             SubVehicleCleaning?.OnReceived += OnVehicleChange;
         }
 
-        protected override Task DoReset()
+        protected override Task DoReset(bool resetVariable)
         {
             return Task.CompletedTask;
         }

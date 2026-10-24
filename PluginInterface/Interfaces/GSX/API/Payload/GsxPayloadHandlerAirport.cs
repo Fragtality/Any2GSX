@@ -118,6 +118,8 @@ namespace Any2GSX.PluginInterface.Interfaces.GSX.API.Payload
         public virtual bool HasRightPush => pushback != null && pushback!?.GetValueKind() == JsonValueKind.Number && (pushback!?.GetValue<int>() == 2 || pushback!?.GetValue<int>() == 3);
         [JsonIgnore]
         public virtual bool IsPushbackEnabled => pushbackType != null && pushbackType!?.GetValueKind() == JsonValueKind.Number && pushbackType!?.GetValue<int>() != -1;
+        [JsonIgnore]
+        public virtual bool HasDirections => PushbackDirections?.Count > GsxConstants.MenuPushStaticOptions.Count;
         public virtual GsxDataGateType? type { get; set; }
         [JsonIgnore]
         public virtual bool IsCargo => type != null && (type == GsxDataGateType.RAMP_CARGO || type == GsxDataGateType.RAMP_MIL_CARGO);

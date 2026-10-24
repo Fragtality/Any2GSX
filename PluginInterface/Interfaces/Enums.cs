@@ -150,6 +150,7 @@
 
     public enum AircraftDoor
     {
+        None = -1,
         Default = 0,
         L1 = 1,
         L2 = 2,
@@ -231,6 +232,21 @@
         Completing = 6,
         InPosition = 7,
         Retracting = 8,
+    }
+
+    public enum SmartButtonCall
+    {
+        None,
+        WarpGate,
+        Connect,
+        NextService,
+        PushCall,
+        PushStop,
+        PushConfirm,
+        Deice,
+        GateAction,
+        Deboard,
+        SkipTurn
     }
 
     public enum BroadcastFlag

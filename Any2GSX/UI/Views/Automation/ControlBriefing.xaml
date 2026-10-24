@@ -78,6 +78,8 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0" Visibility="{Binding IsFlightplanLoaded, Converter={StaticResource BoolVisibilityInverseConverter}}" Style="{StaticResource TextHeader}" Background="LightGray" Margin="4,2,4,2">
@@ -149,7 +151,7 @@
 
         <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource BorderGroup}">
             <TextBlock Style="{StaticResource TextGroup}">
-                WEIGHTS
+                PLANNED WEIGHTS
             </TextBlock>
         </Border>
         <Grid Grid.Row="3" Grid.Column="0" VerticalAlignment="Stretch" Margin="4,2,4,2">
@@ -224,10 +226,48 @@
 
         <Border Grid.Row="4" Grid.Column="0" Style="{StaticResource BorderGroup}">
             <TextBlock Style="{StaticResource TextGroup}">
-                GROUND HANDLING
+                LIVE WEIGHTS
             </TextBlock>
         </Border>
         <Grid Grid.Row="5" Grid.Column="0" VerticalAlignment="Stretch" Margin="4,2,4,2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="112" />
+                <ColumnDefinition Width="112" />
+                <ColumnDefinition Width="64" />
+                <ColumnDefinition Width="112"/>
+                <ColumnDefinition Width="112"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource TextLabel}" ToolTip="The Total Weight minus the Fuel on Board as read by the Sim / Aircraft">
+                ZFW
+            </TextBlock>
+            <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource TextRight}" Text="{Binding LiveZeroFuel}" ToolTip="The Total Weight minus the Fuel on Board as read by the Sim / Aircraft"/>
+            <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource TextLabel}" ToolTip="The Total Weight as read by the Sim / Aircraft">
+                GW
+            </TextBlock>
+            <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource TextRight}" Text="{Binding LiveTotal}" ToolTip="The Total Weight as read by the Sim / Aircraft"/>
+
+            <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource TextLabel}" ToolTip="The Empty Weight The Total Weight as read by the Sim">
+                EW
+            </TextBlock>
+            <TextBlock Grid.Row="0" Grid.Column="4" Style="{StaticResource TextRight}" Text="{Binding LiveEmpty}" ToolTip="The Empty Weight The Total Weight as read by the Sim"/>
+            <TextBlock Grid.Row="1" Grid.Column="3" Style="{StaticResource TextLabel}" ToolTip="The Fuel on Board as read by the Sim">
+                FOB
+            </TextBlock>
+            <TextBlock Grid.Row="1" Grid.Column="4" Style="{StaticResource TextRight}" Text="{Binding LiveFuel}" ToolTip="The Fuel on Board as read by the Sim"/>
+        </Grid>
+
+
+        <Border Grid.Row="6" Grid.Column="0" Style="{StaticResource BorderGroup}">
+            <TextBlock Style="{StaticResource TextGroup}">
+                GROUND HANDLING
+            </TextBlock>
+        </Border>
+        <Grid Grid.Row="7" Grid.Column="0" VerticalAlignment="Stretch" Margin="4,2,4,2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="112" />
                 <ColumnDefinition />
@@ -276,7 +316,10 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Column="0" Grid.Row="0" Name="TextGate" Text="{Binding AssignedArrivalGate}" Style="{StaticResource Text}" Margin="1,2,0,2" Visibility="Visible"/>
-                <TextBox Grid.Column="0" Grid.Row="0" Name="InputGate" Style="{StaticResource TextBoxLeft}" Margin="0,2,4,2" Padding="0,0,0,1" MinHeight="24" Visibility="Collapsed" FontFamily="Consolas" HorizontalAlignment="Stretch"/>
+                <DockPanel Grid.Column="0" Grid.Row="0" Name="PanelInputGate" Visibility="Collapsed" Margin="0" HorizontalAlignment="Stretch">
+                    <ComboBox DockPanel.Dock="Left" Name="ComboGateLabel" ItemsSource="{Binding GateLabels}" Style="{StaticResource ComboBoxDefault}" MinWidth="96" MaxHeight="24" SelectedIndex="0"/>
+                    <TextBox DockPanel.Dock="Left" Name="InputGate" Style="{StaticResource TextBoxLeft}" Margin="4,2,4,2" Padding="0,0,0,1" MinHeight="24" FontFamily="Consolas" HorizontalAlignment="Stretch"/>
+                </DockPanel>
                 <Button Grid.Column="1" Grid.Row="0" Click="OnGateSearchClicked" Style="{StaticResource BtnSquareSmall}" Margin="0,0,4,0" IsEnabled="{Binding IsGateSelectable}">
                     <Image Source="../../Icons/search.png" Style="{StaticResource ImgSquareSmall}"/>
                 </Button>                

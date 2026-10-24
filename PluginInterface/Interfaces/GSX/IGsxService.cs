@@ -7,6 +7,7 @@ namespace Any2GSX.PluginInterface.Interfaces.GSX
     {
         public GsxServiceType Type { get; }
         public GsxMenuCommandOperatorType OperatorType { get; }
+        public bool RequiresAircraftDoor { get; }
         public bool RequiresStair { get; }
         public bool HasStairConflict { get; }
         public bool HasSubmenu { get; }
@@ -43,7 +44,6 @@ namespace Any2GSX.PluginInterface.Interfaces.GSX
         public Task ResetVehicleState(bool force = false);
         public void SetStateOverride(GsxServiceState overrideState);
         public void ClearStateOverride();
-        public void ForceComplete();
 
         public Task<bool> Call();
         public Task<bool> Cancel(GsxCancelService option = GsxCancelService.Complete);

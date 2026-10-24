@@ -24,12 +24,11 @@ namespace Any2GSX.PluginInterface
         public SimStore SimStore => AppResources.SimStore;
         public string AircraftString => AppResources.AircraftString;
         public IGsxController GsxController => AppResources.IGsxController;
-        public CancellationToken Token => AppResources.Token;
+        public CancellationToken Token => AppResources.RequestToken;
         public ICommBus CommBus => AppResources.ICommBus;
         public IFlightplan Flightplan => AppResources.IFlightplan;
         public bool IsInitialized { get; protected set; } = false;
         public bool IsExecutionAllowed { get; protected set; } = true;
-        public abstract bool IsConnected { get; }
         public int InitDelay => ISettingProfile.HasSetting<int>(GenericSettings.OptionAircraftInitDelay, out int delay) ? delay : 0;
         public virtual int RunIntervalMs { get; protected set; } = 1000;
         public virtual int RefuelIntervalMs { get; protected set; } = 1000;
@@ -242,6 +241,11 @@ namespace Any2GSX.PluginInterface
         public virtual Task OnAutomationStateChange(AutomationState state)
         {
             return Task.CompletedTask;
+        }
+
+        public virtual Task<bool> GetIsConnected()
+        {
+            return Task.FromResult(true);
         }
 
         public abstract Task CheckConnection();
@@ -511,6 +515,36 @@ namespace Any2GSX.PluginInterface
             return Task.CompletedTask;
         }
 
+        public virtual Task<bool> HasCustomStairs()
+        {
+            return Task.FromResult(false);
+        }
+
+        public async Task<bool> GetCustomStairs()
+        {
+            return await GetCustomStairsFront() || await GetCustomStairsRear();
+        }
+
+        public virtual Task<bool> GetCustomStairsFront()
+        {
+            return Task.FromResult(false);
+        }
+
+        public virtual Task<bool> GetCustomStairsRear()
+        {
+            return Task.FromResult(false);
+        }
+
+        public virtual Task SetCustomStairsFront(bool target)
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task SetCustomStairsRear(bool target)
+        {
+            return Task.CompletedTask;
+        }
+
         public virtual Task<bool> GetBrakeSet()
         {
             return Task.FromResult(ParkingBrake);
@@ -627,21 +661,11 @@ namespace Any2GSX.PluginInterface
                 GsxDoorMapping[door] = await MapAircraftDoor(door);
         }
 
-        public async Task<AircraftDoor> MapAircraftDoor(GsxDoor gsxDoor)
+        public Task<AircraftDoor> MapAircraftDoor(GsxDoor gsxDoor)
         {
             if (gsxDoor >= GsxDoor.CargoDoor1)
             {
-                AircraftDoor aircraftDoor = gsxDoor switch
-                {
-                    GsxDoor.CargoDoor1 => AircraftDoor.CargoFront,
-                    GsxDoor.CargoDoor2 => AircraftDoor.CargoRear,
-                    GsxDoor.CargoDoor3Main => AircraftDoor.CargoBulk,
-                    _ => AircraftDoor.CargoFront,
-                };
-                if (gsxDoor == GsxDoor.CargoDoor3Main && await GetIsCargo())
-                    aircraftDoor = AircraftDoor.CargoMain;
-
-                return aircraftDoor;
+                return GetAircraftDefaultDoor(gsxDoor);
             }
             else
             {
@@ -658,9 +682,9 @@ namespace Any2GSX.PluginInterface
 
                 AircraftDoor acDoor = ISettingProfile.GetSetting<AircraftDoor>(setting);
                 if (acDoor == AircraftDoor.Default)
-                    return await GetAircraftDefaultDoor(gsxDoor);
+                    return GetAircraftDefaultDoor(gsxDoor);
                 else
-                    return acDoor;
+                    return Task.FromResult(acDoor);
             }
         }
 
@@ -671,21 +695,40 @@ namespace Any2GSX.PluginInterface
 
         public async Task<AircraftDoor> MapDoorDefaults(GsxDoor gsxDoor)
         {
-            AircraftDoor aircraftDoor = gsxDoor switch
+            AircraftDoor aircraftDoor;
+
+            if (await GetIsCargo())
             {
-                GsxDoor.PaxDoor1 => AircraftDoor.L1,
-                GsxDoor.PaxDoor2 => AircraftDoor.L2,
-                GsxDoor.PaxDoor3 => AircraftDoor.L3,
-                GsxDoor.PaxDoor4 => AircraftDoor.L4,
-                GsxDoor.ServiceDoor1 => AircraftDoor.R1,
-                GsxDoor.ServiceDoor2 => AircraftDoor.R4,
-                GsxDoor.CargoDoor1 => AircraftDoor.CargoFront,
-                GsxDoor.CargoDoor2 => AircraftDoor.CargoRear,
-                GsxDoor.CargoDoor3Main => AircraftDoor.CargoBulk,
-                _ => AircraftDoor.L1
-            };
-            if (gsxDoor == GsxDoor.CargoDoor3Main && await GetIsCargo())
-                aircraftDoor = AircraftDoor.CargoMain;
+                aircraftDoor = gsxDoor switch
+                {
+                    GsxDoor.PaxDoor1 => AircraftDoor.L1,
+                    GsxDoor.PaxDoor2 => AircraftDoor.None,
+                    GsxDoor.PaxDoor3 => AircraftDoor.None,
+                    GsxDoor.PaxDoor4 => AircraftDoor.None,
+                    GsxDoor.ServiceDoor1 => AircraftDoor.R1,
+                    GsxDoor.ServiceDoor2 => AircraftDoor.None,
+                    GsxDoor.CargoDoor1 => AircraftDoor.CargoFront,
+                    GsxDoor.CargoDoor2 => AircraftDoor.CargoRear,
+                    GsxDoor.CargoDoor3Main => AircraftDoor.CargoMain,
+                    _ => AircraftDoor.None
+                };
+            }
+            else
+            {
+                aircraftDoor = gsxDoor switch
+                {
+                    GsxDoor.PaxDoor1 => AircraftDoor.L1,
+                    GsxDoor.PaxDoor2 => AircraftDoor.L2,
+                    GsxDoor.PaxDoor3 => AircraftDoor.None,
+                    GsxDoor.PaxDoor4 => AircraftDoor.L4,
+                    GsxDoor.ServiceDoor1 => AircraftDoor.R1,
+                    GsxDoor.ServiceDoor2 => AircraftDoor.R4,
+                    GsxDoor.CargoDoor1 => AircraftDoor.CargoFront,
+                    GsxDoor.CargoDoor2 => AircraftDoor.CargoRear,
+                    GsxDoor.CargoDoor3Main => AircraftDoor.CargoBulk,
+                    _ => AircraftDoor.None
+                };
+            }
 
             return aircraftDoor;
         }
@@ -778,6 +821,8 @@ namespace Any2GSX.PluginInterface
         public async Task SetDoor(GsxDoor gsxDoor, bool target)
         {
             var aircraftDoor = GsxDoorMapping[gsxDoor];
+            if (aircraftDoor == AircraftDoor.None)
+                return;
 
             if (await IsDoorCustom(gsxDoor))
                 await SetDoorCustom(aircraftDoor, target);
@@ -788,6 +833,8 @@ namespace Any2GSX.PluginInterface
         public async Task<bool> GetDoor(GsxDoor gsxDoor)
         {
             var aircraftDoor = GsxDoorMapping[gsxDoor];
+            if (aircraftDoor == AircraftDoor.None)
+                return false;
 
             if (await IsDoorCustom(gsxDoor))
                 return await GetDoorCustom(aircraftDoor);
@@ -833,7 +880,7 @@ namespace Any2GSX.PluginInterface
         {
             foreach (var gsxDoor in Enum.GetValues<GsxDoor>())
             {
-                if (IGsxController.IsCargoDoor(gsxDoor) && GsxDoorMapping[gsxDoor] != AircraftDoor.CargoBulk)
+                if (IGsxController.IsCargoDoor(gsxDoor) && GsxDoorMapping[gsxDoor] != AircraftDoor.CargoBulk && GsxDoorMapping[gsxDoor] != AircraftDoor.None)
                     await SetDoor(gsxDoor, target);
             }
 
@@ -841,16 +888,36 @@ namespace Any2GSX.PluginInterface
                 await SetCargoDoorBulk(target);
         }
 
-        public virtual async Task DoorsAllClose()
+        public virtual Task CloseAllCustomDoors()
+        {
+            return Task.CompletedTask;
+        }
+
+        public async Task DoorsAllClose()
         {
             foreach (var gsxDoor in Enum.GetValues<GsxDoor>())
                 await SetDoor(gsxDoor, false);
-            if (GsxDoorMapping[GsxDoor.CargoDoor3Main] != AircraftDoor.CargoBulk)
+
+            if (await GetHasAirStairForward() && await GetAirStairForward())
+                await SetAirStairForward(false);
+
+            if (await GetHasAirStairAft() && await GetAirStairAft())
+                await SetAirStairAft(false);
+
+            if (GsxDoorMapping[GsxDoor.CargoDoor3Main] != AircraftDoor.CargoBulk && GsxDoorMapping[GsxDoor.CargoDoor3Main] != AircraftDoor.None)
                 await SetCargoDoorBulk(false);
+
             await SetPanelRefuel(false);
             await SetPanelRefuelOperator(false);
             await SetPanelLavatory(false);
             await SetPanelWater(false);
+
+            await CloseAllCustomDoors();
+        }
+
+        public async Task<bool> GetHasAirStairs()
+        {
+            return await GetHasAirStairForward() || await GetHasAirStairAft();
         }
 
         public virtual Task<bool> GetHasAirStairForward()
@@ -861,6 +928,26 @@ namespace Any2GSX.PluginInterface
         public virtual Task<bool> GetHasAirStairAft()
         {
             return Task.FromResult(false);
+        }
+
+        public virtual Task<bool> GetAirStairForward()
+        {
+            return Task.FromResult(false);
+        }
+
+        public virtual Task<bool> GetAirStairAft()
+        {
+            return Task.FromResult(false);
+        }
+
+        public virtual Task SetAirStairForward(bool target)
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task SetAirStairAft(bool target)
+        {
+            return Task.CompletedTask;
         }
 
         public virtual Task<bool> OnDoorTrigger(AircraftDoor aircraftDoor, bool trigger, bool isAllowed)

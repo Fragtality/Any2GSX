@@ -19,10 +19,10 @@ namespace Any2GSX.GSX.Services
         protected virtual ISimResourceSubscription SubOperating { get; set; }
         public virtual GsxServiceState OperatingState => ReadOperatingState();
 
-        public override bool IsAvailable => Controller.GateServicesValid && State != GsxServiceState.NotAvailable && State != GsxServiceState.Unknown;
+        public override bool IsAvailable => Controller.GateServicesValid && State != GsxServiceState.NotAvailable && State != GsxServiceState.Unknown && Controller.StateStore[StateVar.NoJetwayDetected] == false;
         public virtual bool IsConnected => (ReadState() == GsxServiceState.Active && (ReadOperatingState() < GsxServiceState.Bypassed || ReadOperatingState() == GsxServiceState.Completed)) || (IsActive && ReadState() != GsxServiceState.Bypassed && ReadOperatingState() == GsxServiceState.Completed);
         public virtual bool IsOperating => ReadState() == GsxServiceState.Requested || (ReadOperatingState() > GsxServiceState.Bypassed && ReadOperatingState() != GsxServiceState.Completed);
-        public virtual bool IsConnectable => IsAvailable && !IsConnected && !EvaluateCalled() && !Controller.Menu.NoJetwayDetected;
+        public virtual bool IsConnectable => IsAvailable && !IsConnected && !EvaluateCalled() && Controller.StateStore[StateVar.NoJetwayDetected] == false;
 
         public event Func<GsxServiceState, Task> OnOperationChanged;
 
@@ -37,14 +37,28 @@ namespace Any2GSX.GSX.Services
             SubOperating?.OnReceived += OnOperationChange;
         }
 
-        protected override Task DoReset()
+        protected override Task DoReset(bool resetVariable)
         {
-            return Task.CompletedTask;
+            if (resetVariable)
+                return SubOperating.WriteValue(1);
+            else
+                return Task.CompletedTask;
         }
 
         protected override void DoRelease()
         {
             SubOperating?.OnReceived -= OnOperationChange;
+        }
+
+        protected override async Task OnCouatlStopped(IGsxController gsxController)
+        {
+            await base.OnCouatlStopped(gsxController);
+            await ResetState(true);
+        }
+
+        protected override bool EvaluateCompleted(GsxServiceState state)
+        {
+            return state == GsxServiceState.Completed;
         }
 
         protected virtual GsxServiceState ReadOperatingState()

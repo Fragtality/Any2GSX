@@ -34,6 +34,7 @@
   "DeckVarCall": "X:GSX_INFO_CALL",
   "DeckVarInfoPax": "X:GSX_INFO_PAX",
   "DeckVarInfoCargo": "X:GSX_INFO_CARGO",
+  "DeckVarGateHasPush": "X:GSX_GATE_HAS_PUSH",
   "UiRefreshInterval": 500,
   "FuelCompareVariance": 50,
   "TimerGsxCheck": 1000,
@@ -61,8 +62,8 @@
   "AudioProcessMaxSearchCount": 30,
   "AudioSynchSessionOnCountChange": false,
   "AudioDeviceBlacklist": [],
-  "GsxServiceStartDelay": 3000,
-  "GroundTicks": 2,
+  "GsxServiceStartDelay": 1500,
+  "GroundTicks": 4,
   "DelayForegroundChange": 1250,
   "DelayAircraftModeChange": 1500,
   "MenuCheckInterval": 250,
@@ -122,7 +123,6 @@
       "DelayTurnAroundSeconds": 90,
       "DelayTurnRecheckSeconds": 30,
       "RefreshGsxOnDeparture": true,
-      "RefreshGsxOnTurn": true,
       "UseSimTime": true,
       "NotifyPrepFinished": true,
       "NotifyFinalReceived": true,
@@ -136,10 +136,12 @@
       "PcaOverride": true,
       "CallReposition": true,
       "CallJetwayStairsInWalkaround": true,
+      "PreferCustomStairsInWalkaround": true,
       "CallJetwayStairsOnPrep": true,
       "CallJetwayStairsDuringDeparture": true,
       "CallJetwayStairsOnArrival": true,
       "RemoveStairsAfterDepature": 2,
+      "PlaceGroundEquipWalkaround": true,
       "SecureAircraftOnSessionStart": true,
       "SkipFuelOnTankering": true,
       "CallPushbackOnBeacon": false,
@@ -159,6 +161,7 @@
       "CloseDoorsOnFinal": true,
       "DoorPaxHandling": true,
       "DoorStairHandling": true,
+      "DoorPreferAirstair": false,
       "DoorServiceHandling": true,
       "DoorPanelHandling": true,
       "DoorCargoHandling": true,
@@ -211,7 +214,8 @@
           "CallOnCargo": false,
           "MinimumFlightDuration": "00:00:00",
           "MaxRunTime": "00:00:00",
-          "CallDelay": "00:00:00"
+          "CallDelay": "00:00:00",
+          "MinRunTime": "00:05:00"
         },
         "1": {
           "ServiceType": 9,
@@ -230,7 +234,8 @@
           "CallOnCargo": false,
           "MinimumFlightDuration": "00:00:00",
           "MaxRunTime": "00:00:00",
-          "CallDelay": "00:00:00"
+          "CallDelay": "00:00:00",
+          "MinRunTime": "00:05:00"
         },
         "2": {
           "ServiceType": 2,
@@ -249,7 +254,8 @@
           "CallOnCargo": true,
           "MinimumFlightDuration": "00:00:00",
           "MaxRunTime": "00:00:00",
-          "CallDelay": "00:00:00"
+          "CallDelay": "00:00:00",
+          "MinRunTime": "00:05:00"
         },
         "3": {
           "ServiceType": 13,
@@ -268,7 +274,8 @@
           "CallOnCargo": false,
           "MinimumFlightDuration": "00:00:00",
           "MaxRunTime": "00:00:00",
-          "CallDelay": "00:00:00"
+          "CallDelay": "00:00:00",
+          "MinRunTime": "00:05:00"
         },
         "4": {
           "ServiceType": 3,
@@ -287,7 +294,8 @@
           "CallOnCargo": false,
           "MinimumFlightDuration": "00:00:00",
           "MaxRunTime": "00:00:00",
-          "CallDelay": "00:00:00"
+          "CallDelay": "00:00:00",
+          "MinRunTime": "00:05:00"
         },
         "5": {
           "ServiceType": 4,
@@ -306,7 +314,8 @@
           "CallOnCargo": true,
           "MinimumFlightDuration": "00:00:00",
           "MaxRunTime": "00:00:00",
-          "CallDelay": "00:00:00"
+          "CallDelay": "00:00:00",
+          "MinRunTime": "00:05:00"
         }
       },
       "RunAudioService": false,
@@ -317,7 +326,7 @@
   ],
   "FuelFobSaved": {},
   "FuelResetPercent": 0.02,
-  "ConfigVersion": 24,
+  "ConfigVersion": 28,
   "LogInterval": 3,
   "SizeLimit": 10485760,
   "LogCount": 3,

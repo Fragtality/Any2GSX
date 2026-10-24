@@ -21,6 +21,7 @@ namespace Any2GSX.Notifications
         public static string BinaryPlugin => "PilotsDeck";
         public virtual string BinaryExectuable => $"{BinaryPlugin}.exe";
         public virtual GsxMenu Menu => GsxController.Menu;
+        public virtual AutomationState AutomationState => AutomationController.State;
 
         public virtual string VarDeckConnected => Config.DeckVarConnected;
         public virtual string VarDeckAircraftConnected => Config.DeckVarAircraftConnected;
@@ -89,7 +90,7 @@ namespace Any2GSX.Notifications
                 if (state != "1")
                 {
                     await SetConnected(true, AppService.Instance.ProfileName);
-                    await SetAircraftConnected(AppService.Instance.AircraftController.IsConnected);
+                    await SetAircraftConnected(AppService.Instance.AircraftController.IsAircraftConnected);
                 }
             }
         }
@@ -200,41 +201,41 @@ namespace Any2GSX.Notifications
         protected override Task SetMenuLine(int line, string value)
         {
             line++;
-            if (Menu.IsGateMenu && !string.IsNullOrWhiteSpace(value))
+            if (Menu.IsActivateServicesMenu && !string.IsNullOrWhiteSpace(value))
             {
                 if (line == 1)
                 {
-                    if (AutomationController.State < AutomationState.TaxiOut)
+                    if (AutomationState < AutomationState.TaxiOut)
                         value = $"{StateColorOther}{value}";
-                    else if (AutomationController.State >= AutomationState.TaxiIn)
+                    else if (AutomationState >= AutomationState.TaxiIn)
                         value = $"{StateColors[GsxController.GsxServices[GsxServiceType.Deboarding].State]}{value}";
                 }
                 else if (line == 2)
                 {
-                    if (AutomationController.State < AutomationState.TaxiOut)
+                    if (AutomationState < AutomationState.TaxiOut || AutomationState >= AutomationState.Arrival)
                         value = $"{StateColors[GsxController.GsxServices[GsxServiceType.Catering].State]}{value}";
-                    else if (AutomationController.State >= AutomationState.TaxiIn)
+                    else
                         value = $"{StateColorOther}{value}";
                 }
                 else if (line == 3)
                 {
-                    if (AutomationController.State < AutomationState.TaxiOut)
+                    if (AutomationState < AutomationState.TaxiOut || AutomationState >= AutomationState.Arrival)
                         value = $"{StateColors[GsxController.GsxServices[GsxServiceType.Refuel].State]}{value}";
-                    else if (AutomationController.State >= AutomationState.TaxiIn)
+                    else
                         value = $"{StateColorOther}{value}";
                 }
                 else if (line == 4)
                 {
-                    if (AutomationController.State < AutomationState.TaxiOut)
+                    if (AutomationState < AutomationState.TaxiOut)
                         value = $"{StateColors[GsxController.GsxServices[GsxServiceType.Boarding].State]}{value}";
-                    else if (AutomationController.State >= AutomationState.TaxiIn)
+                    else if (AutomationState >= AutomationState.TaxiIn)
                         value = $"{StateColorOther}{value}";
                 }
                 else if (line == 5)
                 {
-                    if (AutomationController.State < AutomationState.TaxiOut)
+                    if (AutomationState < AutomationState.TaxiOut)
                         value = $"{StateColors[GsxController.GsxServices[GsxServiceType.Pushback].State]}{value}";
-                    else if (AutomationController.State >= AutomationState.TaxiIn)
+                    else if (AutomationState >= AutomationState.TaxiIn)
                         value = $"{StateColorOther}{value}";
                 }
                 else if (line == 6)
@@ -253,6 +254,48 @@ namespace Any2GSX.Notifications
                 }
                 else if (line > 8)
                     value = $"{StateColorOther}{value}";
+            }
+            else if (Menu.MatchTitle(GsxConstants.MenuAdditionalServices) && !string.IsNullOrWhiteSpace(value))
+            {
+                if (line == 1)
+                {
+                    if (AutomationState < AutomationState.TaxiOut || AutomationState >= AutomationState.Arrival)
+                        value = $"{StateColors[GsxController.GsxServices[GsxServiceType.GPU].State]}{value}";
+                    else
+                        value = $"{StateColorOther}{value}";
+                }
+                else if (line == 2)
+                {
+                    if (AutomationState < AutomationState.TaxiOut || AutomationState >= AutomationState.Arrival)
+                        value = $"{StateColors[GsxController.GsxServices[GsxServiceType.Deice].State]}{value}";
+                    else
+                        value = $"{StateColorOther}{value}";
+                }
+                else if (line == 3)
+                {
+                    if (AutomationState < AutomationState.TaxiOut || AutomationState >= AutomationState.Arrival)
+                        value = $"{StateColors[GsxController.GsxServices[GsxServiceType.Lavatory].State]}{value}";
+                    else
+                        value = $"{StateColorOther}{value}";
+                }
+                else if (line == 4)
+                {
+                    if (AutomationState < AutomationState.TaxiOut || AutomationState >= AutomationState.Arrival)
+                        value = $"{StateColors[GsxController.GsxServices[GsxServiceType.Water].State]}{value}";
+                    else
+                        value = $"{StateColorOther}{value}";
+                }
+                else if (line == 5)
+                {
+                    if (AutomationState < AutomationState.TaxiOut || AutomationState >= AutomationState.Arrival)
+                        value = $"{StateColors[GsxController.GsxServices[GsxServiceType.Cleaning].State]}{value}";
+                    else
+                        value = $"{StateColorOther}{value}";
+                }
+            }
+            else if (GsxGate.HasSelectionPushback && Menu.MatchTitle(GsxConstants.MenuPushbackDirection) && !string.IsNullOrWhiteSpace(value) && value.Contains(GsxGate.AutoSelectionPushback, StringComparison.InvariantCultureIgnoreCase))
+            {
+                value = $"{StateColors[GsxServiceState.Completed]}{value}";
             }
 
             return WriteVariable($"{VarDeckLine}{line}", value);
@@ -279,7 +322,7 @@ namespace Any2GSX.Notifications
                 SmartButtonCall.PushStop => $"{callInfo}[[nPushback",
                 SmartButtonCall.PushConfirm => "Confirm[[nStart",
                 SmartButtonCall.Deice => $"{callInfo}[[nDeIce",
-                SmartButtonCall.ClearGate => callInfo,
+                SmartButtonCall.GateAction => callInfo,
                 SmartButtonCall.Deboard => "Call[[nDeboard",
                 SmartButtonCall.SkipTurn => "Skip[[nTurnaround",
                 SmartButtonCall.WarpGate => "Warp[[nGate",
@@ -348,14 +391,14 @@ namespace Any2GSX.Notifications
                         status = $"Select Gate!";
                     break;
                 case AppNotification.GateMove:
-                    if (Tracker.HasGateSelection)
+                    if (GsxGate.HasGateSelection)
                     {
                         if (phase <= AutomationState.Departure)
                             status = "Move to Gate!";
                         else if (phase == AutomationState.TaxiOut)
-                            status = $"Pad: {Tracker.LastGateSelection}";
+                            status = $"Pad: {GsxGate.LastGateSelection}";
                         else if (phase == AutomationState.TaxiIn)
-                            status = $"Gate: {Tracker.LastGateSelection}";
+                            status = $"Gate: {GsxGate.LastGateSelection}";
                     }
                     else
                         status = "Move to Gate!";
@@ -487,6 +530,11 @@ namespace Any2GSX.Notifications
             }
 
             return WriteVariable(VarDeckInfoCargo, value);
+        }
+
+        public virtual Task SetPushSelectable(bool enabled)
+        {
+            return WriteVariable(Config.DeckVarGateHasPush, enabled ? "1" : "0");
         }
     }
 }

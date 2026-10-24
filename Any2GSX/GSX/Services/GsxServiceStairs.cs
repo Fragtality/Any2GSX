@@ -20,13 +20,18 @@ namespace Any2GSX.GSX.Services
         protected override string StateVarName => GsxConstants.VarServiceStairs;
         protected override List<string> ServiceVariables => [GsxConstants.VarServiceStairsOperation, GsxConstants.VarVehicleStairsFront, GsxConstants.VarVehicleStairsMiddle, GsxConstants.VarVehicleStairsRear];
         protected virtual ISimResourceSubscription SubOperating { get; set; }
-        public virtual GsxServiceState OperatingState => ReadOperatingState();
+        public virtual GsxServiceState OperatingState => IsOperating ? GsxServiceState.Active : GsxServiceState.Callable;
+        protected virtual GsxServiceState LastOperatingState { get; set; } = GsxServiceState.Unknown;
         protected virtual ConcurrentDictionary<GsxVehicleLocation, ISimResourceSubscription> SubVehicleStairs { get; } = [];
         protected virtual ConcurrentDictionary<GsxVehicleLocation, Func<ISimResourceSubscription, object, Task>> SubVehicleCallbacks { get; } = [];
+        public override bool IsActive => base.IsActive || (IsConnected && !IsOperating);
         public override bool IsAvailable => Controller.GateServicesValid && State != GsxServiceState.NotAvailable && State != GsxServiceState.Unknown;
-        public virtual bool IsConnected => ReadState() == GsxServiceState.Active && ReadOperatingState() < GsxServiceState.Bypassed || IsAnyStair((state) => state == GsxVehicleStairState.InPosition);
-        public virtual bool IsOperating => (ReadState() == GsxServiceState.Requested || ReadOperatingState() > GsxServiceState.Bypassed || IsAnyStair((state) => state > GsxVehicleStairState.Idle && state != GsxVehicleStairState.InPosition)) && !AllStairs((state) => state == GsxVehicleStairState.InPosition);
-        public virtual bool IsConnectable => IsAvailable && !IsConnected && !EvaluateCalled();
+        public virtual bool IsConnected => IsAnyStair((state) => state == GsxVehicleStairState.InPosition);
+        public virtual bool IsConnectedAll => IsConnected && AllStairs((state) => state == GsxVehicleStairState.InPosition || state == GsxVehicleStairState.Unknown);
+        public virtual bool IsConnectedPartial => IsConnected && IsAnyStair((state) => state != GsxVehicleStairState.InPosition && state != GsxVehicleStairState.Unknown);
+        public virtual bool IsOperating => IsAnyStair((state) => state != GsxVehicleStairState.InPosition && state != GsxVehicleStairState.Unknown && state > GsxVehicleStairState.Idle);
+        public virtual bool IsIdle => AllStairs((state) => state == GsxVehicleStairState.Idle || state == GsxVehicleStairState.Unknown);
+        public virtual bool IsConnectable => IsAvailable && !IsConnectedAll && !IsOperating;
 
         public event Func<GsxServiceState, Task> OnOperationChanged;
         public event Func<GsxVehicleLocation, GsxVehicleStairState, Task> OnVehicleChanged;
@@ -39,7 +44,7 @@ namespace Any2GSX.GSX.Services
         protected override void DoInit()
         {
             SubOperating = SimStore[GsxConstants.VarServiceStairsOperation];
-            SubOperating?.OnReceived += OnOperationChange;
+            SubOperating?.OnReceived += LogOperationChange;
 
             SubVehicleStairs.Add(GsxVehicleLocation.Front, SimStore[GsxConstants.VarVehicleStairsFront]);
             SubVehicleStairs.Add(GsxVehicleLocation.Middle, SimStore[GsxConstants.VarVehicleStairsMiddle]);
@@ -54,9 +59,13 @@ namespace Any2GSX.GSX.Services
             SubVehicleStairs[GsxVehicleLocation.Rear]?.OnReceived += SubVehicleCallbacks[GsxVehicleLocation.Rear];
         }
 
-        protected override Task DoReset()
+        protected override Task DoReset(bool resetVariable)
         {
-            return Task.CompletedTask;
+            LastOperatingState = GsxServiceState.Unknown;
+            if (resetVariable)
+                return SubOperating.WriteValue(1);
+            else
+                return Task.CompletedTask;
         }
 
         protected override void DoRelease()
@@ -67,20 +76,18 @@ namespace Any2GSX.GSX.Services
             SubVehicleCallbacks.Clear();
             SubVehicleStairs.Clear();
 
-            SubOperating?.OnReceived -= OnOperationChange;
+            SubOperating?.OnReceived -= LogOperationChange;
         }
 
-        protected virtual GsxServiceState ReadOperatingState()
+        protected override async Task OnCouatlStopped(IGsxController gsxController)
         {
-            try
-            {
-                return (GsxServiceState)(SubOperating?.GetNumber() ?? 0);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-                return GsxServiceState.Unknown;
-            }
+            await base.OnCouatlStopped(gsxController);
+            await ResetState(true);
+        }
+
+        protected override bool EvaluateCompleted(GsxServiceState state)
+        {
+            return state == GsxServiceState.Completed;
         }
 
         protected override bool EvaluateCalled()
@@ -119,16 +126,30 @@ namespace Any2GSX.GSX.Services
 
             Logger.Debug($"Vehicle State Change for Stair {stair}: {(GsxVehicleStairState)(int)(state)}");
             _ = TaskTools.RunPool(() => OnVehicleChanged?.Invoke(stair, (GsxVehicleStairState)(int)state), Controller.RequestToken);
+            if (IsOperating)
+                NotifyOperationChange(GsxServiceState.Active);
+            else
+                NotifyOperationChange(GsxServiceState.Callable);
+
             return Task.CompletedTask;
         }
 
-        protected virtual Task OnOperationChange(ISimResourceSubscription sub, object data)
+        protected virtual void NotifyOperationChange(GsxServiceState state)
+        {
+            if (state != LastOperatingState)
+            {
+                Logger.Debug($"Operation State Change for {Type}: {state}");
+                _ = TaskTools.RunPool(() => OnOperationChanged?.Invoke(state), Controller.RequestToken);
+                LastOperatingState = state;
+            }
+        }
+
+        protected virtual Task LogOperationChange(ISimResourceSubscription sub, object data)
         {
             if (InhibitStateUpdates)
                 return Task.CompletedTask;
 
-            Logger.Debug($"Operation State Change for {Type}: {OperatingState}");
-            _ = TaskTools.RunPool(() => OnOperationChanged?.Invoke(OperatingState), Controller.RequestToken);
+            Logger.Debug($"Stair Operation Var: {sub?.GetNumber() ?? 0}");
             return Task.CompletedTask;
         }
 
@@ -162,9 +183,9 @@ namespace Any2GSX.GSX.Services
                 if (force || (SubStateVar.GetNumber() <= (int)GsxServiceState.Bypassed && IsAnyStair((state) => state > GsxVehicleStairState.Idle)) || Controller.Tracker.IsActive(AppNotification.GsxRestart))
                 {
                     Logger.Debug($"Reset Vehicle State for {Type}");
-                    await SubVehicleStairs[GsxVehicleLocation.Front]?.WriteValue(0);
-                    await SubVehicleStairs[GsxVehicleLocation.Middle]?.WriteValue(0);
-                    await SubVehicleStairs[GsxVehicleLocation.Rear]?.WriteValue(0);
+                    await SubVehicleStairs[GsxVehicleLocation.Front]?.WriteValue(!force && SubVehicleStairs[GsxVehicleLocation.Front]?.GetNumber() > 0 ? 1 : 0);
+                    await SubVehicleStairs[GsxVehicleLocation.Middle]?.WriteValue(!force && SubVehicleStairs[GsxVehicleLocation.Middle]?.GetNumber() > 0 ? 1 : 0);
+                    await SubVehicleStairs[GsxVehicleLocation.Rear]?.WriteValue(!force && SubVehicleStairs[GsxVehicleLocation.Rear]?.GetNumber() > 0 ? 1 : 0);
                 }
             }
             catch { }

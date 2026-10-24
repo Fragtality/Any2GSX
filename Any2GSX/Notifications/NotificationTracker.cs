@@ -1,12 +1,9 @@
-﻿using Any2GSX.PluginInterface.Interfaces;
-using Any2GSX.PluginInterface.Interfaces.GSX;
-using CFIT.AppLogger;
+﻿using CFIT.AppLogger;
 using CFIT.AppTools;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace Any2GSX.Notifications
 {
@@ -27,8 +24,6 @@ namespace Any2GSX.Notifications
         GateSelect = 110,
         GateMove = 120,
         GateEquip = 130,
-        OperateStairs = 135,
-        OperateJetway = 136,
         GateDepart = 140,
         OfpImported = 145,
         OfpCheck = 150,
@@ -42,21 +37,8 @@ namespace Any2GSX.Notifications
         PushReleaseBrake = 320,
         PushDirectionDisplayed = 330,
         PushDirectionSelected = 331,
-    }
-
-    public enum SmartButtonCall
-    {
-        None = 0,
-        Connect = 1,
-        NextService = 2,
-        PushCall = 3,
-        PushStop = 4,
-        PushConfirm = 5,
-        Deice = 6,
-        ClearGate = 7,
-        Deboard = 8,
-        SkipTurn = 9,
-        WarpGate = 10,
+        OperateStairs = 350,
+        OperateJetway = 351,
     }
 
     public class NotificationTracker()
@@ -65,27 +47,10 @@ namespace Any2GSX.Notifications
         public virtual bool HasNotification => !Notifications.IsEmpty;
         public virtual AppNotification CurrentType => GetCurrentKey();
         public virtual Notification Current => GetCurrent();
-        public virtual SmartButtonCall SmartButton { get; set; } = SmartButtonCall.None;
-        public virtual string LastGateSelection { get; protected set; } = "";
-        public virtual bool HasGateSelection => !string.IsNullOrWhiteSpace(LastGateSelection);
-        public virtual string LastGateActive { get; protected set; } = "";
-        public virtual bool HasGateActive => !string.IsNullOrWhiteSpace(LastGateActive);
-
 
         public virtual void Reset()
         {
             Notifications.Clear();
-            ResetGate();
-            SmartButton = SmartButtonCall.None;
-        }
-
-        public virtual void ResetGate()
-        {
-            Clear(AppNotification.GateDepart);
-            Clear(AppNotification.GateSelect);
-            Clear(AppNotification.GateMove);
-            LastGateSelection = "";
-            LastGateActive = "";
         }
 
         public virtual void Track(AppNotification call)
@@ -180,84 +145,6 @@ namespace Any2GSX.Notifications
                 return notification;
             else
                 return new Notification(AppNotification.None);
-        }
-
-        protected static string ParseGate(string parking)
-        {
-            string capture = "";
-            try
-            {
-                if (parking == null)
-                    return capture;
-
-                Logger.Debug($"Trying to get Gate/Pad from Line '{parking}'");
-
-                if (AppService.Instance.GsxController.AutomationState == AutomationState.TaxiOut)
-                {
-                    capture = parking
-                              .Replace("deice:", "", StringComparison.InvariantCultureIgnoreCase)
-                              .Replace("deice", "", StringComparison.InvariantCultureIgnoreCase)
-                              .Replace("de-ice:", "", StringComparison.InvariantCultureIgnoreCase)
-                              .Replace("de-ice", "", StringComparison.InvariantCultureIgnoreCase)
-                              .Trim();
-                }
-                else
-                {
-                    var matches = GsxConstants.MenuRegexGate.Matches(parking);
-                    if (matches.Count > 0)
-                        capture = matches[0].Value.Trim()
-                                 .Replace("Gate:", "", StringComparison.InvariantCultureIgnoreCase)
-                                 .Replace("Stand:", "", StringComparison.InvariantCultureIgnoreCase)
-                                 .Replace("Gate", "", StringComparison.InvariantCultureIgnoreCase)
-                                 .Replace("Stand", "", StringComparison.InvariantCultureIgnoreCase)
-                                 .Trim();
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-                capture = "";
-            }
-
-            return capture;
-        }
-
-        public virtual void CaptureSelectedGate(string line)
-        {
-            string capture = ParseGate(line);
-
-            if (capture != LastGateSelection)
-            {
-                Logger.Debug($"Last selected Gate changed: '{capture}'");
-                LastGateSelection = capture;
-            }
-
-            if (!string.IsNullOrWhiteSpace(LastGateSelection) && LastGateSelection != LastGateActive && AppService.Instance.GsxController.AutomationState != AutomationState.Flight)
-            {
-                Track(AppNotification.GateMove);
-                Clear(AppNotification.GateSelect);
-            }
-            else if (string.IsNullOrWhiteSpace(LastGateSelection) || AppService.Instance.GsxController.AutomationState == AutomationState.Flight)
-                Clear(AppNotification.GateMove);
-        }
-
-        public virtual Task CaptureActiveGate(string name)
-        {
-            string capture = ParseGate(name);
-
-            if (capture != LastGateActive)
-            {
-                Logger.Information($"GSX Gate Selection changed to '{capture}'");
-                LastGateActive = capture;
-            }
-
-            if (!string.IsNullOrWhiteSpace(LastGateActive))
-            {
-                Clear(AppNotification.GateMove);
-                Clear(AppNotification.GateSelect);
-            }
-
-            return Task.CompletedTask;
         }
     }
 

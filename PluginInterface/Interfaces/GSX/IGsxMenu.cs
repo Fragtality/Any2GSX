@@ -18,25 +18,21 @@ namespace Any2GSX.PluginInterface.Interfaces.GSX
         public bool IsReady { get; }
         public bool ReadyReceived { get; }
         public bool FirstReadyReceived { get; }
+        public bool ExternalSequence { get; }
         public bool IsSequenceActive { get; }
         public bool IsCommandActive { get; }
         public bool MenuUpdatesBlocked { get; }
         public bool MenuCommandsAllowed { get; }
         public bool IsSequenceAllowed { get; }
         public bool IsCommandAllowed { get; }
-        public bool OperatorCallbackActive { get; }
         public bool IsToolbarEnabled { get; }
-        public bool NoJetwayDetected { get; }
         public bool SettingMenuDetected { get; }
         public bool SearchActive { get; }
         public int SearchSession { get; }
-        public bool WasFollowMeAnswered { get; }
-        public bool IsFollowMeCallbackActive { get; }
-        public bool WasOperatorPreferred { get; }
         public ConcurrentDictionary<GsxMenuCommandOperatorType, bool> OperatorSelectionState { get; }
-        public bool WasStairRemoved { get; }
         public bool IsGateMenu { get; }
         public bool IsDeicePad { get; }
+        public bool IsActivateServicesMenu { get; }
         public bool IsSelectGateMenu { get; }
         public bool IsChangeGateMenu { get; }
         public bool IsOperatorMenu { get; }
@@ -44,8 +40,6 @@ namespace Any2GSX.PluginInterface.Interfaces.GSX
         public double LastMenuSelection { get; }
         public DateTime LastSelectionTime { get; }
         public DateTime LastTimeout { get; }
-        public bool DeiceGateQuestionAnswered { get; }
-        public bool ExternalSequence { get; }
 
 
         public event Func<string, Task> MenuTitleChanged;

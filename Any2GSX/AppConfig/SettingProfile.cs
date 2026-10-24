@@ -122,7 +122,6 @@ namespace Any2GSX.AppConfig
         public virtual int DelayTurnAroundSeconds { get; set; } = 90;
         public virtual int DelayTurnRecheckSeconds { get; set; } = 30;
         public virtual bool RefreshGsxOnDeparture { get; set; } = true;
-        public virtual bool RefreshGsxOnTurn { get; set; } = true;
         public virtual bool UseSimTime { get; set; } = true;
         public virtual bool NotifyPrepFinished { get; set; } = true;
         public virtual bool NotifyFinalReceived { get; set; } = true;
@@ -140,10 +139,12 @@ namespace Any2GSX.AppConfig
         public virtual bool PcaOverride { get; set; } = true;
         public virtual bool CallReposition { get; set; } = true;
         public virtual bool CallJetwayStairsInWalkaround { get; set; } = true;
+        public virtual bool PreferCustomStairsInWalkaround { get; set; } = true;
         public virtual bool CallJetwayStairsOnPrep { get; set; } = true;
         public virtual bool CallJetwayStairsDuringDeparture { get; set; } = true;
         public virtual bool CallJetwayStairsOnArrival { get; set; } = true;
         public virtual int RemoveStairsAfterDepature { get; set; } = 2; // 0 => false | 1 => true | 2 => only on jetway stand
+        public virtual bool PlaceGroundEquipWalkaround { get; set; } = true;
         public virtual bool SecureAircraftOnSessionStart { get; set; } = true;
         public virtual bool SkipFuelOnTankering { get; set; } = true;
         public virtual bool CallPushbackOnBeacon { get; set; } = false;
@@ -163,6 +164,7 @@ namespace Any2GSX.AppConfig
         public virtual bool CloseDoorsOnFinal { get; set; } = true;
         public virtual bool DoorPaxHandling { get; set; } = true;
         public virtual bool DoorStairHandling { get; set; } = true;
+        public virtual bool DoorPreferAirstair { get; set; } = false;
         public virtual bool DoorServiceHandling { get; set; } = true;
         public virtual bool DoorPanelHandling { get; set; } = true;
         public virtual bool DoorCargoHandling { get; set; } = true;
@@ -209,7 +211,7 @@ namespace Any2GSX.AppConfig
                 { 0, new ServiceConfig(GsxServiceType.Lavatory, GsxServiceActivation.ServiceDependent, TimeSpan.Zero, GsxServiceDependency.Requested, GsxServiceDependencyScope.LastCalled, false, true, false, false, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
                 { 1, new ServiceConfig(GsxServiceType.Water, GsxServiceActivation.ServiceDependent, TimeSpan.Zero, GsxServiceDependency.Completed, GsxServiceDependencyScope.PreviousQueued, false, false, false, false, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
                 { 2, new ServiceConfig(GsxServiceType.Refuel, GsxServiceActivation.ServiceDependent, TimeSpan.Zero, GsxServiceDependency.Requested, GsxServiceDependencyScope.LastCalled, false, false, false, false, true, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
-                { 3, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.ServiceDependent, TimeSpan.Zero, GsxServiceDependency.Active, GsxServiceDependencyScope.PreviousQueued, false, true, false, false, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) { ServiceCancellation = GsxServiceActivation.ServiceDependent, ServiceCancelDependency = GsxServiceDependency.Completed, ServiceCancelDependencyScope = GsxServiceDependencyScope.AllCalled } },
+                { 3, new ServiceConfig(GsxServiceType.Cleaning, GsxServiceActivation.ServiceDependent, TimeSpan.Zero, GsxServiceDependency.Active, GsxServiceDependencyScope.PreviousQueued, false, true, false, false, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) { ServiceCancellation = GsxServiceActivation.ServiceDependent, ServiceCancelDependency = GsxServiceDependency.Completed, ServiceCancelDependencyScope = GsxServiceDependencyScope.AllCalled, MinRunTime = TimeSpan.FromMinutes(5) } },
                 { 4, new ServiceConfig(GsxServiceType.Catering, GsxServiceActivation.ServiceDependent, TimeSpan.Zero, GsxServiceDependency.Active, GsxServiceDependencyScope.AllQueued, false, false, false, false, false, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
                 { 5, new ServiceConfig(GsxServiceType.Boarding, GsxServiceActivation.ServiceDependent, TimeSpan.Zero, GsxServiceDependency.Completed, GsxServiceDependencyScope.AllCalled, false, false, false, false, true, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero) },
             };

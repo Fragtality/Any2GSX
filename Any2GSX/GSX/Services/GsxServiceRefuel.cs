@@ -31,7 +31,7 @@ namespace Any2GSX.GSX.Services
             SubRefuelHose?.OnReceived += OnHoseChange;
         }
 
-        protected override Task DoReset()
+        protected override Task DoReset(bool resetVariable)
         {
             WasHoseConnected = false;
             return Task.CompletedTask;

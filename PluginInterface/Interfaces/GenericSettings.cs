@@ -491,10 +491,11 @@ namespace Any2GSX.PluginInterface.Interfaces
                 EnumValues = [],
                 Tooltip = "Mapping which Aircraft Exit is used in GSX."
             };
-            foreach (var value in Enum.GetValues<AircraftDoor>())
-                if (value > AircraftDoor.L8)
-                    setting.EnumValues.Add((int)value, value.ToString());
+            setting.EnumValues.Add((int)AircraftDoor.None, AircraftDoor.None.ToString());
             setting.EnumValues.Add((int)AircraftDoor.Default, AircraftDoor.Default.ToString());
+            foreach (var value in Enum.GetValues<AircraftDoor>())
+                if (value > AircraftDoor.L8 && value < AircraftDoor.CargoFront)
+                    setting.EnumValues.Add((int)value, value.ToString());
             list.Add(setting);
             setting = new PluginSetting()
             {
@@ -505,10 +506,11 @@ namespace Any2GSX.PluginInterface.Interfaces
                 EnumValues = [],
                 Tooltip = "Mapping which Aircraft Exit is used in GSX."
             };
-            foreach (var value in Enum.GetValues<AircraftDoor>())
-                if (value > AircraftDoor.L8)
-                    setting.EnumValues.Add((int)value, value.ToString());
+            setting.EnumValues.Add((int)AircraftDoor.None, AircraftDoor.None.ToString());
             setting.EnumValues.Add((int)AircraftDoor.Default, AircraftDoor.Default.ToString());
+            foreach (var value in Enum.GetValues<AircraftDoor>())
+                if (value > AircraftDoor.L8 && value < AircraftDoor.CargoFront)
+                    setting.EnumValues.Add((int)value, value.ToString());
             list.Add(setting);
 
             return list;
