@@ -39,7 +39,7 @@ namespace Installer.Worker
 
         protected virtual void CheckSimulators()
         {
-            var list = WorkerModuleInstall<Config>.FindInstalledModules(Config);
+            var list = WorkerModuleInstall<Config>.FindInstalledModules(Config, true, out _);
             Logger.Debug($"Found {list.Count} Modules");
             ModuleItems.AddRange(list);
         }

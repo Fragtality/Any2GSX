@@ -33,7 +33,7 @@ namespace Installer
                 if (FuncMsfs.CheckInstalledMsfs(Simulator.MSFS2024, SimulatorStore.MsStore))
                     options.Add((int)CommModuleOption.Only2024MStore, $"{word} Module only on MSFS 2024 Microsoft Store");
             }
-            if (Config.Mode == SetupMode.INSTALL || WorkerModuleInstall<Config>.FindInstalledModules(Config, false).Count > 0)
+            if (Config.Mode == SetupMode.INSTALL || WorkerModuleInstall<Config>.FindInstalledModules(Config, false, out bool countMatch).Count > 0 || !countMatch)
                 Items.Add(new ConfigItemRadio($"{word} CommBus Module (required)", options, Config.OptionCommModuleInstallation, Config));
             else
                 Config.SetOption<bool>(Config.OptionSkipModuleUpdate, true);

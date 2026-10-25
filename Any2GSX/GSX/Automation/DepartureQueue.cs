@@ -41,7 +41,6 @@ namespace Any2GSX.GSX.Automation
         public virtual GsxServiceType NextType => NextService?.Type ?? GsxServiceType.Unknown;
         public virtual bool HasNextQueued => NextQueued != null;
         public virtual bool HasNext => Next != null;
-        protected virtual bool IsFirst => ServicesCalled.IsEmpty;
         protected virtual ConcurrentDictionary<int, DepartureService> ServicesCalled { get; } = [];
         protected virtual ConcurrentDictionary<int, DepartureService> ServicesSkipped { get; } = [];
         public virtual DepartureService LastCalled => ServicesCalled.IsEmpty ? null : ServicesCalled?.Last().Value ?? null;
@@ -80,7 +79,7 @@ namespace Any2GSX.GSX.Automation
 
         public virtual bool HasLastCalled(Func<DepartureService, bool> func)
         {
-            return LastCalled == null || func(LastCalled);
+            return LastCalled != null && func(LastCalled);
         }
 
         public virtual bool HasAllCalled(Func<DepartureService, bool> func)
@@ -131,7 +130,10 @@ namespace Any2GSX.GSX.Automation
         {
             ErrorMessage = "";
             foreach (var service in ServicesQueued)
-                await ApplyServiceConstraints(service.Key, service.Value);
+            {
+                if (service.Value.Config.ServiceActivation != GsxServiceActivation.Skip)
+                    await ApplyServiceConstraints(service.Key, service.Value);
+            }
 
             int next = -1;
             foreach (var service in ServicesQueued)
@@ -214,7 +216,7 @@ namespace Any2GSX.GSX.Automation
         protected virtual bool CheckServiceDependency(int index, DepartureService service)
         {
             var dependency = service.Config.ServiceDependency;
-            return IsFirst
+            return index == 0
                     || (dependency == GsxServiceDependency.Requested && CheckServiceDependencyState(index, GsxServiceState.Requested, service))
                     || (dependency == GsxServiceDependency.Active && CheckServiceDependencyState(index, GsxServiceState.Active, service))
                     || (dependency == GsxServiceDependency.Completed && CheckServiceDependencyState(index, GsxServiceState.Completed, service));
@@ -226,8 +228,8 @@ namespace Any2GSX.GSX.Automation
             {
                 GsxServiceDependencyScope.LastCalled => HasLastCalled(s => s.Service.State >= minState || s.Service.IsCompleted),
                 GsxServiceDependencyScope.PreviousQueued => ServicesSkipped.ContainsKey(index - 1) || ServicesCalled.Any(kv => kv.Key == index - 1 && (kv.Value.Service.State >= minState || kv.Value.Service.IsCompleted)),
-                GsxServiceDependencyScope.AllCalled => HasAllCalled(s => s.Service.State >= minState || s.Service.IsCompleted),
-                GsxServiceDependencyScope.AllQueued => ServicesCalled.Where(kv => kv.Key < index).All(kv => kv.Value.Service.State >= minState || kv.Value.Service.IsCompleted),
+                GsxServiceDependencyScope.AllCalled => !ServicesCalled.IsEmpty && HasAllCalled(s => s.Service.State >= minState || s.Service.IsCompleted),
+                GsxServiceDependencyScope.AllQueued => !ServicesCalled.IsEmpty && ServicesCalled.Where(kv => kv.Key < index).All(kv => kv.Value.Service.State >= minState || kv.Value.Service.IsCompleted),
                 _ => false
             };
         }
@@ -246,8 +248,8 @@ namespace Any2GSX.GSX.Automation
             {
                 GsxServiceDependencyScope.LastCalled => HasLastCalled(s => s.Service.State >= minState && s.Service.Type != service.Service.Type),
                 GsxServiceDependencyScope.PreviousQueued => ServicesSkipped.ContainsKey(index - 1) || ServicesCalled.Any(kv => kv.Key == index - 1 && (kv.Value.Service.State >= minState || kv.Value.Service.IsCompleted)),
-                GsxServiceDependencyScope.AllCalled => HasAllCalled(s => (s.Service.State >= minState && s.Service.Type != service.Service.Type) || s.Service.Type == service.Service.Type),
-                GsxServiceDependencyScope.AllQueued => ServicesCalled.Where(kv => kv.Key < index).All(kv => kv.Value.Service.State >= minState || kv.Value.Service.IsCompleted || kv.Value.Service.Type == service.Service.Type),
+                GsxServiceDependencyScope.AllCalled => !ServicesCalled.IsEmpty && HasAllCalled(s => (s.Service.State >= minState && s.Service.Type != service.Service.Type) || s.Service.Type == service.Service.Type),
+                GsxServiceDependencyScope.AllQueued => !ServicesCalled.IsEmpty && ServicesCalled.Where(kv => kv.Key < index).All(kv => kv.Value.Service.State >= minState || kv.Value.Service.IsCompleted || kv.Value.Service.Type == service.Service.Type),
                 _ => false
             };
         }
@@ -356,7 +358,12 @@ namespace Any2GSX.GSX.Automation
             if (move || asSkipped)
             {
                 if (!string.IsNullOrWhiteSpace(reason))
-                    Logger.Information($"Automation: Departure Service {service.Type} {(asSkipped ? "skipped" : "bypassed")} because: {reason}");
+                {
+                    if (asSkipped)
+                        Logger.Information($"Automation: Departure Service {service.Type} skipped because: {reason}");
+                    else
+                        Logger.Information($"Automation: Departure Service {service.Type} moved to Called Services: {reason}");
+                }
                 MoveQueue(index, asSkipped);
             }
         }

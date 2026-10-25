@@ -254,7 +254,10 @@
                                                         - All called: All Services that were called by the App so far.<LineBreak />
                                                         - Previous queued: The previous Service in the Queue (so bound to the Order in the Queue)<LineBreak />
                                                         - All queued: All previous Services in the Queue.<LineBreak /><LineBreak />
-                                                        Note: The first Service is always called regardless. Skipped Services are not checked.
+                                                        Note:<LineBreak />
+                                                        - If the first Service in the Queue is configured to be dependent on other Services, it will be called directly regardless of dependency (as there is no last or previous).<LineBreak />
+                                                        - For the Dependency Scope 'Previous Queued' a skipped Service (i.e. because of Turnaround) will be considered completed!<LineBreak />
+                                                        - For the Dependency Scope 'All Queued' at least one of Services comming before has to be called, else it won't be triggered - skipped Service are not checked here.
                                                     </TextBlock>
                                                 </ComboBox.ToolTip>
                                             </ComboBox>

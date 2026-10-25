@@ -1,6 +1,5 @@
 ﻿using Any2GSX.AppConfig;
 using Any2GSX.GSX;
-using Any2GSX.GSX.Automation.SmartCalls;
 using Any2GSX.GSX.Services;
 using Any2GSX.PluginInterface.Interfaces;
 using CFIT.AppLogger;
@@ -259,7 +258,7 @@ namespace Any2GSX.UI.Views.Monitor
             UpdateState<string>(nameof(AppProfile), SettingProfile?.Name ?? "");
             UpdateState<string>(nameof(AppPlugin), $"{AircraftController?.PluginId ?? ""}");
             UpdateState<string>(nameof(AppGsxProfile), $"{GsxController?.ApiClient?.ApiData?.HandlerData?.aircraft?.dataSourceUsed ?? ""}");
-            UpdateState(nameof(AppExternalControl), AppService.Instance?.GsxController?.AutomationController?.ExternalServiceControl ?? false);
+            UpdateState<string>(nameof(AppExternalControl), AppService.Instance?.GsxController?.AutomationController?.ExternalServiceControl == true ? $"On ({AppService.Instance?.GsxController?.AutomationController?.DepartureQueue?.ExternalServiceHandler})" : "Off");
         }
 
         [ObservableProperty]
@@ -315,10 +314,7 @@ namespace Any2GSX.UI.Views.Monitor
         [ObservableProperty]
         public partial string AppGsxProfile { get; set; } = "";
         [ObservableProperty]
-        public partial bool AppExternalControl { get; set; } = false;
-
-        [ObservableProperty]
-        public partial SolidColorBrush AppExternalControlColor { get; set; } = ColorInvalid;
+        public partial string AppExternalControl { get; set; } = "Off";
 
         protected virtual void UpdateAircraftPlugin()
         {

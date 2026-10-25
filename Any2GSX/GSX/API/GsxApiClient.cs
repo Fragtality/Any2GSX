@@ -137,6 +137,7 @@ namespace Any2GSX.GSX.API
         public virtual async Task Disconnect()
         {
             HelloReceived = false;
+            IsSubscribed = false;
             await DisconnectApi();
         }
 
@@ -366,7 +367,11 @@ namespace Any2GSX.GSX.API
                 }
             }
             else
+            {
                 LogMessage(message, "Invalid hello Message", LogLevel.Debug);
+                Logger.Error($"Invalid hello Message from GSX API - reconnect ...");
+                _ = Disconnect();
+            }
         }
 
         protected virtual void ParseMessageSnapshot(GsxMessageEnvelop message)

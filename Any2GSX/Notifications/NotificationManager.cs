@@ -93,7 +93,7 @@ namespace Any2GSX.Notifications
             ServicePushBack.OnBypassPin += OnPushPinChanged;
             ServiceJetway.OnStateChanged += OnJetwayStateChanged;
             ServiceJetway.OnOperationChanged += OnJetwayOperationChanged;
-            ServiceStairs.OnStateChanged += OnStairsStateChanged;
+            //ServiceStairs.OnStateChanged += OnStairsStateChanged;
             ServiceStairs.OnOperationChanged += OnStairsOperationChanged;
             ServiceRefuel.OnStateChanged += OnRefuelStateChanged;
             ServiceRefuel.OnHoseConnection += OnRefuelHoseConnection;
@@ -125,7 +125,7 @@ namespace Any2GSX.Notifications
                 ServicePushBack.OnBypassPin -= OnPushPinChanged;
                 ServiceJetway.OnStateChanged -= OnJetwayStateChanged;
                 ServiceJetway.OnOperationChanged -= OnJetwayOperationChanged;
-                ServiceStairs.OnStateChanged -= OnStairsStateChanged;
+                //ServiceStairs.OnStateChanged -= OnStairsStateChanged;
                 ServiceStairs.OnOperationChanged -= OnStairsOperationChanged;
                 ServiceRefuel.OnStateChanged -= OnRefuelStateChanged;
                 ServiceRefuel.OnHoseConnection -= OnRefuelHoseConnection;
@@ -491,16 +491,16 @@ namespace Any2GSX.Notifications
             return Task.CompletedTask;
         }
 
-        protected virtual Task OnStairsStateChanged(IGsxService gsxService)
-        {
-            if (!IsSessionRunning)
-                return Task.CompletedTask;
+        //protected virtual Task OnStairsStateChanged(IGsxService gsxService)
+        //{
+        //    if (!IsSessionRunning)
+        //        return Task.CompletedTask;
 
-            if (gsxService.State <= GsxServiceState.Bypassed || gsxService.State >= GsxServiceState.Active)
-                Tracker.Clear(AppNotification.OperateStairs);
+        //    if (gsxService.State <= GsxServiceState.Bypassed || gsxService.State >= GsxServiceState.Active)
+        //        Tracker.Clear(AppNotification.OperateStairs);
 
-            return Task.CompletedTask;
-        }
+        //    return Task.CompletedTask;
+        //}
 
         protected virtual Task OnStairsOperationChanged(GsxServiceState state)
         {

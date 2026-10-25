@@ -45,9 +45,7 @@
                     <Italic>
                         These Options can improve Immersion by configuring GSX in such a Way that it runs silently in the Background.
                         <LineBreak/>
-                        <Bold>Note:</Bold> An Option changes the according GSX Setting permanently when checked. Unchecking does not restore the GSX Setting.
-                        <LineBreak/>
-                        Options are automatically checked when the according GSX Setting is already set.
+                        <Bold>Note:</Bold> When an Option is checked, the according GSX Setting is changed <Bold>permanently</Bold>. Unchecking does not automatically restore the GSX Setting.
                     </Italic>
                 </TextBlock>
                 <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding GsxNotifyOnlyImportant}" Margin="6,6,6,6" Style="{StaticResource CheckBoxSettingItem}"

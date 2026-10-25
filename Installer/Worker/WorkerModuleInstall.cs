@@ -94,15 +94,18 @@ namespace Installer.Worker
             if (ModuleInstallOption == CommModuleOption.UpdateExisting)
             {
                 Logger.Debug($"UpdateExisting only");
-                var list = FindInstalledModules(Config);
+                var list = FindInstalledModules(Config, true, out _);
                 Logger.Debug($"Found {list.Count} Modules");
                 ModuleItems.AddRange(list);
             }
         }
 
-        public static List<ModuleItem> FindInstalledModules(Config config, bool ignoreVersion = true)
+        public static List<ModuleItem> FindInstalledModules(Config config, bool ignoreVersion, out bool countMatch)
         {
             var list = new List<ModuleItem>();
+            int countSims = 0;
+            int countModules = 0;
+            countMatch = false;
 
             Simulator[] simulators = { Simulator.MSFS2020, Simulator.MSFS2024 };
             foreach (var simulator in simulators)
@@ -111,6 +114,7 @@ namespace Installer.Worker
                 {
                     foreach (var path in paths)
                     {
+                        countSims++;
                         if (HasModulePath(path.Value))
                         {
                             if (!FuncMsfs.CheckPackageVersion(path.Value, Config.CommModuleName, config.ModuleVersion) || ignoreVersion)
@@ -118,10 +122,13 @@ namespace Installer.Worker
                                 list.Add(new ModuleItem() { Simulator = simulator, Store = path.Key, PackagePath = path.Value });
                                 Logger.Debug($"Found installed CommModule on {simulator} {path.Key}");
                             }
+                            else
+                                countModules++;
                         }
                     }
                 }
             }
+            countMatch = countSims > 0 && countSims == countModules;
 
             return list;
         }

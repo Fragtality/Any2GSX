@@ -529,33 +529,21 @@ namespace Any2GSX.GSX
 
                 if (Config.GsxNotifyOnlyImportant)
                     await CheckSettingApi(GsxConstants.SettingMessageVerbosity, 1);
-                else
-                    CheckConfigSetting(nameof(Config.GsxNotifyOnlyImportant), GsxConstants.SettingMessageVerbosity, 1);
 
                 if (Config.GsxNotifyNoInvoice)
                     await CheckSettingApi(GsxConstants.SettingDisableInvoices, 1);
-                else
-                    CheckConfigSetting(nameof(Config.GsxNotifyNoInvoice), GsxConstants.SettingDisableInvoices, 1);
 
                 if (Config.GsxNotifyNoAudio)
                     await CheckSettingApi(GsxConstants.SettingAuralCues, 0);
-                else
-                    CheckConfigSetting(nameof(Config.GsxNotifyNoAudio), GsxConstants.SettingAuralCues, 0);
 
                 if (Config.GsxNotifyNoCashRegister)
                     await CheckSettingApi(GsxConstants.SettingCashRegisterBeep, 0);
-                else
-                    CheckConfigSetting(nameof(Config.GsxNotifyNoCashRegister), GsxConstants.SettingCashRegisterBeep, 0);
 
                 if (Config.GsxNotifyPinnedMenuAuto)
                     await CheckSettingApi(GsxConstants.SettingPinnedMenuMode, 3);
-                else
-                    CheckConfigSetting(nameof(Config.GsxNotifyPinnedMenuAuto), GsxConstants.SettingPinnedMenuMode, 3);
 
                 if (Config.GsxNotifyNoNumberKeys)
                     await CheckSettingApi(GsxConstants.SettingMenuNumberKey, 0);
-                else
-                    CheckConfigSetting(nameof(Config.GsxNotifyNoNumberKeys), GsxConstants.SettingMenuNumberKey, 0);
 
                 if (Config.GsxChangePaxDensity)
                 {
@@ -636,22 +624,6 @@ namespace Any2GSX.GSX
             {
                 if (ApiClient.GetSetting(key) != target)
                     await ApiClient.SetSetting(key, target);
-            }
-            catch (Exception ex)
-            {
-                Logger.Debug($"{ex.GetType().Name}: {ex.Message}");
-            }
-        }
-
-        protected void CheckConfigSetting(string property, string key, dynamic target)
-        {
-            try
-            {
-                if (Config.GetPropertyValue<bool>(property) == false && ApiClient.GetSetting(key) == target)
-                {
-                    Config.SetPropertyValue<bool>(property, true);
-                    Config.SaveConfiguration();
-                }
             }
             catch (Exception ex)
             {

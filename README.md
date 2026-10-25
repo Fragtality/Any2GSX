@@ -203,14 +203,17 @@ Services can also be automatically cancelled by Any2GSX which can either be base
 
 The Activate Service Dropdown allows to configure when a Service is called:
 - **Never (Skip/Ignore)**: The Service is not called by Any2GSX and is not monitored. If you don't want to use a Service at all, select that.
-- **Manual by User / Addon**: The Service is not called by Any2GSX but is monitored - the Service needs to be called and needs to be completed before the Pushback Phase can start.
+- **Manual by User / Addon**: The Service is not called by Any2GSX but is monitored - the Service needs to be called and needs to be completed before the Pushback Phase can start. (Other Services can be configured to be dependent on manual called Services)
 - **Independent**: The Service is automatically called by Any2GSX as soon as it is allowed (i.e. not calling Boarding while Deboarding or a Service with a Stair Conflict while Services requiring them run).
 - **Dependent on Services**: The Service is automatically called by Any2GSX depending on the State of the called or previous Services State: "called" doesn't care about the Order (meaning all Services that where called or completed yet, even Services that come after in the Queue) while "previous" does care about the Order and looks at the Service that came before in the Queue.
-- **Time to Departure**: The Service is automatically called by Any2GSX X Minutes to the Departure Time imported via Simbrief (against the current Sim-Time). The Order in the Queue has no importance, it goes purely by Time.
+- **Time to Departure**: The Service is automatically called by Any2GSX X Minutes to the Departure Time imported via Simbrief (against the current Sim-Time). The Order in the Queue has no importance, it goes purely by Time (for the Service having that Activation - other Services can be configured to be dependent on the time based Service).
 
 <br/>
 
-Note: The first Service will always be called directly (if not set to skipped or manual or having Constraints set).
+**Note**:
+- If the first Service in the Queue is configured to be dependent on other Services, it will be called directly regardless of dependency (as there is no last or previous).
+- For the Dependency Scope 'Previous Queued' a skipped Service (i.e. because of Turnaround) will be considered completed!
+- For the Dependency Scope 'All Queued' at least one of Services comming before has to be called, else it won't be triggered - skipped Service are not checked here.
 
 <br/>
 
@@ -225,6 +228,7 @@ A Service can also be cancelled under certain Conditions:
 ###### Service Constraints
 
 The Constraint Checkboxes/Input determine if a Service is really called or skipped (even when the automatic Activation allows). Multiple Constraints can be combined together (except opposites) and every single one can skip a Service (only one must be true).<br/>
+Constraints are applied to all automatic Service Activations (so all except Never and Manual).<br/>
 
 - **Only on Departure**: The Service is only called on the first Leg of the Session (first Leg can be flown again with clicking the "Skip Preparation" Button in Turnaround Phase)
 - **Only on Turnaround**: The Service is only called on the consecutive Legs of the Session (to start in Turnaround use the "Skip Turnaround" Button in Preparation Phase)

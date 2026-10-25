@@ -212,7 +212,7 @@
                 </StackPanel>
                 <StackPanel Grid.Column="4" Grid.Row="0" Style="{StaticResource LabelMonitorPanel}" ToolTip="External Service Control set (i.e. by FLight Tracker)?">
                     <Label>External Control</Label>
-                    <Label Content="{Binding AppExternalControl}" Foreground="{Binding AppExternalControlColor}" FontStyle="Italic"/>
+                    <Label Content="{Binding AppExternalControl}" FontStyle="Italic"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="0" Grid.Row="1" Style="{StaticResource LabelMonitorPanel}" ToolTip="Operational Flight Phase the Automation is in">
