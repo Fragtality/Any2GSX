@@ -580,6 +580,7 @@ namespace Any2GSX.GSX.Menu
             if (num <= -2)
             {
                 Logger.Debug($"Received Menu Selection: Clear ({num})");
+                SettingMenuDetected = false;
             }
             else if (num == -1)
             {
