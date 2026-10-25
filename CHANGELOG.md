@@ -1,6 +1,11 @@
 # Changelog
 
 
+## v0.5.2
+
+- No changes recorded
+
+<br/><br/>
 ## v0.5.1
 
 ### App
