@@ -101,6 +101,7 @@ namespace Any2GSX.GSX
         public virtual bool IsWalkaround => CheckWalkAround();
         public virtual bool IsSessionReady => CheckSessionReady() || WasSessionReady;
         protected virtual bool WasSessionReady { get; set; } = false;
+        public virtual long FirstCameraState { get; protected set; } = 32;
 
         public event Func<bool, Task> RepositionSignal;
 
@@ -373,6 +374,7 @@ namespace Any2GSX.GSX
 
                 if (ApiClient.IsReady)
                     await OnReadyStateChange(ApiClient.IsReady);
+                FirstCameraState = SimConnect.CameraState;
 
                 while (RunFlag)
                 {
@@ -693,6 +695,7 @@ namespace Any2GSX.GSX
             NextMenuStartupCheck = DateTime.MinValue;
             TaskAutomation = null;
             WasSessionReady = false;
+            FirstCameraState = 32;
 
             await base.Stop();
         }

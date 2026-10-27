@@ -52,9 +52,14 @@ namespace Any2GSX.GSX.Automation.Phases
             return Phase;
         }
 
+        protected virtual bool CheckBeaconState()
+        {
+            return GsxController.FirstCameraState == 2 && Aircraft.LightBeacon;
+        }
+
         protected virtual bool CheckReposition()
         {
-            return ServiceReposition.IsCompleted || GsxController.IsGateConnected || !Profile.CallReposition || AircraftState.ReadyDepartureServices || ServiceReposition.IsCalled || ServiceReposition.WasRepoReceived || GsxController.ApiClient.GetSetting(GsxConstants.SettingAutoReposition) != 0;
+            return ServiceReposition.IsCompleted || GsxController.IsGateConnected || !Profile.CallReposition || AircraftState.ReadyDepartureServices || CheckBeaconState() || ServiceReposition.IsCalled || ServiceReposition.WasRepoReceived || GsxController.ApiClient.GetSetting(GsxConstants.SettingAutoReposition) != 0;
         }
 
         public override async Task Run()
@@ -106,7 +111,7 @@ namespace Any2GSX.GSX.Automation.Phases
                 }
             }
             //Walkaround/Ready with Jetway/Stairs allowed (use Custom Stair in true Walkaround instead of Jetway)
-            else if (IsWalkaround && !walkaroundSkipped && Profile.CallJetwayStairsInWalkaround)
+            else if (IsWalkaround && !walkaroundSkipped && Profile.CallJetwayStairsInWalkaround && !CheckBeaconState())
             {
                 if (ServiceJetway.IsConnectable && (!AircraftState.HasAirStairs || (AircraftState.HasAirStairs && !Profile.DoorPreferAirstair)))
                 {
@@ -133,7 +138,7 @@ namespace Any2GSX.GSX.Automation.Phases
                 }
             }
             //In Cockpit with Jetway/Stairs on Preparation
-            else if (!IsWalkaround && Profile.CallJetwayStairsOnPrep)
+            else if (!IsWalkaround && Profile.CallJetwayStairsOnPrep && !CheckBeaconState())
             {
                 await EquipManager.CheckSetAirstairs(true);
 

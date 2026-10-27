@@ -24,8 +24,8 @@ namespace Any2GSX.GSX.API
     public class GsxApiClient() : IDisposable, IGsxApiClient
     {
         private bool _isDisposed;
-        protected virtual CancellationTokenSource LinkedTokenSource { get; set; }
-        protected virtual CancellationToken RequestToken => LinkedTokenSource?.Token ?? default;
+        protected virtual CancellationTokenSource TokenSource { get; set; }
+        protected virtual CancellationToken RequestToken => AppService.Instance.RequestToken;
         protected virtual Task RunTask { get; set; }
         protected virtual ClientWebSocket WebSocket { get; set; }
         public virtual bool IsSocketValid => WebSocket != null && WebSocket.State == WebSocketState.Open && !RequestToken.IsCancellationRequested;
@@ -61,13 +61,12 @@ namespace Any2GSX.GSX.API
             }
 
             Logger.Debug("Starting GSX API Task ...");
-            LinkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(AppService.RequestToken);
             RunTask = Task.Factory.StartNew(async () => await Run(), RequestToken, TaskCreationOptions.AttachedToParent | TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
         public virtual async Task Stop()
         {
-            if (LinkedTokenSource == null || RunTask == null)
+            if (RunTask == null)
                 return;
 
             DispatcherTimer?.Stop();
@@ -75,7 +74,6 @@ namespace Any2GSX.GSX.API
             await DisconnectApi();
 
             Logger.Debug("Stopping GSX API Task ...");
-            LinkedTokenSource.Cancel();
             try
             {
                 await RunTask;
@@ -103,8 +101,6 @@ namespace Any2GSX.GSX.API
         protected virtual void Cleanup()
         {
             ByteCounter = 0;
-            LinkedTokenSource?.Dispose();
-            LinkedTokenSource = null;
             RunTask = null;
         }
 
@@ -118,7 +114,6 @@ namespace Any2GSX.GSX.API
         {
             if (disposing && !_isDisposed)
             {
-                LinkedTokenSource?.Dispose();
                 WebSocket?.Dispose();
                 WebSocket = null;
                 Logger.Debug($"GSX API Disposed");
@@ -174,9 +169,8 @@ namespace Any2GSX.GSX.API
             DispatcherTimer.Interval = TimeSpan.FromSeconds(Config.GsxApiRetryInterval);
             DispatcherTimer.Tick += CheckConnection;
             DispatcherTimer.Start();
-            bool cancelReceived = false;
 
-            while (!RequestToken.IsCancellationRequested && !cancelReceived)
+            while (!RequestToken.IsCancellationRequested)
             {
                 try
                 {
@@ -194,10 +188,7 @@ namespace Any2GSX.GSX.API
                     if (ex is not OperationCanceledException && ex is not TaskCanceledException)
                         LogException(ex);
                     else
-                    {
-                        Logger.Debug($"Cancellation received for GSX API Task");
-                        cancelReceived = true;
-                    }
+                        Logger.Debug($"Cancellation received during Processing for GSX API Task ({ex.GetType().Name})");
                 }
                 finally
                 {
@@ -206,7 +197,7 @@ namespace Any2GSX.GSX.API
                     WebSocket = null;
                 }
 
-                if (!RequestToken.IsCancellationRequested && !cancelReceived)
+                if (!RequestToken.IsCancellationRequested)
                 {
                     Logger.Debug($"GSX Web Socket not connected, Retry in {Config.GsxApiRetryInterval / 1000.0}s");
                     try
@@ -216,10 +207,7 @@ namespace Any2GSX.GSX.API
                     catch (Exception ex)
                     {
                         if (ex is OperationCanceledException || ex is TaskCanceledException)
-                        {
-                            Logger.Debug($"Cancellation received for GSX API Task");
-                            break;
-                        }
+                            Logger.Debug($"Cancellation received during Retry for GSX API Task ({ex.GetType().Name})");
                     }
                 }
             }
