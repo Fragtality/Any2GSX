@@ -186,6 +186,7 @@ namespace Any2GSX.GSX.Services
                     await SubVehicleStairs[GsxVehicleLocation.Front]?.WriteValue(!force && SubVehicleStairs[GsxVehicleLocation.Front]?.GetNumber() > 0 ? 1 : 0);
                     await SubVehicleStairs[GsxVehicleLocation.Middle]?.WriteValue(!force && SubVehicleStairs[GsxVehicleLocation.Middle]?.GetNumber() > 0 ? 1 : 0);
                     await SubVehicleStairs[GsxVehicleLocation.Rear]?.WriteValue(!force && SubVehicleStairs[GsxVehicleLocation.Rear]?.GetNumber() > 0 ? 1 : 0);
+                    Controller.Tracker.Clear(AppNotification.OperateStairs);
                 }
             }
             catch { }

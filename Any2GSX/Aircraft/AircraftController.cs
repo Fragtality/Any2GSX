@@ -12,6 +12,7 @@ using CFIT.AppLogger;
 using CFIT.AppTools;
 using CFIT.SimConnectLib;
 using CFIT.SimConnectLib.SimResources;
+using CFIT.SimConnectLib.SimVars;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -56,6 +57,8 @@ namespace Any2GSX.Aircraft
         protected virtual AutomationState LoaderConnectPhase { get; set; } = AutomationState.Unknown;
         protected virtual List<SimResourceSubCallback> SubscriptionCallbacks { get; } = [];
         protected virtual ConcurrentQueue<AutomationState> StateQueue { get; } = [];
+        public double AircraftCg => SubAircraftCg?.GetNumber() ?? 0;
+        protected virtual ISimResourceSubscription SubAircraftCg { get; set; }
 
 
         public AircraftController(Config config) : base(config)
@@ -122,6 +125,8 @@ namespace Any2GSX.Aircraft
             Flightplan.OnUnload += OnFlightplanUnload;
 
             GsxController.ApiClient.AircraftHandlerChanged += OnAircraftHandlerChanged;
+
+            SubAircraftCg = SimStore.AddVariable("CG PERCENT", SimUnitType.PercentOver100);
         }
 
         protected virtual async Task OnAircraftHandlerChanged()
@@ -242,6 +247,9 @@ namespace Any2GSX.Aircraft
                 Flightplan.OnUnload -= OnFlightplanUnload;
 
                 GsxController.ApiClient.AircraftHandlerChanged -= OnAircraftHandlerChanged;
+
+                SimStore.Remove("CG PERCENT");
+                SubAircraftCg = null;
             }
             catch (Exception ex)
             {

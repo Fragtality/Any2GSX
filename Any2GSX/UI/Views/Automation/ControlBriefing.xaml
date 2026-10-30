@@ -251,6 +251,9 @@
             </TextBlock>
             <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource TextRight}" Text="{Binding LiveTotal}" ToolTip="The Total Weight as read by the Sim / Aircraft"/>
 
+            <TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource TextRight}" HorizontalAlignment="Center">CG %</TextBlock>
+            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding LiveCg}" Style="{StaticResource TextRight}" HorizontalAlignment="Center" />
+
             <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource TextLabel}" ToolTip="The Empty Weight The Total Weight as read by the Sim">
                 EW
             </TextBlock>

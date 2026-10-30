@@ -85,6 +85,7 @@ namespace Any2GSX.UI.Views.Automation
                     LiveZeroFuel = FormatWeightAircraft(await Aircraft.GetWeightZeroFuelKg());
                     LiveFuel = FormatWeightAircraft(await Aircraft.GetFuelOnBoardKg());
                     LiveEmpty = FormatWeightAircraft(Aircraft.WeightEmptyKg);
+                    LiveCg = $"{(AircraftController.AircraftCg * 100.0).ToString("N1", CultureInfo.InstalledUICulture)}";
                 }
                 else
                 {
@@ -92,6 +93,7 @@ namespace Any2GSX.UI.Views.Automation
                     LiveZeroFuel = FormatWeightAircraft(0);
                     LiveFuel = FormatWeightAircraft(0);
                     LiveEmpty = FormatWeightAircraft(0);
+                    LiveCg = "";
                 }
                 _ = RunOnDispatcher(NotifyLiveWeights);
             }
@@ -107,6 +109,7 @@ namespace Any2GSX.UI.Views.Automation
             OnPropertyChanged(nameof(LiveZeroFuel));
             OnPropertyChanged(nameof(LiveFuel));
             OnPropertyChanged(nameof(LiveEmpty));
+            OnPropertyChanged(nameof(LiveCg));
         }
 
         protected virtual void ResetPushDirections()
@@ -389,5 +392,6 @@ namespace Any2GSX.UI.Views.Automation
         public virtual string LiveZeroFuel { get; protected set; }
         public virtual string LiveTotal { get; protected set; }
         public virtual string LiveFuel { get; protected set; }
+        public virtual string LiveCg { get; protected set; }
     }
 }
