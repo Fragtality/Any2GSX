@@ -15,7 +15,7 @@
 typedef long long FsNetworkRequestId;
 typedef void (*HttpRequestCallback)(FsNetworkRequestId requestId, int errorCode, void* userData);
 
-const char* VERSION = "0.5.1";
+const char* VERSION = "0.5.2";
 const char* CLIENTNAME = "Any2GSX_CommBus";
 
 const char* EventNameJs = "Any2GSX_RelayToJs";

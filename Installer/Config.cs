@@ -31,7 +31,7 @@ namespace Installer
         public static readonly string OptionCommModuleInstallation = "CommModuleInstallation";
         public static readonly string OptionForceCommModuleUpdate = "ForceCommModuleUpdate";
         public static readonly string OptionSkipModuleUpdate = "SkipModuleUpdate";
-        public virtual string ModuleVersion { get; set; } = "0.5.1";
+        public virtual string ModuleVersion { get; set; } = "0.5.2";
 
         //Pilotsdeck
         public static readonly string OptionInstallDeckProfile = "InstallDeckProfile";
@@ -39,10 +39,10 @@ namespace Installer
 
         //Worker: .NET
         public virtual bool NetRuntimeDesktop { get; set; } = true;
-        public virtual string NetVersion { get; set; } = "10.0.14";
+        public virtual string NetVersion { get; set; } = "10.0.15";
         public virtual bool CheckMajorEqual { get; set; } = true;
-        public virtual string NetUrl { get; set; } = "https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/10.0.14/windowsdesktop-runtime-10.0.14-win-x64.exe";
-        public virtual string NetInstaller { get; set; } = "windowsdesktop-runtime-10.0.14-win-x64.exe";
+        public virtual string NetUrl { get; set; } = "https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/10.0.15/windowsdesktop-runtime-10.0.15-win-x64.exe";
+        public virtual string NetInstaller { get; set; } = "windowsdesktop-runtime-10.0.15-win-x64.exe";
 
         public Config() : base()
         {
